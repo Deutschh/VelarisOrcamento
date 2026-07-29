@@ -9,17 +9,16 @@
 
 ## Escopo e parada atual
 
-- Esta etapa consolida decisoes, organiza workspace e inicializa Git.
-- Nao instalar dependencias.
-- Nao implementar frontend.
-- Nao implementar backend.
-- Nao criar tabelas ou migrations reais.
-- Nao conectar ao Neon.
+- Sprint 1 esta autorizada: fundacao tecnica do projeto.
+- Pode criar scaffolding de frontend, backend, pacotes, configuracoes, scripts, health check, logs, erros padronizados e estruturas base.
+- Pode instalar dependencias confirmadas na stack da Sprint 1.
+- Nao criar tabelas de negocio ou migrations reais antes da Sprint 2.
+- Nao conectar ao Neon com credenciais reais.
 - Nao criar arquivos com credenciais.
 - Nao fazer deploy.
-- Nao implementar regras de negocio.
+- Nao implementar regras de negocio especificas dos fluxos de orcamento.
 - Nao alterar configuracoes globais do Windows.
-- Nao iniciar a Sprint 1 sem nova autorizacao do usuario.
+- Nao iniciar a Sprint 2 sem nova autorizacao do usuario.
 
 ## Decisoes de produto confirmadas
 
@@ -103,4 +102,5 @@
 
 - Seguir a ordem das sprints da especificacao.
 - Sprint 0 deve fechar fluxos, matriz de estados, modos de agendamento, textos legais, mapa de rotas, wireframes, prototipo navegavel e separacao entre MVP piloto e V1 completa.
-- Sprint 1 inicia a fundacao tecnica somente apos nova autorizacao do usuario.
+- Sprint 1 cria a fundacao tecnica.
+- Sprint 2 inicia banco multiempresa e autenticacao somente apos nova autorizacao do usuario.

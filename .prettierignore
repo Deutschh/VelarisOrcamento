@@ -1,0 +1,9 @@
+node_modules/
+**/dist/
+**/build/
+coverage/
+playwright-report/
+test-results/
+database/migrations/
+ImagesExemplos/
+docs/ESPECIFICACAO_V1.md

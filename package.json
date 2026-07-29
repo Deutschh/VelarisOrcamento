@@ -9,15 +9,47 @@
     "npm": ">=11.5.2 <12"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "dev": "node -e \"console.log('Sprint 1 ainda nao inicializada. Nenhum app configurado.')\"",
-    "build": "node -e \"console.log('Build ainda nao configurado. Aguardando Sprint 1.')\"",
-    "test": "node -e \"console.log('Testes ainda nao configurados. Aguardando Sprint 1.')\"",
-    "lint": "node -e \"console.log('Lint ainda nao configurado. Aguardando Sprint 1.')\"",
-    "format": "node -e \"console.log('Formatacao ainda nao configurada. Aguardando Sprint 1.')\"",
-    "typecheck": "node -e \"console.log('Typecheck ainda nao configurado. Aguardando Sprint 1.')\""
+    "dev": "npm run dev:api",
+    "dev:api": "npm run dev -w @velaris/api",
+    "dev:web": "npm run dev -w @velaris/web",
+    "build": "npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run build -w @velaris/api && npm run build -w @velaris/web",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test --pass-with-no-tests",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "typecheck": "npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run typecheck -w @velaris/api && npm run typecheck -w @velaris/web",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config drizzle.config.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.54.1",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.1.0",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/supertest": "^6.0.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "drizzle-kit": "^0.31.4",
+    "eslint": "^9.32.0",
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vite": "^7.0.6",
+    "vitest": "^3.2.4"
   }
 }

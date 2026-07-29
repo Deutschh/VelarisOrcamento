@@ -1,0 +1,25 @@
+{
+  "name": "@velaris/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.83.0",
+    "@velaris/shared": "0.0.0",
+    "@velaris/ui": "0.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.61.1",
+    "react-router-dom": "^7.7.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {}
+}

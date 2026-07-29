@@ -20,20 +20,20 @@
 
 ## Rotas de tela previstas
 
-| Area | Rota | Tela/uso | Status |
-|---|---|---|---|
-| Publica | `/` | Home publica | Requisito confirmado |
-| Publica | `/onboarding` | Onboarding geral | Requisito confirmado |
-| Publica | `/empresas` | Busca/listagem de empresas | Requisito confirmado |
-| Publica | `/empresa/:slug` | Perfil publico da empresa | Requisito confirmado |
-| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento | Requisito confirmado |
-| Publica | `/acompanhar/:token` | Acompanhamento publico seguro | Requisito confirmado |
-| Publica | `/recuperar` | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado |
-| Auth | `/login` | Login | Requisito confirmado |
-| Auth | `/cadastro` | Escolha do tipo de cadastro | Requisito confirmado |
-| Cliente | `/cliente` | Home personalizada do cliente | Requisito confirmado |
-| Empresa | `/app` | Painel da empresa | Requisito confirmado |
-| Admin | `/admin` | Painel da Velaris | Requisito confirmado |
+| Area    | Rota                       | Tela/uso                                 | Status               |
+| ------- | -------------------------- | ---------------------------------------- | -------------------- |
+| Publica | `/`                        | Home publica                             | Requisito confirmado |
+| Publica | `/onboarding`              | Onboarding geral                         | Requisito confirmado |
+| Publica | `/empresas`                | Busca/listagem de empresas               | Requisito confirmado |
+| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Requisito confirmado |
+| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento        | Requisito confirmado |
+| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro            | Requisito confirmado |
+| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado |
+| Auth    | `/login`                   | Login                                    | Requisito confirmado |
+| Auth    | `/cadastro`                | Escolha do tipo de cadastro              | Requisito confirmado |
+| Cliente | `/cliente`                 | Home personalizada do cliente            | Requisito confirmado |
+| Empresa | `/app`                     | Painel da empresa                        | Requisito confirmado |
+| Admin   | `/admin`                   | Painel da Velaris                        | Requisito confirmado |
 
 ## Telas publicas
 
