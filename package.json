@@ -1,0 +1,23 @@
+{
+  "name": "velaris-orcamentos",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.5.2",
+  "engines": {
+    "node": ">=22.15.0 <23",
+    "npm": ">=11.5.2 <12"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "node -e \"console.log('Sprint 1 ainda nao inicializada. Nenhum app configurado.')\"",
+    "build": "node -e \"console.log('Build ainda nao configurado. Aguardando Sprint 1.')\"",
+    "test": "node -e \"console.log('Testes ainda nao configurados. Aguardando Sprint 1.')\"",
+    "lint": "node -e \"console.log('Lint ainda nao configurado. Aguardando Sprint 1.')\"",
+    "format": "node -e \"console.log('Formatacao ainda nao configurada. Aguardando Sprint 1.')\"",
+    "typecheck": "node -e \"console.log('Typecheck ainda nao configurado. Aguardando Sprint 1.')\""
+  }
+}
