@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { companyProfileStatusSchema, companyStatusSchema } from "./auth.js";
+import type { CompanyPublicProfileSettings } from "./public.js";
 
 export const internalNoteRequestSchema = z.object({
   note: z.string().trim().min(2).max(2000),
@@ -45,6 +46,7 @@ export interface AdminCompanyDetail extends AdminCompanySummary {
   legalName: string | null;
   documentNumber: string | null;
   timezone: string;
+  publicProfile: CompanyPublicProfileSettings;
   notes: AdminCompanyNote[];
   auditLogs: AdminAuditLog[];
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request } from "express";
 import {
   adminCompanyActionRequestSchema,
+  adminCompanyPublicProfileRequestSchema,
   adminCompanyListQuerySchema,
   adminPublishCompanyRequestSchema,
   internalNoteRequestSchema,
@@ -64,6 +65,20 @@ export function createAdminRouter(adminService: AdminService) {
     asyncHandler(async (request, response) => {
       const body = adminPublishCompanyRequestSchema.parse(request.body);
       const company = await adminService.publishCompany(
+        getCompanyId(request.params),
+        getActorUserId(request),
+        body,
+      );
+
+      response.json({ company });
+    }),
+  );
+
+  router.patch(
+    "/companies/:companyId/profile",
+    asyncHandler(async (request, response) => {
+      const body = adminCompanyPublicProfileRequestSchema.parse(request.body);
+      const company = await adminService.updateCompanyPublicProfile(
         getCompanyId(request.params),
         getActorUserId(request),
         body,

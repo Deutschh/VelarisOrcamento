@@ -78,4 +78,30 @@ describe("AdminService", () => {
     expect(company.profileStatus).toBe("published");
     expect(company.auditLogs[0]?.action).toBe("company.profile.published");
   });
+
+  it("updates public profile data", async () => {
+    const repository = new InMemoryAdminRepository();
+    repository.companies.set("company-1", createTestAdminCompany());
+    const { service } = createService(repository);
+
+    const company = await service.updateCompanyPublicProfile("company-1", "admin-1", {
+      nicheCode: "cleaning_upholstery",
+      headline: "Higienizacao de sofas",
+      description: "Atendimento residencial com avaliacao por fotos.",
+      city: "Sao Paulo",
+      state: "SP",
+      postalCode: "01000-000",
+      latitude: -23.55052,
+      longitude: -46.633308,
+      serviceRadiusKm: 25,
+      serviceCities: ["Sao Paulo", "Osasco"],
+      serviceNeighborhoods: [],
+      gallery: [],
+      services: [{ name: "Sofa", description: "Limpeza completa" }],
+    });
+
+    expect(company.publicProfile.city).toBe("Sao Paulo");
+    expect(company.publicProfile.services[0]?.name).toBe("Sofa");
+    expect(company.auditLogs[0]?.action).toBe("company.public_profile.updated");
+  });
 });

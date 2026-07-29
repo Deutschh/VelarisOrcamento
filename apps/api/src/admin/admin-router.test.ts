@@ -68,4 +68,26 @@ describe("admin routes", () => {
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe("ADMIN_ACCESS_DENIED");
   });
+
+  it("updates company public profile for admin users", async () => {
+    const { app, adminToken } = createTestContext();
+
+    const response = await request(app)
+      .patch("/api/admin/companies/company-1/profile")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        nicheCode: "cleaning_upholstery",
+        headline: "Higienizacao residencial",
+        city: "Sao Paulo",
+        state: "SP",
+        serviceRadiusKm: 20,
+        serviceCities: ["Sao Paulo"],
+        serviceNeighborhoods: [],
+        gallery: [],
+        services: [{ name: "Sofa" }],
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.company.publicProfile.city).toBe("Sao Paulo");
+  });
 });

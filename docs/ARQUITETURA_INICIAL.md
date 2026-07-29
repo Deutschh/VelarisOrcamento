@@ -95,6 +95,10 @@ Requisito implementado: a API usa servicos de aplicacao para Auth, Admin e Compa
 
 Requisito implementado: mudancas de estado administrativo de empresas passam por funcoes puras em `packages/domain` e por servicos de aplicacao, nao por atualizacao livre em controllers.
 
+Requisito implementado: descoberta publica usa API propria em `apps/api/src/public`, com contratos em `packages/shared`, filtro por empresa ativa/perfil publicado e calculo puro de distancia em `packages/domain`.
+
+Requisito implementado: dados de perfil publico ficam em `company_public_profiles`, separados de `companies`, para permitir publicacao, busca, servicos, galeria, contatos, localizacao e regioes atendidas sem expor dados internos.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 ## Estrutura de monorepo

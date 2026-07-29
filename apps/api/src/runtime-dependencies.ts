@@ -12,12 +12,15 @@ import { DrizzleCompanyAccountRepository } from "./company/drizzle-company-accou
 import { env } from "./config/env.js";
 import { createDatabaseClient } from "./db/client.js";
 import { stubEmailAdapter } from "./notifications/email-adapter.js";
+import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
+import { PublicCompanyService } from "./public/public-service.js";
 
 export interface RuntimeDependencies {
   authService: ReturnType<typeof createAuthService>;
   tokenService: TokenService;
   adminService: AdminService;
   companyAccountService: CompanyAccountService;
+  publicCompanyService: PublicCompanyService;
 }
 
 export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
@@ -41,6 +44,9 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     }),
     companyAccountService: new CompanyAccountService(
       new DrizzleCompanyAccountRepository(db),
+    ),
+    publicCompanyService: new PublicCompanyService(
+      new DrizzlePublicCompanyRepository(db),
     ),
   };
 }

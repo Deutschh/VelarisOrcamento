@@ -1,4 +1,5 @@
 import type { AdminCompanyListQuery } from "@velaris/shared";
+import type { CompanyPublicProfileSettings } from "@velaris/shared";
 import type {
   AdminRepository,
   CreateInternalNoteInput,
@@ -6,10 +7,12 @@ import type {
   PersistedAdminAuditLog,
   PersistedAdminCompany,
   PersistedAdminCompanyNote,
+  UpdateCompanyPublicProfileInput,
 } from "../admin/admin-repository.js";
 
 export class InMemoryAdminRepository implements AdminRepository {
   readonly companies = new Map<string, PersistedAdminCompany>();
+  readonly publicProfiles = new Map<string, CompanyPublicProfileSettings>();
   readonly notes: PersistedAdminCompanyNote[] = [];
   readonly auditLogs: PersistedAdminAuditLog[] = [];
 
@@ -23,6 +26,12 @@ export class InMemoryAdminRepository implements AdminRepository {
 
   async findCompanyById(id: string): Promise<PersistedAdminCompany | null> {
     return this.companies.get(id) ?? null;
+  }
+
+  async findCompanyPublicProfile(
+    companyId: string,
+  ): Promise<CompanyPublicProfileSettings | null> {
+    return this.publicProfiles.get(companyId) ?? null;
   }
 
   async listCompanyNotes(companyId: string): Promise<PersistedAdminCompanyNote[]> {
@@ -72,6 +81,48 @@ export class InMemoryAdminRepository implements AdminRepository {
     this.auditLogs.push({
       id: `${input.companyId}:audit:${this.auditLogs.length + 1}`,
       action: "company.internal_note.created",
+      actorName: "Admin Teste",
+      metadata: null,
+      createdAt: new Date(),
+    });
+  }
+
+  async updateCompanyPublicProfile(
+    input: UpdateCompanyPublicProfileInput,
+  ): Promise<void> {
+    this.publicProfiles.set(input.companyId, {
+      nicheCode: input.profile.nicheCode,
+      headline: input.profile.headline ?? null,
+      description: input.profile.description ?? null,
+      city: input.profile.city ?? null,
+      state: input.profile.state ?? null,
+      postalCode: input.profile.postalCode ?? null,
+      neighborhood: input.profile.neighborhood ?? null,
+      addressLine: input.profile.addressLine ?? null,
+      addressComplement: input.profile.addressComplement ?? null,
+      latitude: input.profile.latitude ?? null,
+      longitude: input.profile.longitude ?? null,
+      serviceRadiusKm: input.profile.serviceRadiusKm ?? null,
+      serviceCities: input.profile.serviceCities,
+      serviceNeighborhoods: input.profile.serviceNeighborhoods,
+      logoUrl: input.profile.logoUrl ?? null,
+      coverImageUrl: input.profile.coverImageUrl ?? null,
+      primaryColor: input.profile.primaryColor ?? null,
+      contactPhone: input.profile.contactPhone ?? null,
+      contactWhatsapp: input.profile.contactWhatsapp ?? null,
+      contactEmail: input.profile.contactEmail ?? null,
+      websiteUrl: input.profile.websiteUrl ?? null,
+      instagramUrl: input.profile.instagramUrl ?? null,
+      terms: input.profile.terms ?? null,
+      gallery: input.profile.gallery,
+      services: input.profile.services,
+      reviewAverage: null,
+      reviewCount: 0,
+    });
+
+    this.auditLogs.push({
+      id: `${input.companyId}:audit:${this.auditLogs.length + 1}`,
+      action: "company.public_profile.updated",
       actorName: "Admin Teste",
       metadata: null,
       createdAt: new Date(),

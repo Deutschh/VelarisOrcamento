@@ -22,10 +22,10 @@
 
 | Area    | Rota                       | Tela/uso                                 | Status                |
 | ------- | -------------------------- | ---------------------------------------- | --------------------- |
-| Publica | `/`                        | Home publica                             | Requisito confirmado  |
-| Publica | `/onboarding`              | Onboarding geral                         | Requisito confirmado  |
-| Publica | `/empresas`                | Busca/listagem de empresas               | Requisito confirmado  |
-| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Requisito confirmado  |
+| Publica | `/`                        | Home publica                             | Implementado Sprint 4 |
+| Publica | `/onboarding`              | Onboarding geral                         | Implementado Sprint 4 |
+| Publica | `/empresas`                | Busca/listagem de empresas               | Implementado Sprint 4 |
+| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Implementado Sprint 4 |
 | Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento        | Requisito confirmado  |
 | Publica | `/acompanhar/:token`       | Acompanhamento publico seguro            | Requisito confirmado  |
 | Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado  |
@@ -40,10 +40,10 @@
 
 ## Telas publicas
 
-- Home publica: apresentacao curta, busca por cidade/CEP/localizacao, categorias, empresas proximas, empresas em destaque, Como funciona, acesso ao historico por codigo, login do cliente e acesso empresarial.
-- Onboarding: tres telas com acoes Pular, Continuar e Comecar.
-- Busca de empresas: filtros por nicho/localizacao e listagem considerando regiao atendida, raio, status ativo e perfil publicado.
-- Perfil publico da empresa: logotipo, capa, cor principal moderada, descricao, galeria, contatos, endereco, redes sociais, servicos, termos, raio/regioes e CTA de orcamento.
+- Home publica: apresentacao curta, busca por cidade/CEP/localizacao, categorias, empresas publicadas, login do cliente e acesso empresarial. Implementado Sprint 4.
+- Onboarding: tres telas com acoes Pular, Continuar e Comecar. Implementado Sprint 4.
+- Busca de empresas: filtros por nicho/localizacao e listagem considerando regiao atendida, raio, status ativo e perfil publicado. Implementado Sprint 4.
+- Perfil publico da empresa: logotipo, capa, cor principal moderada, descricao, galeria, contatos, endereco, servicos, termos, raio/regioes e CTA de orcamento. Implementado Sprint 4.
 - Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF, dados pessoais, endereco, estimativa, revisao, termos e confirmacao.
 - Acompanhamento: estado atual da jornada, codigo da solicitacao, proposta quando houver, agendamento quando aplicavel, acoes permitidas e WhatsApp assistido.
 - Recuperacao: entrada de codigo + e-mail ou codigo + WhatsApp, envio de OTP ao e-mail cadastrado e verificacao.
@@ -137,6 +137,8 @@
 - `GET /api/public/companies/:slug`
 - `GET /api/public/companies/:slug/services`
 
+Status Sprint 4: rotas publicas de descoberta implementadas.
+
 ### Publicas - rascunho e solicitacao
 
 - `POST /api/public/quote-requests/drafts`
@@ -193,6 +195,7 @@
 - `POST /api/admin/companies/:id/suspend`
 - `PATCH /api/admin/companies/:id/profile`
 - `POST /api/admin/companies/:id/publish`
+- `PATCH /api/admin/companies/:id/profile`
 - `POST /api/admin/companies/:id/notes`
 - `GET /api/admin/niche-templates`
 - `POST /api/admin/company-configurations`

@@ -6,7 +6,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 
 - Sprint 1 concluida: fundacao tecnica do monorepo, API, web, qualidade e health check.
 - Sprint 2 concluida: schema multiempresa, migration inicial, autenticacao propria, refresh tokens e isolamento empresarial.
-- Sprint 3 em implementacao: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
+- Sprint 3 concluida: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
+- Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico editavel pelo Admin.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
 ## Sprint 0 - Fechamento funcional e prototipo
@@ -50,6 +51,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 
 - Requisito confirmado: onboarding, Home publica, categorias, busca por cidade/CEP, localizacao, distancia, raio de atendimento, listagem, perfil publico, galeria, avaliacoes resumidas, CTA de orcamento e favoritos para autenticados.
 - Regra confirmada: link direto para `/empresa/:slug` nao deve ser bloqueado pelo onboarding.
+- Implementado Sprint 4: rotas `/`, `/onboarding`, `/empresas`, `/empresa/:slug` e `/empresa/:slug/orcamento`; API `GET /api/public/categories`, `GET /api/public/companies`, `GET /api/public/companies/:slug` e `GET /api/public/companies/:slug/services`; tabela `company_public_profiles`; formulario Admin para dados publicos basicos, servicos, cidade, raio e regioes atendidas.
+- Limitacao registrada: descoberta completa por geolocalizacao precisa de refinamento posterior; favoritos continuam fora do MVP piloto conforme secao 34.1.
 - Estimativa da especificacao: 16 a 22 horas.
 
 ## Sprint 5 - Templates fixos e campos configuraveis

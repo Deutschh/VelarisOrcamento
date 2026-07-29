@@ -5,7 +5,11 @@ import type {
   CompanyLifecycleStatus,
   CompanyLifecycleSubscriptionStatus,
 } from "@velaris/domain";
-import type { AdminCompanyListQuery } from "@velaris/shared";
+import type {
+  AdminCompanyListQuery,
+  AdminCompanyPublicProfileRequest,
+  CompanyPublicProfileSettings,
+} from "@velaris/shared";
 
 export interface PersistedAdminCompany extends CompanyLifecycleState {
   id: string;
@@ -52,11 +56,21 @@ export interface CreateInternalNoteInput {
   note: string;
 }
 
+export interface UpdateCompanyPublicProfileInput {
+  companyId: string;
+  actorUserId: string;
+  profile: AdminCompanyPublicProfileRequest;
+}
+
 export interface AdminRepository {
   listCompanies(query: AdminCompanyListQuery): Promise<PersistedAdminCompany[]>;
   findCompanyById(id: string): Promise<PersistedAdminCompany | null>;
+  findCompanyPublicProfile(
+    companyId: string,
+  ): Promise<CompanyPublicProfileSettings | null>;
   listCompanyNotes(companyId: string): Promise<PersistedAdminCompanyNote[]>;
   listCompanyAuditLogs(companyId: string): Promise<PersistedAdminAuditLog[]>;
   persistCompanyAction(input: PersistCompanyActionInput): Promise<void>;
   createInternalNote(input: CreateInternalNoteInput): Promise<void>;
+  updateCompanyPublicProfile(input: UpdateCompanyPublicProfileInput): Promise<void>;
 }

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   numeric,
   pgEnum,
@@ -124,6 +125,59 @@ export const companies = pgTable(
   (table) => ({
     slugUnique: uniqueIndex("companies_slug_unique").on(table.slug),
     statusIdx: index("companies_status_idx").on(table.status),
+  }),
+);
+
+export const companyPublicProfiles = pgTable(
+  "company_public_profiles",
+  {
+    companyId: uuid("company_id")
+      .primaryKey()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    nicheCode: text("niche_code").notNull().default("cleaning_upholstery"),
+    headline: text("headline"),
+    description: text("description"),
+    city: text("city"),
+    state: text("state"),
+    postalCode: text("postal_code"),
+    neighborhood: text("neighborhood"),
+    addressLine: text("address_line"),
+    addressComplement: text("address_complement"),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }),
+    serviceRadiusKm: numeric("service_radius_km", { precision: 8, scale: 2 }),
+    serviceCities: jsonb("service_cities")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    serviceNeighborhoods: jsonb("service_neighborhoods")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    logoUrl: text("logo_url"),
+    coverImageUrl: text("cover_image_url"),
+    primaryColor: text("primary_color"),
+    contactPhone: text("contact_phone"),
+    contactWhatsapp: text("contact_whatsapp"),
+    contactEmail: text("contact_email"),
+    websiteUrl: text("website_url"),
+    instagramUrl: text("instagram_url"),
+    terms: text("terms"),
+    gallery: jsonb("gallery")
+      .$type<Array<{ url: string; alt?: string | undefined }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    services: jsonb("services")
+      .$type<Array<{ name: string; description?: string | undefined }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    reviewAverage: numeric("review_average", { precision: 3, scale: 2 }),
+    reviewCount: integer("review_count").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => ({
+    nicheIdx: index("company_public_profiles_niche_idx").on(table.nicheCode),
+    cityIdx: index("company_public_profiles_city_idx").on(table.city),
   }),
 );
 

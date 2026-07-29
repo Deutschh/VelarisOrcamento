@@ -5,6 +5,7 @@ import {
   suspendCompanyState,
 } from "@velaris/domain";
 import type {
+  AdminCompanyPublicProfileRequest,
   AdminCompanyActionRequest,
   AdminCompanyDetail,
   AdminCompanyListQuery,
@@ -14,6 +15,7 @@ import type {
 } from "@velaris/shared";
 
 import type { EmailAdapter } from "../notifications/email-adapter.js";
+import { createDefaultPublicProfile } from "../public/public-profile.js";
 import { CompanyLifecycleRuleError, CompanyNotFoundError } from "./admin-errors.js";
 import type {
   AdminRepository,
@@ -42,12 +44,16 @@ export class AdminService {
       this.dependencies.repository.listCompanyNotes(id),
       this.dependencies.repository.listCompanyAuditLogs(id),
     ]);
+    const publicProfile =
+      (await this.dependencies.repository.findCompanyPublicProfile(id)) ??
+      createDefaultPublicProfile();
 
     return {
       ...toCompanySummary(company),
       legalName: company.legalName,
       documentNumber: company.documentNumber,
       timezone: company.timezone,
+      publicProfile,
       notes: notes.map(toNote),
       auditLogs: auditLogs.map(toAuditLog),
     };
@@ -137,6 +143,21 @@ export class AdminService {
       companyId: id,
       actorUserId,
       note: input.note,
+    });
+
+    return this.getCompany(id);
+  }
+
+  async updateCompanyPublicProfile(
+    id: string,
+    actorUserId: string,
+    input: AdminCompanyPublicProfileRequest,
+  ): Promise<AdminCompanyDetail> {
+    await this.getPersistedCompany(id);
+    await this.dependencies.repository.updateCompanyPublicProfile({
+      companyId: id,
+      actorUserId,
+      profile: input,
     });
 
     return this.getCompany(id);

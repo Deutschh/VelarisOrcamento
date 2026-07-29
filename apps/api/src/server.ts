@@ -16,6 +16,9 @@ import { authenticate } from "./middleware/authenticate.js";
 import { authorizeAdmin } from "./middleware/authorize-admin.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { logger } from "./lib/logger.js";
+import { createPublicRouter } from "./public/public-router.js";
+import type { PublicCompanyService } from "./public/public-service.js";
+import { createUnavailablePublicRouter } from "./public/unavailable-public-router.js";
 import { healthRouter } from "./routes/health.js";
 import { createRuntimeDependenciesFromEnv } from "./runtime-dependencies.js";
 
@@ -24,6 +27,7 @@ export interface AppDependencies {
   tokenService?: TokenService;
   adminService?: AdminService;
   companyAccountService?: CompanyAccountService;
+  publicCompanyService?: PublicCompanyService;
 }
 
 export function createApp(dependencies: AppDependencies = {}) {
@@ -42,6 +46,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use(pinoHttp({ logger }));
 
   app.use(healthRouter);
+  app.use("/api/public", createPublicRouterIfAvailable(runtimeDependencies));
   app.use("/api/auth", createAuthRouterIfAvailable(runtimeDependencies.authService));
   app.use("/api/admin", createProtectedAdminRouterIfAvailable(runtimeDependencies));
   app.use("/api/company", createProtectedCompanyRouterIfAvailable(runtimeDependencies));
@@ -55,7 +60,8 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.authService ||
     dependencies.tokenService ||
     dependencies.adminService ||
-    dependencies.companyAccountService
+    dependencies.companyAccountService ||
+    dependencies.publicCompanyService
   ) {
     return dependencies;
   }
@@ -65,6 +71,12 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
   } catch {
     return {};
   }
+}
+
+function createPublicRouterIfAvailable(dependencies: AppDependencies) {
+  return dependencies.publicCompanyService
+    ? createPublicRouter(dependencies.publicCompanyService)
+    : createUnavailablePublicRouter();
 }
 
 function createAuthRouterIfAvailable(authService?: AuthService) {

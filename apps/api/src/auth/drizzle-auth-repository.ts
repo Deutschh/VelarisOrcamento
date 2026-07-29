@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import {
   companies,
   companyMembers,
+  companyPublicProfiles,
   customerProfiles,
   emailVerificationTokens,
   refreshTokens,
@@ -158,6 +159,11 @@ export class DrizzleAuthRepository implements AuthRepository {
         companyId: createdCompany.id,
         userId: createdUser.id,
         role: "owner",
+      });
+
+      await tx.insert(companyPublicProfiles).values({
+        companyId: createdCompany.id,
+        nicheCode: "cleaning_upholstery",
       });
 
       return {
