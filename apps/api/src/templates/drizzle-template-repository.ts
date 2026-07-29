@@ -550,23 +550,28 @@ export class DrizzleTemplateRepository implements TemplateRepository {
       });
     }
 
-    return rows.map((row) => ({
-      id: row.configuration.id,
-      companyId: row.configuration.companyId,
-      templateId: row.configuration.templateId,
-      templateCode: toKnownTemplateCode(row.template.code),
-      templateName: row.template.name,
-      status: row.configuration.status,
-      version: row.configuration.version,
-      publishedAt: row.configuration.publishedAt?.toISOString() ?? null,
-      snapshot:
+    return rows.map((row) => {
+      const snapshot =
         (row.configuration
-          .configurationSnapshot as CompanyConfigurationSnapshot | null) ?? null,
-      pricingVersion: pricingVersionByConfigurationId.get(row.configuration.id) ?? null,
-      services: (servicesByConfigurationId.get(row.configuration.id) ?? []).sort(
-        byDisplayOrder,
-      ),
-    }));
+          .configurationSnapshot as CompanyConfigurationSnapshot | null) ?? null;
+
+      return {
+        id: row.configuration.id,
+        companyId: row.configuration.companyId,
+        templateId: row.configuration.templateId,
+        templateCode: toKnownTemplateCode(row.template.code),
+        templateName: row.template.name,
+        templateVersion: snapshot?.templateVersion ?? row.template.version,
+        status: row.configuration.status,
+        version: row.configuration.version,
+        publishedAt: row.configuration.publishedAt?.toISOString() ?? null,
+        snapshot,
+        pricingVersion: pricingVersionByConfigurationId.get(row.configuration.id) ?? null,
+        services: (servicesByConfigurationId.get(row.configuration.id) ?? []).sort(
+          byDisplayOrder,
+        ),
+      };
+    });
   }
 }
 

@@ -36,7 +36,7 @@
 | Empresa | `/app`                     | Painel da empresa                           | Requisito confirmado  |
 | Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3 |
 | Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado  |
-| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 6 |
+| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 7 |
 
 ## Telas publicas
 
@@ -121,8 +121,8 @@
 - Publicacao/despublicacao de perfil.
 - Templates de nicho.
 - Configuracao personalizada por empresa. Implementado Sprint 5 no detalhe Admin.
-- Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao. Implementado Sprint 6 em modo controlado pelo template.
-- Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes e ampliado na Sprint 6 com calculo, faixa estimada, total interno e memoria explicavel.
+- Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao. Implementado Sprint 6 em modo controlado pelo template e ampliado na Sprint 7 para o nicho completo de limpeza.
+- Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes, ampliado na Sprint 6 com calculo, faixa estimada, total interno e memoria explicavel, e ampliado na Sprint 7 com respostas tecnicas completas de limpeza.
 - Solicitacoes de alteracao de preco.
 - Auditoria.
 - Metricas gerais.
@@ -203,7 +203,7 @@ Status Sprint 4: rotas publicas de descoberta implementadas.
 - `POST /api/admin/company-configurations/:id/simulate`
 - `POST /api/admin/company-configurations/:id/publish`
 
-Status Sprint 6: rotas Admin de templates/configuracoes implementadas; `POST /api/admin/company-configurations/:id/simulate` retorna `preview` e `calculation`.
+Status Sprint 7: rotas Admin de templates/configuracoes implementadas; `POST /api/admin/company-configurations/:id/simulate` retorna `preview` e `calculation` usando o template completo de limpeza quando aplicavel.
 
 - `GET /api/admin/price-change-requests`
 - `POST /api/admin/price-change-requests/:id/resolve`

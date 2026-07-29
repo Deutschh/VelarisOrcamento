@@ -84,7 +84,7 @@ export class TemplateAdminService {
           .map((configuration) => configuration.version),
       ) + 1;
     const configuration = latestPublished
-      ? cloneConfiguration(latestPublished, nextVersion)
+      ? cloneConfiguration(latestPublished, template, nextVersion)
       : createConfigurationFromTemplate(input.companyId, template, nextVersion);
 
     await this.repository.createDraftConfiguration({
@@ -241,6 +241,7 @@ function createConfigurationFromTemplate(
     templateId: template.id,
     templateCode: template.code,
     templateName: template.name,
+    templateVersion: template.version,
     status: "draft",
     version,
     publishedAt: null,
@@ -260,11 +261,13 @@ function createConfigurationFromTemplate(
 
 function cloneConfiguration(
   configuration: CompanyConfigurationDetail,
+  template: NicheTemplate,
   version: number,
 ): CompanyConfigurationDetail {
   return {
     ...configuration,
     id: randomUUID(),
+    templateVersion: template.version,
     status: "draft",
     version,
     publishedAt: null,
@@ -276,22 +279,36 @@ function cloneConfiguration(
       publishedAt: null,
       snapshot: null,
     },
-    services: configuration.services.map((service) => ({
-      ...service,
-      id: randomUUID(),
-      pricingRules: service.pricingRules.map((rule) => ({
-        ...rule,
-        id: randomUUID(),
-      })),
-      fields: service.fields.map((field) => ({
-        ...field,
-        id: randomUUID(),
-        options: field.options.map((option) => ({
-          ...option,
-          id: randomUUID(),
-        })),
-      })),
-    })),
+    services: template.services
+      .sort(byDisplayOrder)
+      .map((service) => cloneServiceConfiguration(service, configuration)),
+  };
+}
+
+function cloneServiceConfiguration(
+  templateService: TemplateService,
+  configuration: CompanyConfigurationDetail,
+): CompanyServiceConfiguration {
+  const existingService = configuration.services.find(
+    (service) => service.templateServiceId === templateService.id,
+  );
+
+  if (!existingService) {
+    return createServiceConfiguration(templateService);
+  }
+
+  return {
+    ...existingService,
+    id: randomUUID(),
+    code: templateService.code,
+    name: templateService.name,
+    description: templateService.description,
+    pricingRules: templateService.pricingRules
+      .sort(byDisplayOrder)
+      .map((rule) => clonePricingRuleConfiguration(rule, existingService)),
+    fields: templateService.fields
+      .sort(byDisplayOrder)
+      .map((field) => cloneFieldConfiguration(field, existingService)),
   };
 }
 
@@ -341,6 +358,31 @@ function createFieldConfiguration(field: TemplateField): CompanyFieldConfigurati
   };
 }
 
+function cloneFieldConfiguration(
+  templateField: TemplateField,
+  service: CompanyServiceConfiguration,
+): CompanyFieldConfiguration {
+  const existingField = service.fields.find(
+    (field) => field.templateFieldId === templateField.id,
+  );
+
+  if (!existingField) {
+    return createFieldConfiguration(templateField);
+  }
+
+  return {
+    ...existingField,
+    id: randomUUID(),
+    code: templateField.code,
+    label: templateField.label,
+    fieldType: templateField.fieldType,
+    condition: templateField.condition,
+    options: templateField.options
+      .sort(byDisplayOrder)
+      .map((option) => cloneOptionConfiguration(option, existingField)),
+  };
+}
+
 function createOptionConfiguration(
   option: TemplateFieldOption,
 ): CompanyFieldOptionConfiguration {
@@ -351,6 +393,26 @@ function createOptionConfiguration(
     label: option.label,
     displayOrder: option.displayOrder,
     isActive: option.isActiveDefault,
+  };
+}
+
+function cloneOptionConfiguration(
+  templateOption: TemplateFieldOption,
+  field: CompanyFieldConfiguration,
+): CompanyFieldOptionConfiguration {
+  const existingOption = field.options.find(
+    (option) => option.templateFieldOptionId === templateOption.id,
+  );
+
+  if (!existingOption) {
+    return createOptionConfiguration(templateOption);
+  }
+
+  return {
+    ...existingOption,
+    id: randomUUID(),
+    code: templateOption.code,
+    label: templateOption.label,
   };
 }
 
@@ -451,7 +513,7 @@ function createConfigurationSnapshot(
     companyId: configuration.companyId,
     templateId: configuration.templateId,
     templateCode: configuration.templateCode,
-    templateVersion: configuration.version,
+    templateVersion: configuration.templateVersion,
     configurationVersion: configuration.version,
     publishedAt: publishedAt.toISOString(),
     pricingVersion: configuration.pricingVersion
@@ -530,6 +592,32 @@ function createPricingRuleConfiguration(
     roundingIncrementCents: rule.roundingIncrementCents,
     isActive: rule.isActiveDefault,
     displayOrder: rule.displayOrder,
+  };
+}
+
+function clonePricingRuleConfiguration(
+  templateRule: TemplatePricingRule,
+  service: CompanyServiceConfiguration,
+): PricingRuleConfiguration {
+  const existingRule = service.pricingRules.find(
+    (rule) => rule.templatePricingRuleId === templateRule.id,
+  );
+
+  if (!existingRule) {
+    return createPricingRuleConfiguration(templateRule);
+  }
+
+  return {
+    ...existingRule,
+    id: randomUUID(),
+    code: templateRule.code,
+    label: templateRule.label,
+    ruleType: templateRule.ruleType,
+    targetFieldCode: templateRule.targetFieldCode,
+    targetOptionCode: templateRule.targetOptionCode,
+    quantityFieldCode: templateRule.quantityFieldCode,
+    unit: templateRule.unit,
+    condition: templateRule.condition,
   };
 }
 

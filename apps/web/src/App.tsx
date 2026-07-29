@@ -81,6 +81,80 @@ interface ApiErrorBody {
   };
 }
 
+interface CleaningSimulationState {
+  itemType: string;
+  quantity: number;
+  size: string;
+  seats: number;
+  fabricType: string;
+  dirtLevel: string;
+  hasStains: boolean;
+  odor: boolean;
+  petHair: boolean;
+  petsPresent: boolean;
+  waterproofing: boolean;
+  urgency: string;
+  floor: number;
+  hasElevator: boolean;
+  parking: boolean;
+  distanceKm: number;
+}
+
+const defaultCleaningSimulation: CleaningSimulationState = {
+  itemType: "sofa",
+  quantity: 1,
+  size: "medium",
+  seats: 3,
+  fabricType: "suede",
+  dirtLevel: "medium",
+  hasStains: true,
+  odor: false,
+  petHair: false,
+  petsPresent: false,
+  waterproofing: false,
+  urgency: "normal",
+  floor: 0,
+  hasElevator: true,
+  parking: true,
+  distanceKm: 8,
+};
+
+const cleaningSimulationSelectOptions = {
+  itemType: [
+    ["sofa", "Sofa"],
+    ["armchair", "Poltrona"],
+    ["chair", "Cadeira"],
+    ["mattress", "Colchao"],
+    ["headboard", "Cabeceira"],
+    ["puff", "Puff"],
+    ["car_seat", "Banco automotivo"],
+    ["rug", "Tapete"],
+    ["carpet", "Carpete"],
+    ["other", "Outro"],
+  ],
+  size: [
+    ["small", "Pequeno"],
+    ["medium", "Medio"],
+    ["large", "Grande"],
+  ],
+  fabricType: [
+    ["suede", "Suede"],
+    ["synthetic_leather", "Couro sintetico"],
+    ["linen", "Linho"],
+    ["velvet", "Veludo"],
+    ["other", "Outro"],
+  ],
+  dirtLevel: [
+    ["light", "Leve"],
+    ["medium", "Medio"],
+    ["heavy", "Intenso"],
+  ],
+  urgency: [
+    ["normal", "Normal"],
+    ["urgent", "Urgente"],
+  ],
+} satisfies Record<string, Array<[string, string]>>;
+
 class ApiError extends Error {
   constructor(
     message: string,
@@ -1309,7 +1383,7 @@ function AdminConfigurationPanel({
     useState<CompanyConfigurationDetail | null>(
       draftConfiguration ?? publishedConfiguration,
     );
-  const [simulateWithStains, setSimulateWithStains] = useState(true);
+  const [cleaningSimulation, setCleaningSimulation] = useState(defaultCleaningSimulation);
   const selectedConfiguration =
     workingConfiguration ?? draftConfiguration ?? publishedConfiguration;
   const selectedTemplate =
@@ -1394,10 +1468,28 @@ function AdminConfigurationPanel({
           : selectedConfiguration;
       const payload = adminSimulateCompanyConfigurationRequestSchema.parse({
         answers: {
-          has_stains: simulateWithStains,
-          item_type: "sofa",
-          quantity: 1,
-          stain_type: simulateWithStains ? ["food"] : [],
+          item_type: cleaningSimulation.itemType,
+          quantity: cleaningSimulation.quantity,
+          size: cleaningSimulation.size,
+          seats: cleaningSimulation.seats,
+          fabric_type: cleaningSimulation.fabricType,
+          dirt_level: cleaningSimulation.dirtLevel,
+          has_stains: cleaningSimulation.hasStains,
+          stain_type: cleaningSimulation.hasStains ? ["food"] : [],
+          odor: cleaningSimulation.odor,
+          pet_hair: cleaningSimulation.petHair,
+          pets_present: cleaningSimulation.petsPresent,
+          waterproofing: cleaningSimulation.waterproofing,
+          urgency: cleaningSimulation.urgency,
+          floor: cleaningSimulation.floor,
+          has_elevator: cleaningSimulation.hasElevator,
+          parking: cleaningSimulation.parking,
+          distance_km: {
+            originalValue: cleaningSimulation.distanceKm,
+            originalUnit: "km",
+            normalizedValue: String(cleaningSimulation.distanceKm),
+            normalizedUnit: "km",
+          },
         },
       });
 
@@ -1563,6 +1655,10 @@ function AdminConfigurationPanel({
           }
         : current,
     );
+  }
+
+  function updateCleaningSimulation(patch: Partial<CleaningSimulationState>) {
+    setCleaningSimulation((current) => ({ ...current, ...patch }));
   }
 
   const panelError =
@@ -1919,6 +2015,109 @@ function AdminConfigurationPanel({
               </div>
             </div>
           ))}
+          <div className="border-t border-white/10 pt-4">
+            <h4 className="text-sm font-medium text-white/85">Simulador de limpeza</h4>
+            <div className="mt-3 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 md:grid-cols-4">
+              <SimulationSelect
+                label="Item"
+                options={cleaningSimulationSelectOptions.itemType}
+                value={cleaningSimulation.itemType}
+                onChange={(value) => updateCleaningSimulation({ itemType: value })}
+              />
+              <SimulationNumberInput
+                label="Quantidade"
+                min={1}
+                value={cleaningSimulation.quantity}
+                onChange={(value) => updateCleaningSimulation({ quantity: value })}
+              />
+              <SimulationSelect
+                label="Tamanho"
+                options={cleaningSimulationSelectOptions.size}
+                value={cleaningSimulation.size}
+                onChange={(value) => updateCleaningSimulation({ size: value })}
+              />
+              <SimulationNumberInput
+                label="Lugares"
+                min={1}
+                value={cleaningSimulation.seats}
+                onChange={(value) => updateCleaningSimulation({ seats: value })}
+              />
+              <SimulationSelect
+                label="Tecido"
+                options={cleaningSimulationSelectOptions.fabricType}
+                value={cleaningSimulation.fabricType}
+                onChange={(value) => updateCleaningSimulation({ fabricType: value })}
+              />
+              <SimulationSelect
+                label="Sujeira"
+                options={cleaningSimulationSelectOptions.dirtLevel}
+                value={cleaningSimulation.dirtLevel}
+                onChange={(value) => updateCleaningSimulation({ dirtLevel: value })}
+              />
+              <SimulationSelect
+                label="Urgencia"
+                options={cleaningSimulationSelectOptions.urgency}
+                value={cleaningSimulation.urgency}
+                onChange={(value) => updateCleaningSimulation({ urgency: value })}
+              />
+              <SimulationNumberInput
+                label="Distancia (km)"
+                min={0}
+                value={cleaningSimulation.distanceKm}
+                onChange={(value) => updateCleaningSimulation({ distanceKm: value })}
+              />
+              <SimulationNumberInput
+                label="Andar"
+                min={0}
+                value={cleaningSimulation.floor}
+                onChange={(value) => updateCleaningSimulation({ floor: value })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.hasElevator}
+                disabled={false}
+                label="Elevador"
+                onChange={(checked) => updateCleaningSimulation({ hasElevator: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.parking}
+                disabled={false}
+                label="Estacionamento"
+                onChange={(checked) => updateCleaningSimulation({ parking: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.hasStains}
+                disabled={false}
+                label="Manchas"
+                onChange={(checked) => updateCleaningSimulation({ hasStains: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.odor}
+                disabled={false}
+                label="Odor"
+                onChange={(checked) => updateCleaningSimulation({ odor: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.petHair}
+                disabled={false}
+                label="Pelos"
+                onChange={(checked) => updateCleaningSimulation({ petHair: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.petsPresent}
+                disabled={false}
+                label="Animais"
+                onChange={(checked) => updateCleaningSimulation({ petsPresent: checked })}
+              />
+              <ToggleLabel
+                checked={cleaningSimulation.waterproofing}
+                disabled={false}
+                label="Impermeabilizacao"
+                onChange={(checked) =>
+                  updateCleaningSimulation({ waterproofing: checked })
+                }
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
             <ActionButton
               disabled={!isEditable}
@@ -1928,14 +2127,6 @@ function AdminConfigurationPanel({
             >
               Salvar rascunho
             </ActionButton>
-            <label className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 px-3 text-sm text-white/70">
-              <input
-                checked={simulateWithStains}
-                type="checkbox"
-                onChange={(event) => setSimulateWithStains(event.target.checked)}
-              />
-              Simular com manchas
-            </label>
             <ActionButton
               icon={Play}
               isLoading={simulateConfigurationMutation.isPending}
@@ -2033,6 +2224,61 @@ function CalculationSummary({ calculation }: { calculation: CalculationResult })
         ))}
       </div>
     </div>
+  );
+}
+
+function SimulationSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Array<[string, string]>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-xs text-white/60">
+      {label}
+      <select
+        className="mt-2 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-2 text-sm text-white outline-none focus:border-emerald-300"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SimulationNumberInput({
+  label,
+  min,
+  value,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="text-xs text-white/60">
+      {label}
+      <input
+        className="mt-2 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300"
+        inputMode="decimal"
+        min={min}
+        type="number"
+        value={value}
+        onChange={(event) => onChange(Math.max(min, Number(event.target.value) || min))}
+      />
+    </label>
   );
 }
 

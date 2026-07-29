@@ -15,8 +15,10 @@
 - Sprint 4 concluida: Home publica, busca e perfil publico.
 - Sprint 5 concluida: templates fixos e campos configuraveis.
 - Sprint 6 concluida: motor de calculo, regras de preco versionadas, margens e simulacao Admin com memoria de calculo.
-- Proxima etapa planejada: Sprint 7, template de limpeza de estofados.
-- Nao iniciar a Sprint 7 sem nova autorizacao do usuario.
+- Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho e simulador Admin completo.
+- Proxima etapa recomendada para o MVP piloto: Sprint 10, fluxo publico, rascunho e solicitacao.
+- Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
+- Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
 - Nao fazer deploy sem autorizacao explicita.
 - Nao alterar configuracoes globais do Windows.
@@ -110,4 +112,6 @@
 - Sprint 4 cria Home, busca e perfil publico.
 - Sprint 5 cria templates fixos e campos configuraveis.
 - Sprint 6 cria o motor de calculo, regras de preco versionadas, margens e simulacao explicavel.
-- Sprint 7 deve consolidar o template de limpeza de estofados somente apos nova autorizacao do usuario.
+- Sprint 7 consolida tecnicamente o template de limpeza de estofados.
+- Sprints 8 e 9, vidracaria e marmoraria, devem aguardar validacao do MVP piloto.
+- Sprint 10 deve iniciar o fluxo publico de orcamento somente apos nova autorizacao do usuario.

@@ -153,6 +153,7 @@ export interface CompanyConfigurationDetail {
   templateId: string;
   templateCode: z.infer<typeof publicCompanyCategorySchema>;
   templateName: string;
+  templateVersion: number;
   status: CompanyConfigurationStatus;
   version: number;
   publishedAt: string | null;

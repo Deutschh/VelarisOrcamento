@@ -236,7 +236,10 @@ function applyRule(
     case "quantity":
       return createLine(
         rule,
-        multiplyCentsByScale(amountCents, getTargetValueScale(rule, answers, "unit")),
+        multiplyCentsByScale(
+          amountCents,
+          multiplyScales(getTargetValueScale(rule, answers, "unit"), quantityScale),
+        ),
         "Quantidade multiplicada pelo preco unitario.",
       );
     case "area":
@@ -261,11 +264,13 @@ function applyRule(
         "Multiplicador aplicado sobre o subtotal.",
       );
     case "fixed_addition":
-      return createLine(
-        rule,
-        multiplyCentsByScale(amountCents, quantityScale),
-        "Adicional fixo aplicado.",
-      );
+      return matchesTargetRange(rule, answers, rule.unit ?? "unit")
+        ? createLine(
+            rule,
+            multiplyCentsByScale(amountCents, quantityScale),
+            "Adicional fixo aplicado.",
+          )
+        : null;
     case "percentage_addition":
       return createLine(
         rule,
@@ -293,14 +298,16 @@ function applyRule(
     case "distance_fee":
       return applyDistanceFeeRule(rule, answers);
     case "administrative_discount":
-      return createLine(
-        rule,
-        -1 *
-          (amountCents > 0
-            ? amountCents
-            : multiplyCentsByBasisPoints(currentTotalCents, rule.percentageBps ?? 0)),
-        "Desconto administrativo aplicado.",
-      );
+      return matchesTargetRange(rule, answers, rule.unit ?? "unit")
+        ? createLine(
+            rule,
+            -1 *
+              (amountCents > 0
+                ? amountCents
+                : multiplyCentsByBasisPoints(currentTotalCents, rule.percentageBps ?? 0)),
+            "Desconto administrativo aplicado.",
+          )
+        : null;
     case "rounding":
       return createLine(
         rule,
@@ -339,6 +346,25 @@ function applyPriceRangeRule(
     rule,
     multiplyCentsByScale(rule.amountCents ?? 0, quantityScale),
     "Preco de faixa aplicado.",
+  );
+}
+
+function matchesTargetRange(
+  rule: CalculationPricingRule,
+  answers: CalculationAnswers,
+  expectedUnit: CalculationRuleUnit,
+) {
+  if (!rule.targetFieldCode || (!rule.minimumValue && !rule.maximumValue)) {
+    return true;
+  }
+
+  const target = getTargetValueScale(rule, answers, expectedUnit);
+  const minimum = rule.minimumValue ? parseDecimalToScale(rule.minimumValue) : null;
+  const maximum = rule.maximumValue ? parseDecimalToScale(rule.maximumValue) : null;
+
+  return !(
+    (minimum !== null && target < minimum) ||
+    (maximum !== null && target > maximum)
   );
 }
 
@@ -518,6 +544,10 @@ function parseDecimalToScale(value: number | string) {
 
 function multiplyCentsByScale(cents: number, scaledValue: number) {
   return divideRounded(cents * scaledValue, SCALE);
+}
+
+function multiplyScales(left: number, right: number) {
+  return divideRounded(left * right, SCALE);
 }
 
 function multiplyCentsByBasisPoints(cents: number, basisPoints: number) {

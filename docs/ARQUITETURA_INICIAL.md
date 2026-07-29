@@ -111,6 +111,10 @@ Requisito implementado: regras de preco e versoes de preco sao persistidas no ba
 
 Requisito implementado: o frontend Admin consome somente a API para listar templates, criar/editar rascunhos, ajustar campos, ajustar regras de preco permitidas, simular preview/calculo e publicar configuracoes; ele nao acessa o Neon diretamente.
 
+Requisito implementado: o template de limpeza de estofados possui versionamento proprio (`templateVersion`) nos contratos e snapshots; a versao tecnica atual e v2.
+
+Requisito implementado: novos rascunhos criados a partir de uma versao publicada mesclam o template atual com as personalizacoes existentes, adicionando campos/regras novos sem editar configuracoes publicadas.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 ## Estrutura de monorepo

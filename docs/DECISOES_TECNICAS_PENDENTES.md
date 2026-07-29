@@ -8,7 +8,6 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: prototipo navegavel do MVP piloto.
 - Decisao pendente: textos finais de interface para estimativa, aceite, recuperacao, recusas, cancelamentos e mensagens de WhatsApp assistido.
 - Decisao pendente: URL/canal oficial de contato da Velaris para a tela de conta pendente.
-- Decisao pendente: validacao comercial das regras iniciais de limpeza de estofados com empresa real.
 - Decisao pendente: ajuste fino das margens de estimativa por template/servico/empresa apos validacao do piloto.
 - Decisao pendente: regras finais de exibicao e moderacao de avaliacoes no MVP.
 

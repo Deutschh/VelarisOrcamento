@@ -173,6 +173,67 @@ describe("calculateEstimate", () => {
     ]);
   });
 
+  it("applies quantity scale and range-based additions or discounts", () => {
+    const result = calculateEstimate({
+      ...baseInput,
+      answers: {
+        item_type: "sofa",
+        quantity: 3,
+        seats: 2,
+        floor: 4,
+      },
+      rules: [
+        rule({
+          code: "sofa_base",
+          label: "Sofa",
+          ruleType: "option_price",
+          targetFieldCode: "item_type",
+          targetOptionCode: "sofa",
+          quantityFieldCode: "quantity",
+          amountCents: 10000,
+          displayOrder: 10,
+        }),
+        rule({
+          code: "seats",
+          label: "Lugares",
+          ruleType: "quantity",
+          targetFieldCode: "seats",
+          quantityFieldCode: "quantity",
+          amountCents: 1000,
+          displayOrder: 20,
+        }),
+        rule({
+          code: "floor_access",
+          label: "Acesso por andar",
+          ruleType: "fixed_addition",
+          targetFieldCode: "floor",
+          amountCents: 3000,
+          minimumValue: "2",
+          unit: "unit",
+          displayOrder: 30,
+        }),
+        rule({
+          code: "quantity_discount",
+          label: "Desconto por quantidade",
+          ruleType: "administrative_discount",
+          targetFieldCode: "quantity",
+          percentageBps: 500,
+          minimumValue: "3",
+          unit: "unit",
+          displayOrder: 40,
+        }),
+      ],
+    });
+
+    expect(result.internalTotalCents).toBe(37050);
+    expect(result.memory.map((line) => line.ruleCode)).toEqual([
+      "sofa_base",
+      "seats",
+      "floor_access",
+      "quantity_discount",
+    ]);
+  });
+
   it("requires justification for final amount outside the estimate range", () => {
     expect(() =>
       calculateEstimate({

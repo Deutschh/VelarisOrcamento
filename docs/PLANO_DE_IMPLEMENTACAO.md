@@ -10,7 +10,10 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico editavel pelo Admin.
 - Sprint 5 concluida: templates fixos, configuracao por empresa, preview, simulacao, publicacao imutavel e snapshot de configuracao.
 - Sprint 6 concluida: motor de calculo deterministico, regras de preco versionadas, margens, memoria de calculo, simulacao Admin e migration aplicada no Neon.
-- Proxima etapa planejada: Sprint 7, template de limpeza de estofados.
+- Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho, testes e simulador Admin completo.
+- Pendencia operacional: validacao comercial com empresa real.
+- Proxima etapa recomendada para o MVP piloto: Sprint 10, fluxo publico, rascunho e solicitacao.
+- Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
 ## Sprint 0 - Fechamento funcional e prototipo
@@ -21,7 +24,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Decisao confirmada: MVP piloto e definido pela secao 34.1.
 - Decisao confirmada: primeiro nicho e limpeza de estofados.
 - Decisao confirmada: vidraçaria e marmoraria entram depois da validacao do MVP.
-- Pendencia funcional: wireframes, prototipo, textos finais e validacao comercial completa do template de limpeza.
+- Pendencia funcional: wireframes, prototipo, textos finais e validacao comercial com empresa real.
 - Estimativa da especificacao: 8 a 12 horas.
 
 ## Sprint 1 - Fundacao do projeto
@@ -62,7 +65,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: templates fixos por nicho, tipos de campo predefinidos, opcoes, obrigatoriedade, ativacao por empresa, condicoes simples, ordenacao, preview, configuracao Admin, modo de agendamento, versionamento, simulacao, snapshot e bloqueio de edicao de versao publicada.
 - Implementado Sprint 5: tabelas `niche_templates`, `template_services`, `template_fields`, `template_field_options`, `company_configurations`, `company_services`, `company_service_fields` e `company_field_options`; template inicial fixo de limpeza de estofados; contratos compartilhados; regras puras de ciclo/condicoes; API Admin de templates/configuracoes; painel Admin para criar rascunho, ajustar campos/opcoes, simular condicionais e publicar versoes imutaveis.
-- Limitacao registrada: regras comerciais iniciais de preco foram criadas na Sprint 6, mas a validacao e ajuste fino com empresa real continuam na Sprint 7.
+- Limitacao registrada: regras comerciais iniciais de preco foram criadas na Sprint 6 e consolidadas tecnicamente na Sprint 7; validacao real segue como pendencia operacional.
 - Fora da V1: construtor livre, codigo livre, formulas arbitrarias, regras profundamente aninhadas e novos tipos tecnicos criados pelo Admin.
 - Estimativa da especificacao: 18 a 26 horas.
 
@@ -72,13 +75,15 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Regra confirmada: calculos internos devem usar preferencialmente centavos inteiros; persistencia monetaria usa `NUMERIC(12, 2)`.
 - Regra confirmada: regras puras de calculo ficam em `packages/domain`.
 - Implementado Sprint 6: contratos compartilhados de regras e respostas de calculo em `packages/shared`; motor puro em `packages/domain`; tabelas `template_pricing_rules`, `company_pricing_versions` e `company_pricing_rules`; regras iniciais versionadas para limpeza de estofados; margens por servico; snapshot de precos; simulacao Admin retornando preview e memoria de calculo.
-- Limitacao registrada: os valores comerciais semeados sao padroes iniciais configuraveis e ainda precisam de validacao real na Sprint 7.
+- Limitacao registrada: os valores comerciais semeados sao padroes iniciais configuraveis e ainda precisam de validacao real.
 - Estimativa da especificacao: 24 a 34 horas.
 
 ## Sprint 7 - Template de limpeza de estofados
 
 - Requisito confirmado: primeiro nicho a implementar.
 - Requisito confirmado: itens, tamanhos, tecidos, sujeira, manchas, odor, pelos, impermeabilizacao, urgencia, acesso, regras, testes e validacao com empresa real.
+- Implementado Sprint 7: template de limpeza de estofados v2; regras de tecido, acesso, deslocamento e desconto por quantidade; ajuste de regras por quantidade; simulador Admin com respostas completas do nicho; versionamento correto de template em snapshot; testes para recalculo por sujeira e desativacao de tecido.
+- Pendencia operacional: validar valores, margens e nomenclaturas com empresa real antes do piloto.
 - Marco do MVP piloto: nicho completo de limpeza de estofados.
 - Estimativa da especificacao: 14 a 20 horas.
 
@@ -86,12 +91,14 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: implementar somente depois da validacao do MVP piloto.
 - Requisito confirmado: produtos, medidas, vidros, espessuras, cores, acabamentos, ferragens, perfis, instalacao, retirada, acesso, regras de area, area minima, testes e validacao.
+- Status: adiada por decisao de produto ate a validacao do MVP piloto de limpeza de estofados.
 - Estimativa da especificacao: 14 a 20 horas.
 
 ## Sprint 9 - Template de marmoraria
 
 - Requisito confirmado: implementar somente depois da validacao do MVP piloto.
 - Requisito confirmado: produtos, materiais, medidas, espessuras, bordas, recortes, frontao, saia, instalacao, transporte, perda tecnica, regras, testes e validacao.
+- Status: adiada por decisao de produto ate a validacao do MVP piloto de limpeza de estofados.
 - Estimativa da especificacao: 16 a 22 horas.
 
 ## Sprint 10 - Fluxo publico, rascunho e solicitacao
