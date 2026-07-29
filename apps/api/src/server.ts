@@ -21,6 +21,7 @@ import type { PublicCompanyService } from "./public/public-service.js";
 import { createUnavailablePublicRouter } from "./public/unavailable-public-router.js";
 import { healthRouter } from "./routes/health.js";
 import { createRuntimeDependenciesFromEnv } from "./runtime-dependencies.js";
+import type { TemplateAdminService } from "./templates/template-service.js";
 
 export interface AppDependencies {
   authService?: AuthService;
@@ -28,6 +29,7 @@ export interface AppDependencies {
   adminService?: AdminService;
   companyAccountService?: CompanyAccountService;
   publicCompanyService?: PublicCompanyService;
+  templateAdminService?: TemplateAdminService;
 }
 
 export function createApp(dependencies: AppDependencies = {}) {
@@ -61,7 +63,8 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.tokenService ||
     dependencies.adminService ||
     dependencies.companyAccountService ||
-    dependencies.publicCompanyService
+    dependencies.publicCompanyService ||
+    dependencies.templateAdminService
   ) {
     return dependencies;
   }
@@ -88,7 +91,7 @@ function createProtectedAdminRouterIfAvailable(dependencies: AppDependencies) {
     return [
       authenticate(dependencies.tokenService),
       authorizeAdmin,
-      createAdminRouter(dependencies.adminService),
+      createAdminRouter(dependencies.adminService, dependencies.templateAdminService),
     ];
   }
 

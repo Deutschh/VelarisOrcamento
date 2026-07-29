@@ -14,13 +14,14 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto esta na Sprint 3. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu a Sprint 5. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
-status de conta pendente e painel Admin inicial para ativacao, suspensao,
-publicacao e observacoes internas.
+status de conta pendente, painel Admin, descoberta publica, perfil publico,
+templates fixos e configuracao por empresa com preview, simulacao e publicacao
+imutavel.
 
-Ainda nao ha templates de nicho, motor de calculo, fluxo publico de orcamento,
-uploads, propostas, agendamento assistido completo, PDF ou deploy.
+Ainda nao ha motor de calculo, fluxo publico completo de orcamento, uploads,
+propostas, agendamento assistido completo, PDF ou deploy.
 
 ## Stack planejada
 

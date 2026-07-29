@@ -99,6 +99,12 @@ Requisito implementado: descoberta publica usa API propria em `apps/api/src/publ
 
 Requisito implementado: dados de perfil publico ficam em `company_public_profiles`, separados de `companies`, para permitir publicacao, busca, servicos, galeria, contatos, localizacao e regioes atendidas sem expor dados internos.
 
+Requisito implementado: templates fixos e configuracoes por empresa usam contratos em `packages/shared`, regras puras de ciclo/condicoes em `packages/domain`, servico de aplicacao em `apps/api/src/templates` e persistencia Drizzle no backend.
+
+Requisito implementado: configuracoes publicadas sao imutaveis no servico de dominio/aplicacao; alteracoes futuras criam novo rascunho/versionamento e a publicacao grava snapshot em `JSONB`.
+
+Requisito implementado: o frontend Admin consome somente a API para listar templates, criar/editar rascunhos, simular preview e publicar configuracoes; ele nao acessa o Neon diretamente.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 ## Estrutura de monorepo
@@ -174,6 +180,7 @@ ImagesExemplos/
 - Medidas devem guardar valor e unidade originais, alem do valor e unidade normalizados.
 - Acoes criticas devem prever idempotencia.
 - Configuracoes publicadas devem ser imutaveis.
+- Configuracoes publicadas devem gerar snapshot com template, campos, opcoes, condicoes e modo de agendamento usados naquela versao.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.

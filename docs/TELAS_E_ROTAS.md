@@ -36,7 +36,7 @@
 | Empresa | `/app`                     | Painel da empresa                        | Requisito confirmado  |
 | Empresa | `/app/pendente`            | Status de cadastro pendente              | Implementado Sprint 3 |
 | Admin   | `/admin`                   | Painel da Velaris                        | Requisito confirmado  |
-| Admin   | `/admin/empresas/:id`      | Detalhe e ativacao de empresa            | Implementado Sprint 3 |
+| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao e configuracao         | Implementado Sprint 5 |
 
 ## Telas publicas
 
@@ -120,9 +120,9 @@
 - Ativacao, suspensao e reativacao.
 - Publicacao/despublicacao de perfil.
 - Templates de nicho.
-- Configuracao personalizada por empresa.
+- Configuracao personalizada por empresa. Implementado Sprint 5 no detalhe Admin.
 - Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao.
-- Simulacao de configuracao.
+- Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes.
 - Solicitacoes de alteracao de preco.
 - Auditoria.
 - Metricas gerais.
@@ -202,6 +202,9 @@ Status Sprint 4: rotas publicas de descoberta implementadas.
 - `PATCH /api/admin/company-configurations/:id`
 - `POST /api/admin/company-configurations/:id/simulate`
 - `POST /api/admin/company-configurations/:id/publish`
+
+Status Sprint 5: rotas Admin de templates/configuracoes implementadas.
+
 - `GET /api/admin/price-change-requests`
 - `POST /api/admin/price-change-requests/:id/resolve`
 - `GET /api/admin/audit`

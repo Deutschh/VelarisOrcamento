@@ -54,6 +54,7 @@ export class AdminService {
       documentNumber: company.documentNumber,
       timezone: company.timezone,
       publicProfile,
+      configurations: [],
       notes: notes.map(toNote),
       auditLogs: auditLogs.map(toAuditLog),
     };

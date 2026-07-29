@@ -8,7 +8,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: prototipo navegavel do MVP piloto.
 - Decisao pendente: textos finais de interface para estimativa, aceite, recuperacao, recusas, cancelamentos e mensagens de WhatsApp assistido.
 - Decisao pendente: URL/canal oficial de contato da Velaris para a tela de conta pendente.
-- Decisao pendente: regras iniciais completas do template de limpeza de estofados para validacao com empresa real.
+- Decisao pendente: regras comerciais completas de limpeza de estofados para validacao com empresa real.
 - Decisao pendente: valores iniciais de margens de estimativa por template/servico/empresa.
 - Decisao pendente: regras finais de exibicao e moderacao de avaliacoes no MVP.
 
@@ -23,7 +23,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 
 - Decisao pendente: convencao final de nomes para tabelas, colunas, indices e enums.
 - Decisao pendente: organizacao exata dos schemas Drizzle em `database/schemas`.
-- Decisao pendente: politica de seeds ficticios para ambientes local e homologacao.
+- Decisao pendente: politica de seeds ficticios para ambientes local e homologacao alem do template fixo inicial.
 - Decisao pendente: politica de reversao detalhada para migrations quando a reversao total nao for segura.
 
 ## Autenticacao e seguranca

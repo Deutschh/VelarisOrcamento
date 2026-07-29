@@ -4,15 +4,22 @@ import {
   adminCompanyActionRequestSchema,
   adminCompanyPublicProfileRequestSchema,
   adminCompanyListQuerySchema,
+  adminCreateCompanyConfigurationRequestSchema,
+  adminSimulateCompanyConfigurationRequestSchema,
+  adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
   internalNoteRequestSchema,
 } from "@velaris/shared";
 
 import { asyncHandler } from "../lib/async-handler.js";
 import { AppError } from "../lib/app-error.js";
+import type { TemplateAdminService } from "../templates/template-service.js";
 import type { AdminService } from "./admin-service.js";
 
-export function createAdminRouter(adminService: AdminService) {
+export function createAdminRouter(
+  adminService: AdminService,
+  templateAdminService?: TemplateAdminService,
+) {
   const router = Router();
 
   router.get(
@@ -28,7 +35,70 @@ export function createAdminRouter(adminService: AdminService) {
     "/companies/:companyId",
     asyncHandler(async (request, response) => {
       const company = await adminService.getCompany(getCompanyId(request.params));
-      response.json({ company });
+      const configurations = templateAdminService
+        ? await templateAdminService.listCompanyConfigurations(company.id)
+        : [];
+      response.json({ company: { ...company, configurations } });
+    }),
+  );
+
+  router.get(
+    "/niche-templates",
+    asyncHandler(async (_request, response) => {
+      const templates =
+        await getTemplateAdminService(templateAdminService).listTemplates();
+      response.json({ templates });
+    }),
+  );
+
+  router.post(
+    "/company-configurations",
+    asyncHandler(async (request, response) => {
+      const body = adminCreateCompanyConfigurationRequestSchema.parse(request.body);
+      const configuration = await getTemplateAdminService(
+        templateAdminService,
+      ).createCompanyConfiguration(body, getActorUserId(request));
+
+      response.status(201).json({ configuration });
+    }),
+  );
+
+  router.patch(
+    "/company-configurations/:configurationId",
+    asyncHandler(async (request, response) => {
+      const body = adminUpdateCompanyConfigurationRequestSchema.parse(request.body);
+      const configuration = await getTemplateAdminService(
+        templateAdminService,
+      ).updateConfiguration(
+        getConfigurationId(request.params),
+        body,
+        getActorUserId(request),
+      );
+
+      response.json({ configuration });
+    }),
+  );
+
+  router.post(
+    "/company-configurations/:configurationId/simulate",
+    asyncHandler(async (request, response) => {
+      const body = adminSimulateCompanyConfigurationRequestSchema.parse(request.body);
+      const preview = await getTemplateAdminService(
+        templateAdminService,
+      ).simulateConfiguration(getConfigurationId(request.params), body);
+
+      response.json({ preview });
+    }),
+  );
+
+  router.post(
+    "/company-configurations/:configurationId/publish",
+    asyncHandler(async (request, response) => {
+      const configuration = await getTemplateAdminService(
+        templateAdminService,
+      ).publishConfiguration(getConfigurationId(request.params), getActorUserId(request));
+
+      response.json({ configuration });
     }),
   );
 
@@ -122,4 +192,33 @@ function getActorUserId(request: Request) {
   }
 
   return request.auth.userId;
+}
+
+function getConfigurationId(params: Record<string, string | string[] | undefined>) {
+  const rawConfigurationId = params.configurationId;
+  const configurationId = Array.isArray(rawConfigurationId)
+    ? rawConfigurationId[0]
+    : rawConfigurationId;
+
+  if (!configurationId) {
+    throw new AppError(
+      "Company configuration id is required.",
+      400,
+      "COMPANY_CONFIGURATION_ID_REQUIRED",
+    );
+  }
+
+  return configurationId;
+}
+
+function getTemplateAdminService(templateAdminService?: TemplateAdminService) {
+  if (!templateAdminService) {
+    throw new AppError(
+      "Template administration is not configured for this environment.",
+      503,
+      "TEMPLATE_ADMIN_NOT_CONFIGURED",
+    );
+  }
+
+  return templateAdminService;
 }

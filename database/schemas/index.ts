@@ -45,6 +45,31 @@ export const legalDocumentTypeEnum = pgEnum("legal_document_type", [
   "estimate_disclaimer",
   "company_terms",
 ]);
+export const templateFieldTypeEnum = pgEnum("template_field_type", [
+  "text",
+  "textarea",
+  "number",
+  "currency",
+  "boolean",
+  "single_select",
+  "multi_select",
+  "measurement",
+  "address",
+  "date",
+  "image",
+  "file",
+]);
+export const schedulingModeEnum = pgEnum("scheduling_mode", [
+  "required_with_proposal",
+  "optional_with_proposal",
+  "after_proposal_acceptance",
+  "external_only",
+]);
+export const companyConfigurationStatusEnum = pgEnum("company_configuration_status", [
+  "draft",
+  "published",
+  "archived",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -178,6 +203,223 @@ export const companyPublicProfiles = pgTable(
   (table) => ({
     nicheIdx: index("company_public_profiles_niche_idx").on(table.nicheCode),
     cityIdx: index("company_public_profiles_city_idx").on(table.city),
+  }),
+);
+
+export const nicheTemplates = pgTable(
+  "niche_templates",
+  {
+    id: uuid("id").primaryKey(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    version: integer("version").notNull().default(1),
+    isActive: boolean("is_active").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => ({
+    codeUnique: uniqueIndex("niche_templates_code_unique").on(table.code),
+  }),
+);
+
+export const templateServices = pgTable(
+  "template_services",
+  {
+    id: uuid("id").primaryKey(),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => nicheTemplates.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActiveDefault: boolean("is_active_default").notNull().default(true),
+    defaultSchedulingMode: schedulingModeEnum("default_scheduling_mode")
+      .notNull()
+      .default("required_with_proposal"),
+    ...timestamps,
+  },
+  (table) => ({
+    templateCodeUnique: uniqueIndex("template_services_template_code_unique").on(
+      table.templateId,
+      table.code,
+    ),
+  }),
+);
+
+export const templateFields = pgTable(
+  "template_fields",
+  {
+    id: uuid("id").primaryKey(),
+    templateServiceId: uuid("template_service_id")
+      .notNull()
+      .references(() => templateServices.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    label: text("label").notNull(),
+    fieldType: templateFieldTypeEnum("field_type").notNull(),
+    helpText: text("help_text"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isRequiredDefault: boolean("is_required_default").notNull().default(false),
+    isActiveDefault: boolean("is_active_default").notNull().default(true),
+    isClientVisibleDefault: boolean("is_client_visible_default").notNull().default(true),
+    isCompanyEditableDefault: boolean("is_company_editable_default")
+      .notNull()
+      .default(true),
+    isPricingRelevantDefault: boolean("is_pricing_relevant_default")
+      .notNull()
+      .default(false),
+    requiresPhotoDefault: boolean("requires_photo_default").notNull().default(false),
+    condition: jsonb("condition").$type<{
+      sourceFieldCode: string;
+      operator: "equals" | "not_equals" | "includes";
+      value: string | number | boolean | string[] | number[];
+    }>(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    serviceCodeUnique: uniqueIndex("template_fields_service_code_unique").on(
+      table.templateServiceId,
+      table.code,
+    ),
+  }),
+);
+
+export const templateFieldOptions = pgTable(
+  "template_field_options",
+  {
+    id: uuid("id").primaryKey(),
+    templateFieldId: uuid("template_field_id")
+      .notNull()
+      .references(() => templateFields.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    label: text("label").notNull(),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActiveDefault: boolean("is_active_default").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => ({
+    fieldCodeUnique: uniqueIndex("template_field_options_field_code_unique").on(
+      table.templateFieldId,
+      table.code,
+    ),
+  }),
+);
+
+export const companyConfigurations = pgTable(
+  "company_configurations",
+  {
+    id: uuid("id").primaryKey(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => nicheTemplates.id, { onDelete: "restrict" }),
+    status: companyConfigurationStatusEnum("status").notNull().default("draft"),
+    version: integer("version").notNull(),
+    configurationSnapshot: jsonb("configuration_snapshot").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    createdFromConfigurationId: uuid("created_from_configuration_id"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedByUserId: uuid("updated_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => ({
+    companyIdx: index("company_configurations_company_idx").on(table.companyId),
+    companyTemplateVersionUnique: uniqueIndex(
+      "company_configurations_company_template_version_unique",
+    ).on(table.companyId, table.templateId, table.version),
+  }),
+);
+
+export const companyServices = pgTable(
+  "company_services",
+  {
+    id: uuid("id").primaryKey(),
+    companyConfigurationId: uuid("company_configuration_id")
+      .notNull()
+      .references(() => companyConfigurations.id, { onDelete: "cascade" }),
+    templateServiceId: uuid("template_service_id")
+      .notNull()
+      .references(() => templateServices.id, { onDelete: "restrict" }),
+    isActive: boolean("is_active").notNull().default(true),
+    schedulingMode: schedulingModeEnum("scheduling_mode")
+      .notNull()
+      .default("required_with_proposal"),
+    displayOrder: integer("display_order").notNull().default(0),
+    estimateMarginLower: numeric("estimate_margin_lower", {
+      precision: 6,
+      scale: 2,
+    }),
+    estimateMarginUpper: numeric("estimate_margin_upper", {
+      precision: 6,
+      scale: 2,
+    }),
+    estimatedDurationMinutes: integer("estimated_duration_minutes"),
+    ...timestamps,
+  },
+  (table) => ({
+    configurationServiceUnique: uniqueIndex(
+      "company_services_configuration_service_unique",
+    ).on(table.companyConfigurationId, table.templateServiceId),
+  }),
+);
+
+export const companyServiceFields = pgTable(
+  "company_service_fields",
+  {
+    id: uuid("id").primaryKey(),
+    companyServiceId: uuid("company_service_id")
+      .notNull()
+      .references(() => companyServices.id, { onDelete: "cascade" }),
+    templateFieldId: uuid("template_field_id")
+      .notNull()
+      .references(() => templateFields.id, { onDelete: "restrict" }),
+    isActive: boolean("is_active").notNull().default(true),
+    isRequired: boolean("is_required").notNull().default(false),
+    isClientVisible: boolean("is_client_visible").notNull().default(true),
+    isCompanyEditable: boolean("is_company_editable").notNull().default(true),
+    isPricingRelevant: boolean("is_pricing_relevant").notNull().default(false),
+    requiresPhoto: boolean("requires_photo").notNull().default(false),
+    displayOrder: integer("display_order").notNull().default(0),
+    helpText: text("help_text"),
+    ...timestamps,
+  },
+  (table) => ({
+    serviceFieldUnique: uniqueIndex("company_service_fields_service_field_unique").on(
+      table.companyServiceId,
+      table.templateFieldId,
+    ),
+  }),
+);
+
+export const companyFieldOptions = pgTable(
+  "company_field_options",
+  {
+    id: uuid("id").primaryKey(),
+    companyServiceFieldId: uuid("company_service_field_id")
+      .notNull()
+      .references(() => companyServiceFields.id, { onDelete: "cascade" }),
+    templateFieldOptionId: uuid("template_field_option_id")
+      .notNull()
+      .references(() => templateFieldOptions.id, { onDelete: "restrict" }),
+    isActive: boolean("is_active").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => ({
+    fieldOptionUnique: uniqueIndex("company_field_options_field_option_unique").on(
+      table.companyServiceFieldId,
+      table.templateFieldOptionId,
+    ),
   }),
 );
 

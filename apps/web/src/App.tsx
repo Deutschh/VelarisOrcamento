@@ -1,6 +1,9 @@
 import {
   adminCompanyActionRequestSchema,
   adminCompanyPublicProfileRequestSchema,
+  adminCreateCompanyConfigurationRequestSchema,
+  adminSimulateCompanyConfigurationRequestSchema,
+  adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
   internalNoteRequestSchema,
   loginRequestSchema,
@@ -13,14 +16,21 @@ import type {
   AdminCompanyDetail,
   AdminCompanySummary,
   AuthUser,
+  CompanyConfigurationDetail,
+  CompanyConfigurationPreview,
+  CompanyFieldConfiguration,
+  CompanyFieldOptionConfiguration,
+  CompanyServiceConfiguration,
   CompanyAccountStatus,
   CompanyPublicProfileSettings,
   CompanyStatus,
   LoginRequest,
+  NicheTemplate,
   PublicCompanyCategoryCode,
   PublicCompanyDetail,
   PublicCompanySummary,
   RegisterCompanyRequest,
+  SchedulingMode,
 } from "@velaris/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -32,11 +42,16 @@ import {
   ExternalLink,
   FileText,
   Globe2,
+  LockKeyhole,
   LocateFixed,
   LogIn,
   MapPin,
   PlusCircle,
+  Play,
+  Save,
   Search,
+  Send,
+  Settings2,
   Star,
 } from "lucide-react";
 import { forwardRef, useEffect, useMemo, useState } from "react";
@@ -1043,6 +1058,11 @@ function AdminCompanyDetailPage() {
         `/api/admin/companies/${String(companyId)}`,
       ),
   });
+  const templatesQuery = useQuery({
+    queryKey: ["admin-niche-templates"],
+    queryFn: () =>
+      apiRequest<{ templates: NicheTemplate[] }>("/api/admin/niche-templates"),
+  });
   const actionMutation = useMutation({
     mutationFn: async (input: {
       action: "activate" | "suspend" | "publish" | "notes";
@@ -1155,6 +1175,21 @@ function AdminCompanyDetailPage() {
                 />
               </div>
               <div className="mt-8">
+                <AdminConfigurationPanel
+                  company={company}
+                  isLoadingTemplates={templatesQuery.isLoading}
+                  templates={templatesQuery.data?.templates ?? []}
+                  templatesError={
+                    templatesQuery.error
+                      ? errorMessage(
+                          templatesQuery.error,
+                          "Nao foi possivel carregar templates.",
+                        )
+                      : null
+                  }
+                />
+              </div>
+              <div className="mt-8">
                 <h2 className="text-lg font-semibold">Auditoria</h2>
                 <Timeline
                   empty="Nenhuma acao administrativa registrada."
@@ -1248,6 +1283,582 @@ function AdminCompanyDetailPage() {
     </AppShell>
   );
 }
+
+function AdminConfigurationPanel({
+  company,
+  isLoadingTemplates,
+  templates,
+  templatesError,
+}: {
+  company: AdminCompanyDetail;
+  isLoadingTemplates: boolean;
+  templates: NicheTemplate[];
+  templatesError: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const draftConfiguration =
+    company.configurations.find((configuration) => configuration.status === "draft") ??
+    null;
+  const publishedConfiguration =
+    company.configurations.find(
+      (configuration) => configuration.status === "published",
+    ) ?? null;
+  const [workingConfiguration, setWorkingConfiguration] =
+    useState<CompanyConfigurationDetail | null>(
+      draftConfiguration ?? publishedConfiguration,
+    );
+  const [simulateWithStains, setSimulateWithStains] = useState(true);
+  const selectedConfiguration =
+    workingConfiguration ?? draftConfiguration ?? publishedConfiguration;
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedConfiguration?.templateId) ??
+    templates.find((template) => template.code === company.publicProfile.nicheCode) ??
+    templates.find((template) => template.code === "cleaning_upholstery") ??
+    null;
+  const isEditable = selectedConfiguration?.status === "draft";
+
+  useEffect(() => {
+    setWorkingConfiguration(draftConfiguration ?? publishedConfiguration);
+  }, [draftConfiguration, publishedConfiguration]);
+
+  async function invalidateCompany() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-company", company.id] });
+    await queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
+  }
+
+  async function saveConfiguration(configuration: CompanyConfigurationDetail) {
+    const payload = adminUpdateCompanyConfigurationRequestSchema.parse(
+      toConfigurationUpdatePayload(configuration),
+    );
+    const response = await apiRequest<{ configuration: CompanyConfigurationDetail }>(
+      `/api/admin/company-configurations/${configuration.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+    );
+
+    setWorkingConfiguration(response.configuration);
+    return response.configuration;
+  }
+
+  const createConfigurationMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTemplate) {
+        throw new Error("Template de nicho nao encontrado.");
+      }
+
+      const payload = adminCreateCompanyConfigurationRequestSchema.parse({
+        companyId: company.id,
+        templateId: selectedTemplate.id,
+      });
+
+      return apiRequest<{ configuration: CompanyConfigurationDetail }>(
+        "/api/admin/company-configurations",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+    async onSuccess(response) {
+      setWorkingConfiguration(response.configuration);
+      await invalidateCompany();
+    },
+  });
+
+  const saveConfigurationMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedConfiguration || selectedConfiguration.status !== "draft") {
+        throw new Error("Somente rascunhos podem ser salvos.");
+      }
+
+      return saveConfiguration(selectedConfiguration);
+    },
+    async onSuccess() {
+      await invalidateCompany();
+    },
+  });
+
+  const simulateConfigurationMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedConfiguration) {
+        throw new Error("Crie uma configuracao antes de simular.");
+      }
+
+      const configuration =
+        selectedConfiguration.status === "draft"
+          ? await saveConfiguration(selectedConfiguration)
+          : selectedConfiguration;
+      const payload = adminSimulateCompanyConfigurationRequestSchema.parse({
+        answers: {
+          has_stains: simulateWithStains,
+          item_type: "sofa",
+        },
+      });
+
+      return apiRequest<{ preview: CompanyConfigurationPreview }>(
+        `/api/admin/company-configurations/${configuration.id}/simulate`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+    async onSuccess() {
+      await invalidateCompany();
+    },
+  });
+
+  const publishConfigurationMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedConfiguration || selectedConfiguration.status !== "draft") {
+        throw new Error("Somente rascunhos podem ser publicados.");
+      }
+
+      const configuration = await saveConfiguration(selectedConfiguration);
+
+      return apiRequest<{ configuration: CompanyConfigurationDetail }>(
+        `/api/admin/company-configurations/${configuration.id}/publish`,
+        {
+          method: "POST",
+        },
+      );
+    },
+    async onSuccess(response) {
+      setWorkingConfiguration(response.configuration);
+      await invalidateCompany();
+    },
+  });
+
+  function updateService(
+    serviceId: string,
+    patch: Partial<Pick<CompanyServiceConfiguration, "isActive" | "schedulingMode">>,
+  ) {
+    setWorkingConfiguration((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.map((service) =>
+              service.id === serviceId ? { ...service, ...patch } : service,
+            ),
+          }
+        : current,
+    );
+  }
+
+  function updateField(
+    serviceId: string,
+    fieldId: string,
+    patch: Partial<
+      Pick<
+        CompanyFieldConfiguration,
+        | "helpText"
+        | "isActive"
+        | "isRequired"
+        | "isClientVisible"
+        | "isCompanyEditable"
+        | "isPricingRelevant"
+        | "requiresPhoto"
+      >
+    >,
+  ) {
+    setWorkingConfiguration((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.map((service) =>
+              service.id === serviceId
+                ? {
+                    ...service,
+                    fields: service.fields.map((field) =>
+                      field.id === fieldId ? { ...field, ...patch } : field,
+                    ),
+                  }
+                : service,
+            ),
+          }
+        : current,
+    );
+  }
+
+  function updateOption(
+    serviceId: string,
+    fieldId: string,
+    optionId: string,
+    patch: Partial<Pick<CompanyFieldOptionConfiguration, "isActive">>,
+  ) {
+    setWorkingConfiguration((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.map((service) =>
+              service.id === serviceId
+                ? {
+                    ...service,
+                    fields: service.fields.map((field) =>
+                      field.id === fieldId
+                        ? {
+                            ...field,
+                            options: field.options.map((option) =>
+                              option.id === optionId ? { ...option, ...patch } : option,
+                            ),
+                          }
+                        : field,
+                    ),
+                  }
+                : service,
+            ),
+          }
+        : current,
+    );
+  }
+
+  const panelError =
+    templatesError ??
+    mutationErrorMessage(createConfigurationMutation.error) ??
+    mutationErrorMessage(saveConfigurationMutation.error) ??
+    mutationErrorMessage(simulateConfigurationMutation.error) ??
+    mutationErrorMessage(publishConfigurationMutation.error);
+  const preview = simulateConfigurationMutation.data?.preview ?? null;
+
+  return (
+    <section>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Configuracao do template</h2>
+          <p className="mt-1 text-sm text-white/55">
+            {selectedTemplate
+              ? `${selectedTemplate.name} v${selectedTemplate.version}`
+              : "Template ainda nao carregado"}
+          </p>
+        </div>
+        {selectedConfiguration ? (
+          <span className="inline-flex items-center gap-2 rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/70">
+            {selectedConfiguration.status !== "draft" ? <LockKeyhole size={14} /> : null}
+            {configurationStatusLabels[selectedConfiguration.status]} v
+            {selectedConfiguration.version}
+          </span>
+        ) : null}
+      </div>
+
+      {isLoadingTemplates ? <LoadingLine /> : null}
+      {!selectedConfiguration ? (
+        <div className="mt-5 border-t border-white/10 pt-5">
+          <p className="text-sm leading-6 text-white/60">
+            Nenhuma configuracao criada para esta empresa. O rascunho sera gerado a partir
+            do template fixo do nicho piloto.
+          </p>
+          <ActionButton
+            disabled={!selectedTemplate}
+            icon={Settings2}
+            isLoading={createConfigurationMutation.isPending}
+            onClick={() => createConfigurationMutation.mutate()}
+          >
+            Criar rascunho
+          </ActionButton>
+        </div>
+      ) : null}
+
+      {selectedConfiguration ? (
+        <div className="mt-5 space-y-5 border-t border-white/10 pt-5">
+          {!isEditable ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+              <span>
+                Esta versao esta publicada e imutavel. Crie um novo rascunho para alterar
+                regras comerciais futuras.
+              </span>
+              <ActionButton
+                disabled={!selectedTemplate}
+                icon={Settings2}
+                isLoading={createConfigurationMutation.isPending}
+                variant="secondary"
+                onClick={() => createConfigurationMutation.mutate()}
+              >
+                Novo rascunho
+              </ActionButton>
+            </div>
+          ) : null}
+          {selectedConfiguration.services.map((service) => (
+            <div className="border-t border-white/10 pt-4" key={service.id}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-medium">{service.name}</h3>
+                  <p className="mt-1 text-xs text-white/45">{service.code}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <ToggleLabel
+                    checked={service.isActive}
+                    disabled={!isEditable}
+                    label="Ativo"
+                    onChange={(checked) =>
+                      updateService(service.id, { isActive: checked })
+                    }
+                  />
+                  <label className="text-xs text-white/60">
+                    Agendamento
+                    <select
+                      className="ml-2 rounded-md border border-white/15 bg-[#15171d] px-2 py-1.5 text-white"
+                      disabled={!isEditable}
+                      value={service.schedulingMode}
+                      onChange={(event) =>
+                        updateService(service.id, {
+                          schedulingMode: event.target.value as SchedulingMode,
+                        })
+                      }
+                    >
+                      {Object.entries(schedulingModeLabels).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div className="mt-4 divide-y divide-white/10">
+                {service.fields.map((field) => (
+                  <div className="py-4" key={field.id}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium">{field.label}</div>
+                        <div className="mt-1 text-xs text-white/45">
+                          {field.code} - {field.fieldType}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <ToggleLabel
+                          checked={field.isActive}
+                          disabled={!isEditable}
+                          label="Ativo"
+                          onChange={(checked) =>
+                            updateField(service.id, field.id, { isActive: checked })
+                          }
+                        />
+                        <ToggleLabel
+                          checked={field.isRequired}
+                          disabled={!isEditable}
+                          label="Obrigatorio"
+                          onChange={(checked) =>
+                            updateField(service.id, field.id, { isRequired: checked })
+                          }
+                        />
+                        <ToggleLabel
+                          checked={field.isClientVisible}
+                          disabled={!isEditable}
+                          label="Cliente"
+                          onChange={(checked) =>
+                            updateField(service.id, field.id, {
+                              isClientVisible: checked,
+                            })
+                          }
+                        />
+                        <ToggleLabel
+                          checked={field.isPricingRelevant}
+                          disabled={!isEditable}
+                          label="Preco"
+                          onChange={(checked) =>
+                            updateField(service.id, field.id, {
+                              isPricingRelevant: checked,
+                            })
+                          }
+                        />
+                        <ToggleLabel
+                          checked={field.requiresPhoto}
+                          disabled={!isEditable}
+                          label="Foto"
+                          onChange={(checked) =>
+                            updateField(service.id, field.id, {
+                              requiresPhoto: checked,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    {field.condition ? (
+                      <p className="mt-2 text-xs text-sky-200">
+                        Condicional: {field.condition.sourceFieldCode}{" "}
+                        {field.condition.operator} {String(field.condition.value)}
+                      </p>
+                    ) : null}
+                    <input
+                      className="mt-3 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                      disabled={!isEditable}
+                      placeholder="Texto de ajuda"
+                      value={field.helpText ?? ""}
+                      onChange={(event) =>
+                        updateField(service.id, field.id, {
+                          helpText: event.target.value.trim() || null,
+                        })
+                      }
+                    />
+                    {field.options.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {field.options.map((option) => (
+                          <ToggleLabel
+                            checked={option.isActive}
+                            disabled={!isEditable}
+                            key={option.id}
+                            label={option.label}
+                            onChange={(checked) =>
+                              updateOption(service.id, field.id, option.id, {
+                                isActive: checked,
+                              })
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+            <ActionButton
+              disabled={!isEditable}
+              icon={Save}
+              isLoading={saveConfigurationMutation.isPending}
+              onClick={() => saveConfigurationMutation.mutate()}
+            >
+              Salvar rascunho
+            </ActionButton>
+            <label className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 px-3 text-sm text-white/70">
+              <input
+                checked={simulateWithStains}
+                type="checkbox"
+                onChange={(event) => setSimulateWithStains(event.target.checked)}
+              />
+              Simular com manchas
+            </label>
+            <ActionButton
+              icon={Play}
+              isLoading={simulateConfigurationMutation.isPending}
+              variant="secondary"
+              onClick={() => simulateConfigurationMutation.mutate()}
+            >
+              Simular
+            </ActionButton>
+            <ActionButton
+              disabled={!isEditable}
+              icon={Send}
+              isLoading={publishConfigurationMutation.isPending}
+              onClick={() => publishConfigurationMutation.mutate()}
+            >
+              Publicar versao
+            </ActionButton>
+          </div>
+          {preview ? <ConfigurationPreview preview={preview} /> : null}
+        </div>
+      ) : null}
+      <FormError message={panelError} />
+    </section>
+  );
+}
+
+function ConfigurationPreview({ preview }: { preview: CompanyConfigurationPreview }) {
+  return (
+    <div className="border-t border-white/10 pt-4">
+      <h3 className="text-sm font-medium text-white/85">Preview do pedido</h3>
+      <div className="mt-3 space-y-3">
+        {preview.services.map((service) => (
+          <div className="rounded-md border border-white/10 p-3" key={service.id}>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="font-medium">{service.name}</span>
+              <span className="text-xs text-white/45">
+                {schedulingModeLabels[service.schedulingMode]}
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {service.fields.map((field) => (
+                <div
+                  className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm"
+                  key={field.id}
+                >
+                  <div className="font-medium text-white/85">{field.label}</div>
+                  <div className="mt-1 text-xs text-white/45">
+                    {field.isRequired ? "Obrigatorio" : "Opcional"} - {field.fieldType}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ToggleLabel({
+  checked,
+  disabled,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="inline-flex min-h-9 items-center gap-2 rounded-md border border-white/15 px-2.5 text-xs text-white/70">
+      <input
+        checked={checked}
+        disabled={disabled}
+        type="checkbox"
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      {label}
+    </label>
+  );
+}
+
+function toConfigurationUpdatePayload(configuration: CompanyConfigurationDetail) {
+  return {
+    services: configuration.services.map((service) => ({
+      id: service.id,
+      templateServiceId: service.templateServiceId,
+      isActive: service.isActive,
+      schedulingMode: service.schedulingMode,
+      displayOrder: service.displayOrder,
+      fields: service.fields.map((field) => ({
+        id: field.id,
+        templateFieldId: field.templateFieldId,
+        isActive: field.isActive,
+        isRequired: field.isRequired,
+        isClientVisible: field.isClientVisible,
+        isCompanyEditable: field.isCompanyEditable,
+        isPricingRelevant: field.isPricingRelevant,
+        requiresPhoto: field.requiresPhoto,
+        displayOrder: field.displayOrder,
+        helpText: field.helpText,
+        options: field.options.map((option) => ({
+          id: option.id,
+          templateFieldOptionId: option.templateFieldOptionId,
+          isActive: option.isActive,
+          displayOrder: option.displayOrder,
+        })),
+      })),
+    })),
+  };
+}
+
+function mutationErrorMessage(error: unknown) {
+  return error ? errorMessage(error, "Nao foi possivel salvar a configuracao.") : null;
+}
+
+const configurationStatusLabels = {
+  draft: "Rascunho",
+  published: "Publicado",
+  archived: "Arquivado",
+};
+
+const schedulingModeLabels: Record<SchedulingMode, string> = {
+  required_with_proposal: "Obrigatorio com proposta",
+  optional_with_proposal: "Opcional com proposta",
+  after_proposal_acceptance: "Depois do aceite",
+  external_only: "Externo",
+};
 
 interface PublicProfileFormValues {
   nicheCode: PublicCompanyCategoryCode;

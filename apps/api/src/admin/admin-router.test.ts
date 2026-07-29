@@ -7,7 +7,12 @@ import {
   InMemoryAdminRepository,
   createTestAdminCompany,
 } from "../test/in-memory-admin-repository.js";
+import {
+  InMemoryTemplateRepository,
+  createTestNicheTemplate,
+} from "../test/in-memory-template-repository.js";
 import { TokenService } from "../auth/token-service.js";
+import { TemplateAdminService } from "../templates/template-service.js";
 import { AdminService } from "./admin-service.js";
 
 function createTestContext() {
@@ -27,7 +32,11 @@ function createTestContext() {
     },
   };
   const adminService = new AdminService({ repository, emailAdapter });
-  const app = createApp({ tokenService, adminService });
+  const templateRepository = new InMemoryTemplateRepository();
+  const template = createTestNicheTemplate();
+  templateRepository.templates.set(template.id, template);
+  const templateAdminService = new TemplateAdminService(templateRepository);
+  const app = createApp({ tokenService, adminService, templateAdminService });
 
   return {
     app,
@@ -43,6 +52,7 @@ function createTestContext() {
       email: "empresa@example.com",
       role: "company",
     }),
+    template,
   };
 }
 
@@ -89,5 +99,32 @@ describe("admin routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.company.publicProfile.city).toBe("Sao Paulo");
+  });
+
+  it("lists fixed niche templates for admin users", async () => {
+    const { app, adminToken } = createTestContext();
+
+    const response = await request(app)
+      .get("/api/admin/niche-templates")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.templates[0].code).toBe("cleaning_upholstery");
+  });
+
+  it("creates company configurations from templates for admin users", async () => {
+    const { app, adminToken, template } = createTestContext();
+
+    const response = await request(app)
+      .post("/api/admin/company-configurations")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        companyId: "20000000-0000-4000-8000-000000000001",
+        templateId: template.id,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.configuration.status).toBe("draft");
+    expect(response.body.configuration.services[0].code).toBe("upholstery_cleaning");
   });
 });

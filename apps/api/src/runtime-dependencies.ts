@@ -14,6 +14,8 @@ import { createDatabaseClient } from "./db/client.js";
 import { stubEmailAdapter } from "./notifications/email-adapter.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
 import { PublicCompanyService } from "./public/public-service.js";
+import { DrizzleTemplateRepository } from "./templates/drizzle-template-repository.js";
+import { TemplateAdminService } from "./templates/template-service.js";
 
 export interface RuntimeDependencies {
   authService: ReturnType<typeof createAuthService>;
@@ -21,6 +23,7 @@ export interface RuntimeDependencies {
   adminService: AdminService;
   companyAccountService: CompanyAccountService;
   publicCompanyService: PublicCompanyService;
+  templateAdminService: TemplateAdminService;
 }
 
 export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
@@ -48,5 +51,6 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     publicCompanyService: new PublicCompanyService(
       new DrizzlePublicCompanyRepository(db),
     ),
+    templateAdminService: new TemplateAdminService(new DrizzleTemplateRepository(db)),
   };
 }

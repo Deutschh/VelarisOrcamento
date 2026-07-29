@@ -8,6 +8,7 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 - Sprint 2 concluida: schema multiempresa, migration inicial, autenticacao propria, refresh tokens e isolamento empresarial.
 - Sprint 3 concluida: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
 - Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico editavel pelo Admin.
+- Sprint 5 concluida: templates fixos, configuracao por empresa, preview, simulacao, publicacao imutavel e snapshot de configuracao.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
 ## Sprint 0 - Fechamento funcional e prototipo
@@ -58,6 +59,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 ## Sprint 5 - Templates fixos e campos configuraveis
 
 - Requisito confirmado: templates fixos por nicho, tipos de campo predefinidos, opcoes, obrigatoriedade, ativacao por empresa, condicoes simples, ordenacao, preview, configuracao Admin, modo de agendamento, versionamento, simulacao, snapshot e bloqueio de edicao de versao publicada.
+- Implementado Sprint 5: tabelas `niche_templates`, `template_services`, `template_fields`, `template_field_options`, `company_configurations`, `company_services`, `company_service_fields` e `company_field_options`; template inicial fixo de limpeza de estofados; contratos compartilhados; regras puras de ciclo/condicoes; API Admin de templates/configuracoes; painel Admin para criar rascunho, ajustar campos/opcoes, simular condicionais e publicar versoes imutaveis.
+- Limitacao registrada: regras comerciais de preco, margens, deslocamento, duracao e memoria de calculo continuam para Sprint 6/7.
 - Fora da V1: construtor livre, codigo livre, formulas arbitrarias, regras profundamente aninhadas e novos tipos tecnicos criados pelo Admin.
 - Estimativa da especificacao: 18 a 26 horas.
 
