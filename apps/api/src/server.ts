@@ -4,11 +4,19 @@ import express from "express";
 import { pinoHttp } from "pino-http";
 
 import { env } from "./config/env.js";
+import { createAuthServiceFromEnv } from "./auth/auth-dependencies.js";
+import { createAuthRouter } from "./auth/auth-router.js";
+import type { AuthService } from "./auth/auth-service.js";
+import { createUnavailableAuthRouter } from "./auth/unavailable-auth-router.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { logger } from "./lib/logger.js";
 import { healthRouter } from "./routes/health.js";
 
-export function createApp() {
+export interface AppDependencies {
+  authService?: AuthService;
+}
+
+export function createApp(dependencies: AppDependencies = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -23,7 +31,20 @@ export function createApp() {
   app.use(pinoHttp({ logger }));
 
   app.use(healthRouter);
+  app.use("/api/auth", createAuthRouterIfAvailable(dependencies.authService));
   app.use(errorHandler);
 
   return app;
+}
+
+function createAuthRouterIfAvailable(authService?: AuthService) {
+  if (authService) {
+    return createAuthRouter(authService);
+  }
+
+  try {
+    return createAuthRouter(createAuthServiceFromEnv());
+  } catch {
+    return createUnavailableAuthRouter();
+  }
 }

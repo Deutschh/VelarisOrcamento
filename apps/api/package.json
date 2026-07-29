@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@velaris/database-schema": "0.0.0",
     "@velaris/domain": "0.0.0",
     "@velaris/shared": "0.0.0",
     "argon2": "^0.43.1",

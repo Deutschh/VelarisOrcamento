@@ -1,4 +1,5 @@
 export const workspacePackageOrder = [
+  "@velaris/database-schema",
   "@velaris/shared",
   "@velaris/domain",
   "@velaris/config",

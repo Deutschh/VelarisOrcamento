@@ -9,6 +9,7 @@
     "npm": ">=11.5.2 <12"
   },
   "workspaces": [
+    "database/schemas",
     "packages/*",
     "apps/*"
   ],
@@ -16,13 +17,13 @@
     "dev": "npm run dev:api",
     "dev:api": "npm run dev -w @velaris/api",
     "dev:web": "npm run dev -w @velaris/web",
-    "build": "npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run build -w @velaris/api && npm run build -w @velaris/web",
+    "build": "npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run build -w @velaris/api && npm run build -w @velaris/web",
     "test": "npm run test --workspaces --if-present",
     "test:e2e": "playwright test --pass-with-no-tests",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "typecheck": "npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run typecheck -w @velaris/api && npm run typecheck -w @velaris/web",
+    "typecheck": "npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/config && npm run build -w @velaris/ui && npm run typecheck -w @velaris/api && npm run typecheck -w @velaris/web",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts"
   },
