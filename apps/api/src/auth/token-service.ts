@@ -21,6 +21,13 @@ export interface IssuedRefreshToken {
   expiresAt: Date;
 }
 
+export interface IssuedStoredToken {
+  id: string;
+  token: string;
+  tokenHash: string;
+  expiresAt: Date;
+}
+
 export class TokenService {
   constructor(private readonly config: TokenServiceConfig) {}
 
@@ -41,9 +48,21 @@ export class TokenService {
   }
 
   issueRefreshToken(now = new Date()): IssuedRefreshToken {
-    const token = randomBytes(48).toString("base64url");
     const expiresAt = new Date(now);
     expiresAt.setDate(expiresAt.getDate() + this.config.refreshTokenTtlDays);
+
+    return this.issueStoredToken(expiresAt);
+  }
+
+  issueEmailVerificationToken(now = new Date()): IssuedStoredToken {
+    const expiresAt = new Date(now);
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    return this.issueStoredToken(expiresAt);
+  }
+
+  private issueStoredToken(expiresAt: Date): IssuedStoredToken {
+    const token = randomBytes(48).toString("base64url");
 
     return {
       id: randomUUID(),

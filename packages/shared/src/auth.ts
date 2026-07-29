@@ -6,6 +6,9 @@ export type UserRole = z.infer<typeof userRoleSchema>;
 export const companyStatusSchema = z.enum(["pending", "active", "suspended"]);
 export type CompanyStatus = z.infer<typeof companyStatusSchema>;
 
+export const companyProfileStatusSchema = z.enum(["draft", "published", "unpublished"]);
+export type CompanyProfileStatus = z.infer<typeof companyProfileStatusSchema>;
+
 export const companyMemberRoleSchema = z.enum(["owner", "manager", "operator"]);
 export type CompanyMemberRole = z.infer<typeof companyMemberRoleSchema>;
 
@@ -58,3 +61,9 @@ export const refreshRequestSchema = z.object({
 });
 
 export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
+
+export const verifyEmailRequestSchema = z.object({
+  token: z.string().min(32),
+});
+
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;

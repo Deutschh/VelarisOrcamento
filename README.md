@@ -14,12 +14,13 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto esta na Sprint 1, com a fundacao tecnica inicial criada. Ja existe
-scaffolding de frontend, API, pacotes compartilhados, configuracao TypeScript,
-lint, formatacao, testes unitarios/API, build e health check.
+O projeto esta na Sprint 3. Ja existe fundacao tecnica, schema multiempresa,
+migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
+status de conta pendente e painel Admin inicial para ativacao, suspensao,
+publicacao e observacoes internas.
 
-Ainda nao ha tabelas de negocio, migrations reais, autenticacao funcional,
-fluxos de orcamento, conexao ao Neon com credenciais reais ou deploy.
+Ainda nao ha templates de nicho, motor de calculo, fluxo publico de orcamento,
+uploads, propostas, agendamento assistido completo, PDF ou deploy.
 
 ## Stack planejada
 
@@ -80,7 +81,7 @@ ImagesExemplos/
 - Regras puras de negocio ficam em `packages/domain`.
 - Tipos, schemas, contratos e constantes compartilhadas ficam em `packages/shared`.
 - Nenhuma credencial real deve ser versionada.
-- Nao iniciar a Sprint 2 sem nova autorizacao.
+- Credenciais reais ficam apenas em `.env`, nunca em arquivos versionados.
 
 ## Scripts
 
@@ -90,7 +91,23 @@ npm run dev:web       # Web React/Vite em desenvolvimento
 npm run build         # Build dos pacotes, API e web
 npm run typecheck     # TypeScript estrito
 npm run test          # Vitest nos workspaces
-npm run test:e2e      # Playwright, sem testes E2E reais ainda
+npm run test:e2e      # Playwright nas rotas principais
 npm run lint          # ESLint
 npm run format:check  # Prettier em modo verificacao
+npm run db:generate   # Gera migrations Drizzle
+npm run db:migrate    # Aplica migrations no banco configurado
+npm run admin:create  # Cria o primeiro Admin usando ADMIN_* do .env local
 ```
+
+## Bootstrap Admin
+
+Para criar o primeiro usuario Admin, preencha somente no `.env` local:
+
+```txt
+ADMIN_NAME=
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+```
+
+Depois execute `npm run admin:create`. O script nao possui credenciais padrao e
+nao deve ser executado com valores reais em arquivos versionados.

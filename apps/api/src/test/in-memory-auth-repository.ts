@@ -1,8 +1,10 @@
 import type {
   AuthRepository,
   CompanyMembership,
+  CreateEmailVerificationTokenInput,
   CreateRefreshTokenInput,
   CreateUserInput,
+  PersistedEmailVerificationToken,
   PersistedRefreshToken,
   PersistedUser,
 } from "../auth/auth-repository.js";
@@ -15,6 +17,7 @@ export class InMemoryAuthRepository implements AuthRepository {
   >();
   readonly memberships: CompanyMembership[] = [];
   readonly refreshTokens = new Map<string, PersistedRefreshToken>();
+  readonly emailVerificationTokens = new Map<string, PersistedEmailVerificationToken>();
 
   async findUserByEmail(email: string): Promise<PersistedUser | null> {
     const normalizedEmail = email.toLowerCase();
@@ -95,6 +98,39 @@ export class InMemoryAuthRepository implements AuthRepository {
         });
       }
     }
+  }
+
+  async createEmailVerificationToken(
+    input: CreateEmailVerificationTokenInput,
+  ): Promise<void> {
+    this.emailVerificationTokens.set(input.tokenHash, {
+      id: input.id,
+      userId: input.userId,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      usedAt: null,
+    });
+  }
+
+  async findEmailVerificationTokenByHash(
+    tokenHash: string,
+  ): Promise<PersistedEmailVerificationToken | null> {
+    return this.emailVerificationTokens.get(tokenHash) ?? null;
+  }
+
+  async markEmailVerificationTokenUsed(id: string): Promise<void> {
+    for (const [tokenHash, token] of this.emailVerificationTokens.entries()) {
+      if (token.id === id) {
+        this.emailVerificationTokens.set(tokenHash, {
+          ...token,
+          usedAt: new Date(),
+        });
+      }
+    }
+  }
+
+  async markUserEmailVerified(_userId: string): Promise<void> {
+    return;
   }
 
   async findCompanyMembership(input: {

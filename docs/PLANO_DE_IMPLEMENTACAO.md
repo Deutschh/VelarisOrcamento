@@ -4,11 +4,10 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 
 ## Estado atual
 
-- Requisito confirmado: analise inicial aprovada.
-- Requisito confirmado: workspace deve ser organizado antes da instalacao de dependencias.
-- Requisito confirmado: nao instalar dependencias nesta tarefa.
-- Requisito confirmado: nao implementar frontend, backend, banco, migrations reais ou regras de negocio nesta tarefa.
-- Requisito confirmado: Git deve ser inicializado com branch principal `main`.
+- Sprint 1 concluida: fundacao tecnica do monorepo, API, web, qualidade e health check.
+- Sprint 2 concluida: schema multiempresa, migration inicial, autenticacao propria, refresh tokens e isolamento empresarial.
+- Sprint 3 em implementacao: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
+- Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
 ## Sprint 0 - Fechamento funcional e prototipo
 
@@ -43,6 +42,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 
 - Requisito confirmado: cadastro empresarial, confirmacao de e-mail, conta pendente, contato com Velaris, lista/detalhe de empresas no Admin, ativacao, suspensao, publicacao, observacoes internas, auditoria e e-mail de liberacao.
 - Requisito confirmado: pagamento ocorre fora da plataforma.
+- Implementado Sprint 3: API Admin inicial, tela de cadastro empresarial, tela de conta pendente, painel/lista/detalhe Admin, observacoes internas, auditoria e adapter stub para e-mails.
+- Pendente para operacao real: definir canal oficial de contato Velaris e provedor/templates de e-mail.
 - Estimativa da especificacao: 12 a 18 horas.
 
 ## Sprint 4 - Home, busca e perfil publico

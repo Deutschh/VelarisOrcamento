@@ -34,6 +34,16 @@ export class InvalidRefreshTokenError extends AppError {
   }
 }
 
+export class InvalidEmailVerificationTokenError extends AppError {
+  constructor() {
+    super(
+      "Email verification token is invalid or expired.",
+      400,
+      "INVALID_EMAIL_VERIFICATION_TOKEN",
+    );
+  }
+}
+
 export class CompanyAccessDeniedError extends AppError {
   constructor() {
     super("Company access denied.", 403, "COMPANY_ACCESS_DENIED");

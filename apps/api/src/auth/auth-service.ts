@@ -5,16 +5,23 @@ import type {
   LoginRequest,
   RegisterCompanyRequest,
   RegisterCustomerRequest,
+  VerifyEmailRequest,
 } from "@velaris/shared";
 import { APP_DEFAULTS } from "@velaris/shared";
 
 import {
   CompanySlugAlreadyRegisteredError,
   EmailAlreadyRegisteredError,
+  InvalidEmailVerificationTokenError,
   InvalidCredentialsError,
   InvalidRefreshTokenError,
 } from "./auth-errors.js";
-import type { AuthRepository, CreateRefreshTokenInput } from "./auth-repository.js";
+import type {
+  AuthRepository,
+  CreateEmailVerificationTokenInput,
+  CreateRefreshTokenInput,
+} from "./auth-repository.js";
+import type { EmailAdapter } from "../notifications/email-adapter.js";
 import type { PasswordHasher } from "./password.js";
 import { hashToken } from "./token-service.js";
 import type { TokenService } from "./token-service.js";
@@ -28,6 +35,7 @@ export interface AuthServiceDependencies {
   repository: AuthRepository;
   passwordHasher: PasswordHasher;
   tokenService: TokenService;
+  emailAdapter?: EmailAdapter;
 }
 
 export class AuthService {
@@ -48,6 +56,8 @@ export class AuthService {
       role: "customer",
       ...(input.phone ? { phone: input.phone } : {}),
     });
+
+    await this.sendEmailVerification(user);
 
     return this.issueSession(user, context);
   }
@@ -83,6 +93,8 @@ export class AuthService {
         timezone: APP_DEFAULTS.timezone,
       },
     });
+
+    await this.sendEmailVerification(result.user);
 
     return {
       ...(await this.issueSession(result.user, context)),
@@ -156,6 +168,24 @@ export class AuthService {
     }
   }
 
+  async verifyEmail(input: VerifyEmailRequest): Promise<void> {
+    const persistedToken =
+      await this.dependencies.repository.findEmailVerificationTokenByHash(
+        hashToken(input.token),
+      );
+
+    if (
+      !persistedToken ||
+      persistedToken.usedAt ||
+      persistedToken.expiresAt.getTime() <= Date.now()
+    ) {
+      throw new InvalidEmailVerificationTokenError();
+    }
+
+    await this.dependencies.repository.markUserEmailVerified(persistedToken.userId);
+    await this.dependencies.repository.markEmailVerificationTokenUsed(persistedToken.id);
+  }
+
   private async assertEmailAvailable(email: string) {
     const existingUser = await this.dependencies.repository.findUserByEmail(email);
 
@@ -199,6 +229,23 @@ export class AuthService {
     };
 
     await this.dependencies.repository.createRefreshToken(input);
+  }
+
+  private async sendEmailVerification(user: AuthUser & { passwordHash: string }) {
+    const issuedToken = this.dependencies.tokenService.issueEmailVerificationToken();
+    const input: CreateEmailVerificationTokenInput = {
+      id: issuedToken.id,
+      userId: user.id,
+      tokenHash: issuedToken.tokenHash,
+      expiresAt: issuedToken.expiresAt,
+    };
+
+    await this.dependencies.repository.createEmailVerificationToken(input);
+    await this.dependencies.emailAdapter?.sendEmailVerification({
+      to: user.email,
+      name: user.name,
+      token: issuedToken.token,
+    });
   }
 
   private toAuthUser(user: AuthUser & { passwordHash: string }): AuthUser {

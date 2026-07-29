@@ -7,6 +7,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: wireframes de onboarding, Home, perfil publico, formulario, revisao, acompanhamento, painel da empresa e painel Admin.
 - Decisao pendente: prototipo navegavel do MVP piloto.
 - Decisao pendente: textos finais de interface para estimativa, aceite, recuperacao, recusas, cancelamentos e mensagens de WhatsApp assistido.
+- Decisao pendente: URL/canal oficial de contato da Velaris para a tela de conta pendente.
 - Decisao pendente: regras iniciais completas do template de limpeza de estofados para validacao com empresa real.
 - Decisao pendente: valores iniciais de margens de estimativa por template/servico/empresa.
 - Decisao pendente: regras finais de exibicao e moderacao de avaliacoes no MVP.
@@ -40,7 +41,6 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: provedor futuro de e-mail transacional.
 - Decisao pendente: templates finais dos e-mails transacionais.
 - Decisao pendente: remetente, dominio e configuracao de entregabilidade.
-- Decisao pendente: contrato/interface interna para envio de e-mail sem acoplar fornecedor.
 
 ## Arquivos
 

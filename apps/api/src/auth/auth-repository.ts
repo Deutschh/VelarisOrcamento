@@ -17,6 +17,14 @@ export interface PersistedRefreshToken {
   revokedAt: Date | null;
 }
 
+export interface PersistedEmailVerificationToken {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+}
+
 export interface CompanyMembership {
   companyId: string;
   userId: string;
@@ -49,6 +57,13 @@ export interface CreateRefreshTokenInput {
   ipAddress?: string;
 }
 
+export interface CreateEmailVerificationTokenInput {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+}
+
 export interface AuthRepository {
   findUserByEmail(email: string): Promise<PersistedUser | null>;
   findUserById(id: string): Promise<PersistedUser | null>;
@@ -61,6 +76,12 @@ export interface AuthRepository {
   createRefreshToken(input: CreateRefreshTokenInput): Promise<void>;
   findRefreshTokenByHash(tokenHash: string): Promise<PersistedRefreshToken | null>;
   revokeRefreshToken(id: string, replacedByTokenId?: string): Promise<void>;
+  createEmailVerificationToken(input: CreateEmailVerificationTokenInput): Promise<void>;
+  findEmailVerificationTokenByHash(
+    tokenHash: string,
+  ): Promise<PersistedEmailVerificationToken | null>;
+  markEmailVerificationTokenUsed(id: string): Promise<void>;
+  markUserEmailVerified(userId: string): Promise<void>;
   findCompanyMembership(input: {
     userId: string;
     companyId: string;

@@ -117,6 +117,8 @@ export const companies = pgTable(
     activatedAt: timestamp("activated_at", { withTimezone: true }),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     nextBillingAt: timestamp("next_billing_at", { withTimezone: true }),
+    profilePublishedAt: timestamp("profile_published_at", { withTimezone: true }),
+    profileUnpublishedAt: timestamp("profile_unpublished_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => ({
@@ -161,6 +163,24 @@ export const companySubscriptions = pgTable("company_subscriptions", {
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   ...timestamps,
 });
+
+export const companyInternalNotes = pgTable(
+  "company_internal_notes",
+  {
+    id: uuid("id").primaryKey(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    note: text("note").notNull(),
+    ...timestamps,
+  },
+  (table) => ({
+    companyIdx: index("company_internal_notes_company_idx").on(table.companyId),
+  }),
+);
 
 export const refreshTokens = pgTable(
   "refresh_tokens",

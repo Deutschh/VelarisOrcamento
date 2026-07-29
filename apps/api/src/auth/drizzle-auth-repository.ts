@@ -5,6 +5,7 @@ import {
   companies,
   companyMembers,
   customerProfiles,
+  emailVerificationTokens,
   refreshTokens,
   users,
 } from "@velaris/database-schema";
@@ -12,8 +13,10 @@ import type { createDatabaseClient } from "../db/client.js";
 import type {
   AuthRepository,
   CompanyMembership,
+  CreateEmailVerificationTokenInput,
   CreateRefreshTokenInput,
   CreateUserInput,
+  PersistedEmailVerificationToken,
   PersistedRefreshToken,
   PersistedUser,
 } from "./auth-repository.js";
@@ -37,6 +40,18 @@ function mapRefreshToken(row: typeof refreshTokens.$inferSelect): PersistedRefre
     tokenHash: row.tokenHash,
     expiresAt: row.expiresAt,
     revokedAt: row.revokedAt,
+  };
+}
+
+function mapEmailVerificationToken(
+  row: typeof emailVerificationTokens.$inferSelect,
+): PersistedEmailVerificationToken {
+  return {
+    id: row.id,
+    userId: row.userId,
+    tokenHash: row.tokenHash,
+    expiresAt: row.expiresAt,
+    usedAt: row.usedAt,
   };
 }
 
@@ -181,6 +196,50 @@ export class DrizzleAuthRepository implements AuthRepository {
         ...(replacedByTokenId ? { replacedByTokenId } : {}),
       })
       .where(eq(refreshTokens.id, id));
+  }
+
+  async createEmailVerificationToken(
+    input: CreateEmailVerificationTokenInput,
+  ): Promise<void> {
+    await this.db.insert(emailVerificationTokens).values({
+      id: input.id,
+      userId: input.userId,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+    });
+  }
+
+  async findEmailVerificationTokenByHash(
+    tokenHash: string,
+  ): Promise<PersistedEmailVerificationToken | null> {
+    const [row] = await this.db
+      .select()
+      .from(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.tokenHash, tokenHash))
+      .limit(1);
+
+    return row ? mapEmailVerificationToken(row) : null;
+  }
+
+  async markEmailVerificationTokenUsed(id: string): Promise<void> {
+    await this.db
+      .update(emailVerificationTokens)
+      .set({
+        usedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(emailVerificationTokens.id, id));
+  }
+
+  async markUserEmailVerified(userId: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({
+        isEmailVerified: true,
+        emailVerifiedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   async findCompanyMembership(input: {

@@ -5,6 +5,7 @@ import {
   refreshRequestSchema,
   registerCompanyRequestSchema,
   registerCustomerRequestSchema,
+  verifyEmailRequestSchema,
 } from "@velaris/shared";
 
 import { asyncHandler } from "../lib/async-handler.js";
@@ -84,14 +85,14 @@ export function createAuthRouter(authService: AuthService) {
     }),
   );
 
-  router.post("/verify-email", (_request, response) => {
-    response.status(501).json({
-      error: {
-        code: "EMAIL_VERIFICATION_PROVIDER_PENDING",
-        message: "Email verification will be enabled when the email adapter is selected.",
-      },
-    });
-  });
+  router.post(
+    "/verify-email",
+    asyncHandler(async (request, response) => {
+      const body = verifyEmailRequestSchema.parse(request.body);
+      await authService.verifyEmail(body);
+      response.status(204).send();
+    }),
+  );
 
   router.post("/forgot-password", (_request, response) => {
     response.status(501).json({

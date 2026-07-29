@@ -91,7 +91,11 @@ Recomendacao tecnica: manter o motor de calculo em `packages/domain`, sem depend
 
 Recomendacao tecnica: manter schemas, tipos, enums de status, constantes, contratos HTTP e validacoes compartilhadas em `packages/shared`.
 
-Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa.
+Requisito implementado: a API usa servicos de aplicacao para Auth, Admin e Company Account, com repositorios Drizzle no runtime e repositorios em memoria nos testes.
+
+Requisito implementado: mudancas de estado administrativo de empresas passam por funcoes puras em `packages/domain` e por servicos de aplicacao, nao por atualizacao livre em controllers.
+
+Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 ## Estrutura de monorepo
 
@@ -196,7 +200,7 @@ ImagesExemplos/
 
 ## Servicos adiados
 
-- Envio de e-mail.
+- Provedor definitivo de e-mail transacional.
 - Armazenamento privado de arquivos.
 - Hospedagem do frontend.
 - Hospedagem da API.

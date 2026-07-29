@@ -20,20 +20,23 @@
 
 ## Rotas de tela previstas
 
-| Area    | Rota                       | Tela/uso                                 | Status               |
-| ------- | -------------------------- | ---------------------------------------- | -------------------- |
-| Publica | `/`                        | Home publica                             | Requisito confirmado |
-| Publica | `/onboarding`              | Onboarding geral                         | Requisito confirmado |
-| Publica | `/empresas`                | Busca/listagem de empresas               | Requisito confirmado |
-| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Requisito confirmado |
-| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento        | Requisito confirmado |
-| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro            | Requisito confirmado |
-| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado |
-| Auth    | `/login`                   | Login                                    | Requisito confirmado |
-| Auth    | `/cadastro`                | Escolha do tipo de cadastro              | Requisito confirmado |
-| Cliente | `/cliente`                 | Home personalizada do cliente            | Requisito confirmado |
-| Empresa | `/app`                     | Painel da empresa                        | Requisito confirmado |
-| Admin   | `/admin`                   | Painel da Velaris                        | Requisito confirmado |
+| Area    | Rota                       | Tela/uso                                 | Status                |
+| ------- | -------------------------- | ---------------------------------------- | --------------------- |
+| Publica | `/`                        | Home publica                             | Requisito confirmado  |
+| Publica | `/onboarding`              | Onboarding geral                         | Requisito confirmado  |
+| Publica | `/empresas`                | Busca/listagem de empresas               | Requisito confirmado  |
+| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Requisito confirmado  |
+| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento        | Requisito confirmado  |
+| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro            | Requisito confirmado  |
+| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado  |
+| Auth    | `/login`                   | Login                                    | Requisito confirmado  |
+| Auth    | `/cadastro`                | Escolha do tipo de cadastro              | Requisito confirmado  |
+| Auth    | `/cadastro/empresa`        | Cadastro empresarial                     | Implementado Sprint 3 |
+| Cliente | `/cliente`                 | Home personalizada do cliente            | Requisito confirmado  |
+| Empresa | `/app`                     | Painel da empresa                        | Requisito confirmado  |
+| Empresa | `/app/pendente`            | Status de cadastro pendente              | Implementado Sprint 3 |
+| Admin   | `/admin`                   | Painel da Velaris                        | Requisito confirmado  |
+| Admin   | `/admin/empresas/:id`      | Detalhe e ativacao de empresa            | Implementado Sprint 3 |
 
 ## Telas publicas
 
@@ -167,6 +170,7 @@
 
 ### Empresa
 
+- `GET /api/company/me`
 - `GET /api/company/dashboard`
 - `GET /api/company/quote-requests`
 - `GET /api/company/quote-requests/:id`
@@ -189,6 +193,7 @@
 - `POST /api/admin/companies/:id/suspend`
 - `PATCH /api/admin/companies/:id/profile`
 - `POST /api/admin/companies/:id/publish`
+- `POST /api/admin/companies/:id/notes`
 - `GET /api/admin/niche-templates`
 - `POST /api/admin/company-configurations`
 - `PATCH /api/admin/company-configurations/:id`

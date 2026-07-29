@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { InMemoryAuthRepository } from "../test/in-memory-auth-repository.js";
+import type { EmailAdapter } from "../notifications/email-adapter.js";
 import type { PasswordHasher } from "./password.js";
 import { AuthService } from "./auth-service.js";
 import { TokenService, hashToken } from "./token-service.js";
@@ -14,7 +15,10 @@ const testPasswordHasher: PasswordHasher = {
   },
 };
 
-function createService(repository = new InMemoryAuthRepository()) {
+function createService(
+  repository = new InMemoryAuthRepository(),
+  emailAdapter?: EmailAdapter,
+) {
   return {
     repository,
     service: new AuthService({
@@ -25,6 +29,7 @@ function createService(repository = new InMemoryAuthRepository()) {
         accessTokenTtlMinutes: 15,
         refreshTokenTtlDays: 30,
       }),
+      ...(emailAdapter ? { emailAdapter } : {}),
     }),
   };
 }
@@ -97,5 +102,36 @@ describe("AuthService", () => {
     expect(session.user.role).toBe("company");
     expect(membership?.role).toBe("owner");
     expect(membership?.companyStatus).toBe("pending");
+  });
+
+  it("verifies e-mail with a persisted token", async () => {
+    let verificationToken = "";
+    const emailAdapter: EmailAdapter = {
+      async sendEmailVerification(message) {
+        verificationToken = message.token;
+      },
+      async sendCompanyActivation() {
+        return;
+      },
+    };
+    const { repository, service } = createService(
+      new InMemoryAuthRepository(),
+      emailAdapter,
+    );
+
+    await service.registerCustomer(
+      {
+        name: "Cliente Teste",
+        email: "cliente@example.com",
+        password: "senha-segura",
+      },
+      {},
+    );
+
+    await service.verifyEmail({ token: verificationToken });
+
+    expect(
+      repository.emailVerificationTokens.get(hashToken(verificationToken))?.usedAt,
+    ).toBeInstanceOf(Date);
   });
 });

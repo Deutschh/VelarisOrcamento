@@ -8,6 +8,13 @@
       "when": 1785287105867,
       "tag": "0000_nosy_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785288930882,
+      "tag": "0001_awesome_grim_reaper",
+      "breakpoints": true
     }
   ]
 }
