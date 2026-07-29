@@ -18,6 +18,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { logger } from "./lib/logger.js";
 import { createPublicRouter } from "./public/public-router.js";
 import type { PublicCompanyService } from "./public/public-service.js";
+import type { PublicQuoteRequestService } from "./public/public-quote-request-service.js";
 import { createUnavailablePublicRouter } from "./public/unavailable-public-router.js";
 import { healthRouter } from "./routes/health.js";
 import { createRuntimeDependenciesFromEnv } from "./runtime-dependencies.js";
@@ -29,6 +30,7 @@ export interface AppDependencies {
   adminService?: AdminService;
   companyAccountService?: CompanyAccountService;
   publicCompanyService?: PublicCompanyService;
+  publicQuoteRequestService?: PublicQuoteRequestService;
   templateAdminService?: TemplateAdminService;
 }
 
@@ -64,6 +66,7 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.adminService ||
     dependencies.companyAccountService ||
     dependencies.publicCompanyService ||
+    dependencies.publicQuoteRequestService ||
     dependencies.templateAdminService
   ) {
     return dependencies;
@@ -78,7 +81,10 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
 
 function createPublicRouterIfAvailable(dependencies: AppDependencies) {
   return dependencies.publicCompanyService
-    ? createPublicRouter(dependencies.publicCompanyService)
+    ? createPublicRouter(
+        dependencies.publicCompanyService,
+        dependencies.publicQuoteRequestService,
+      )
     : createUnavailablePublicRouter();
 }
 

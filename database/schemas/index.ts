@@ -94,6 +94,10 @@ export const companyConfigurationStatusEnum = pgEnum("company_configuration_stat
   "published",
   "archived",
 ]);
+export const quoteRequestStatusEnum = pgEnum("quote_request_status", [
+  "draft",
+  "submitted",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -563,6 +567,181 @@ export const companyPricingRules = pgTable(
     versionServiceCodeUnique: uniqueIndex(
       "company_pricing_rules_version_service_code_unique",
     ).on(table.companyPricingVersionId, table.companyServiceId, table.code),
+  }),
+);
+
+export const publicAccessTokens = pgTable(
+  "public_access_tokens",
+  {
+    id: uuid("id").primaryKey(),
+    tokenHash: text("token_hash").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("public_access_tokens_token_hash_unique").on(
+      table.tokenHash,
+    ),
+    entityIdx: index("public_access_tokens_entity_idx").on(
+      table.entityType,
+      table.entityId,
+    ),
+  }),
+);
+
+export const quoteRequests = pgTable(
+  "quote_requests",
+  {
+    id: uuid("id").primaryKey(),
+    requestCode: text("request_code"),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    companyConfigurationId: uuid("company_configuration_id")
+      .notNull()
+      .references(() => companyConfigurations.id, { onDelete: "restrict" }),
+    companyServiceId: uuid("company_service_id")
+      .notNull()
+      .references(() => companyServices.id, { onDelete: "restrict" }),
+    companyPricingVersionId: uuid("company_pricing_version_id").references(
+      () => companyPricingVersions.id,
+      { onDelete: "set null" },
+    ),
+    customerId: uuid("customer_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: quoteRequestStatusEnum("status").notNull().default("draft"),
+    draftTokenHash: text("draft_token_hash"),
+    publicTokenId: uuid("public_token_id").references(() => publicAccessTokens.id, {
+      onDelete: "set null",
+    }),
+    requestData: jsonb("request_data")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    configurationSnapshot: jsonb("configuration_snapshot").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    legalSnapshot: jsonb("legal_snapshot").$type<Record<string, unknown> | null>(),
+    calculationSnapshot: jsonb("calculation_snapshot").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    internalTotal: numeric("internal_total", { precision: 12, scale: 2 }),
+    estimateMin: numeric("estimate_min", { precision: 12, scale: 2 }),
+    estimateMax: numeric("estimate_max", { precision: 12, scale: 2 }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (table) => ({
+    requestCodeUnique: uniqueIndex("quote_requests_request_code_unique").on(
+      table.requestCode,
+    ),
+    draftTokenHashUnique: uniqueIndex("quote_requests_draft_token_hash_unique").on(
+      table.draftTokenHash,
+    ),
+    companyStatusIdx: index("quote_requests_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    expiresAtIdx: index("quote_requests_expires_at_idx").on(table.expiresAt),
+  }),
+);
+
+export const quoteRequestAnswers = pgTable(
+  "quote_request_answers",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    itemId: text("item_id"),
+    fieldCode: text("field_code").notNull(),
+    value: jsonb("value").$type<unknown>().notNull(),
+    originalValue: text("original_value"),
+    originalUnit: text("original_unit"),
+    normalizedValue: numeric("normalized_value", { precision: 12, scale: 4 }),
+    normalizedUnit: pricingRuleUnitEnum("normalized_unit"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    requestFieldUnique: uniqueIndex("quote_request_answers_request_field_unique").on(
+      table.quoteRequestId,
+      table.itemId,
+      table.fieldCode,
+    ),
+    requestIdx: index("quote_request_answers_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const quoteRequestFiles = pgTable(
+  "quote_request_files",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    itemId: text("item_id"),
+    fieldCode: text("field_code"),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageProvider: text("storage_provider").notNull().default("stub"),
+    storageKey: text("storage_key"),
+    status: text("status").notNull().default("metadata_received"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    requestIdx: index("quote_request_files_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const quoteRequestCalculations = pgTable(
+  "quote_request_calculations",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    calculationSnapshot: jsonb("calculation_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    internalTotal: numeric("internal_total", { precision: 12, scale: 2 }).notNull(),
+    estimateMin: numeric("estimate_min", { precision: 12, scale: 2 }).notNull(),
+    estimateMax: numeric("estimate_max", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    requestIdx: index("quote_request_calculations_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    id: uuid("id").primaryKey(),
+    scope: text("scope").notNull(),
+    key: text("key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    responseBody: jsonb("response_body").$type<Record<string, unknown>>().notNull(),
+    statusCode: integer("status_code").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    scopeKeyUnique: uniqueIndex("idempotency_keys_scope_key_unique").on(
+      table.scope,
+      table.key,
+    ),
+    expiresAtIdx: index("idempotency_keys_expires_at_idx").on(table.expiresAt),
   }),
 );
 

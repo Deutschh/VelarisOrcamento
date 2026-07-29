@@ -115,7 +115,21 @@ Requisito implementado: o template de limpeza de estofados possui versionamento 
 
 Requisito implementado: novos rascunhos criados a partir de uma versao publicada mesclam o template atual com as personalizacoes existentes, adicionando campos/regras novos sem editar configuracoes publicadas.
 
+Requisito implementado: o fluxo publico de solicitacao fica em `apps/api/src/public`, separado da descoberta publica, com `PublicQuoteRequestService`, repositório proprio, contratos em `packages/shared` e regras puras de ciclo/calculo em `packages/domain`.
+
+Requisito implementado: rascunhos publicos persistem em `quote_requests`, respostas normalizadas em `quote_request_answers`, arquivos em `quote_request_files`, calculos em `quote_request_calculations`, tokens publicos em `public_access_tokens` e envios criticos em `idempotency_keys`.
+
+Requisito implementado: o token bruto de rascunho fica somente no dispositivo do visitante; o backend persiste apenas `draft_token_hash`.
+
+Requisito implementado: o modelo publico aceita multiplas linhas de item. Quantidade representa itens identicos; quando dois itens tem atributos diferentes, cada um deve ser uma linha separada.
+
+Requisito implementado: a estimativa publica agrupa calculos por item e aplica regras de pedido, como deslocamento, desconto por quantidade, minimo e arredondamento, uma unica vez no agregado.
+
+Requisito implementado: a submissao publica exige `Idempotency-Key` UUID v4, gera codigo da solicitacao, token publico e snapshots de configuracao, aceite legal e calculo.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
+
+Limitacao registrada: `quote_request_files` registra metadados de fotos/PDF com `storageProvider = stub`; armazenamento binario privado, thumbnails e URLs temporarias aguardam decisao futura.
 
 ## Estrutura de monorepo
 

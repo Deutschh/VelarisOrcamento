@@ -1,9 +1,21 @@
 import { Router } from "express";
-import { publicCompanySearchQuerySchema } from "@velaris/shared";
+import {
+  HTTP_HEADERS,
+  createQuoteDraftRequestSchema,
+  publicCompanySearchQuerySchema,
+  quoteDraftFileMetadataRequestSchema,
+  submitQuoteDraftRequestSchema,
+  updateQuoteDraftRequestSchema,
+} from "@velaris/shared";
 import { asyncHandler } from "../lib/async-handler.js";
+import { PublicQuoteRequestsUnavailableError } from "./public-errors.js";
 import type { PublicCompanyService } from "./public-service.js";
+import type { PublicQuoteRequestService } from "./public-quote-request-service.js";
 
-export function createPublicRouter(publicCompanyService: PublicCompanyService) {
+export function createPublicRouter(
+  publicCompanyService: PublicCompanyService,
+  publicQuoteRequestService?: PublicQuoteRequestService,
+) {
   const router = Router();
 
   router.get(
@@ -42,5 +54,95 @@ export function createPublicRouter(publicCompanyService: PublicCompanyService) {
     }),
   );
 
+  router.post(
+    "/quote-requests/drafts",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = createQuoteDraftRequestSchema.parse(request.body);
+      response.status(201).json(await service.createDraft(payload));
+    }),
+  );
+
+  router.get(
+    "/quote-requests/drafts/:draftToken",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      response.json(await service.getDraft(String(request.params.draftToken)));
+    }),
+  );
+
+  router.patch(
+    "/quote-requests/drafts/:draftToken",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = updateQuoteDraftRequestSchema.parse(request.body);
+      response.json(
+        await service.updateDraft(String(request.params.draftToken), payload),
+      );
+    }),
+  );
+
+  router.post(
+    "/quote-requests/drafts/:draftToken/files",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = quoteDraftFileMetadataRequestSchema.parse(request.body);
+      response
+        .status(201)
+        .json(await service.addDraftFile(String(request.params.draftToken), payload));
+    }),
+  );
+
+  router.delete(
+    "/quote-requests/drafts/:draftToken/files/:fileId",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      response.json(
+        await service.deleteDraftFile(
+          String(request.params.draftToken),
+          String(request.params.fileId),
+        ),
+      );
+    }),
+  );
+
+  router.post(
+    "/quote-requests/drafts/:draftToken/estimate",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      response.json(await service.estimateDraft(String(request.params.draftToken)));
+    }),
+  );
+
+  router.post(
+    "/quote-requests/drafts/:draftToken/submit",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const headerIdempotencyKey = request.get(HTTP_HEADERS.idempotencyKey);
+      const userAgent = request.get("user-agent");
+      const payload = submitQuoteDraftRequestSchema.parse({
+        ...request.body,
+        ...(headerIdempotencyKey ? { idempotencyKey: headerIdempotencyKey } : {}),
+      });
+      response.json(
+        await service.submitDraft(String(request.params.draftToken), payload, {
+          ...(headerIdempotencyKey ? { idempotencyKey: headerIdempotencyKey } : {}),
+          ...(request.ip ? { ipAddress: request.ip } : {}),
+          ...(userAgent ? { userAgent } : {}),
+        }),
+      );
+    }),
+  );
+
   return router;
+}
+
+function requireQuoteRequestService(
+  service: PublicQuoteRequestService | undefined,
+): PublicQuoteRequestService {
+  if (!service) {
+    throw new PublicQuoteRequestsUnavailableError();
+  }
+
+  return service;
 }

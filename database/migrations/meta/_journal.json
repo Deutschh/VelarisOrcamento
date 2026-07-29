@@ -43,6 +43,13 @@
       "when": 1785306106282,
       "tag": "0005_complete_cleaning_template",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785308691804,
+      "tag": "0006_swift_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

@@ -14,19 +14,22 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto concluiu tecnicamente a Sprint 7. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu tecnicamente a Sprint 10. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
 status de conta pendente, painel Admin, descoberta publica, perfil publico,
 templates fixos, configuracao por empresa com preview/publicacao imutavel e
 motor de calculo com regras de preco versionadas, margens, simulacao Admin e
 memoria explicavel. O template de limpeza de estofados esta na versao 2, com
 itens, tamanhos, tecidos, sujeira, manchas, odor, pelos, impermeabilizacao,
-urgencia, acesso, deslocamento e desconto por quantidade.
+urgencia, acesso, deslocamento e desconto por quantidade. O fluxo publico
+`/empresa/:slug/orcamento` cria e retoma rascunho seguro no servidor, permite
+multiplos itens, registra metadados de fotos/PDF, calcula estimativa e envia a
+solicitacao com codigo publico e idempotencia.
 
-Ainda nao ha fluxo publico completo de orcamento, uploads, propostas,
-agendamento assistido completo, PDF ou deploy. Vidracaria e marmoraria seguem
-adiadas ate a validacao do MVP piloto; a proxima etapa recomendada para o MVP e
-a Sprint 10, fluxo publico, rascunho e solicitacao.
+Ainda nao ha painel da empresa para revisar solicitacoes, propostas,
+agendamento assistido completo, PDF, armazenamento binario definitivo ou deploy.
+Vidracaria e marmoraria seguem adiadas ate a validacao do MVP piloto; a proxima
+etapa recomendada para o MVP e a Sprint 11, painel da empresa e revisao.
 
 ## Stack planejada
 

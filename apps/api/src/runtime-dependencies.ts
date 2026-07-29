@@ -13,7 +13,9 @@ import { env } from "./config/env.js";
 import { createDatabaseClient } from "./db/client.js";
 import { stubEmailAdapter } from "./notifications/email-adapter.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
+import { DrizzleQuoteRequestRepository } from "./public/drizzle-quote-request-repository.js";
 import { PublicCompanyService } from "./public/public-service.js";
+import { PublicQuoteRequestService } from "./public/public-quote-request-service.js";
 import { DrizzleTemplateRepository } from "./templates/drizzle-template-repository.js";
 import { TemplateAdminService } from "./templates/template-service.js";
 
@@ -23,6 +25,7 @@ export interface RuntimeDependencies {
   adminService: AdminService;
   companyAccountService: CompanyAccountService;
   publicCompanyService: PublicCompanyService;
+  publicQuoteRequestService: PublicQuoteRequestService;
   templateAdminService: TemplateAdminService;
 }
 
@@ -33,6 +36,8 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
 
   const { db } = createDatabaseClient(env.DATABASE_URL);
   const tokenService = createTokenServiceFromEnv();
+  const publicCompanyRepository = new DrizzlePublicCompanyRepository(db);
+  const templateRepository = new DrizzleTemplateRepository(db);
 
   return {
     authService: createAuthService({
@@ -48,9 +53,13 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     companyAccountService: new CompanyAccountService(
       new DrizzleCompanyAccountRepository(db),
     ),
-    publicCompanyService: new PublicCompanyService(
-      new DrizzlePublicCompanyRepository(db),
-    ),
-    templateAdminService: new TemplateAdminService(new DrizzleTemplateRepository(db)),
+    publicCompanyService: new PublicCompanyService(publicCompanyRepository),
+    publicQuoteRequestService: new PublicQuoteRequestService({
+      publicCompanyRepository,
+      templateRepository,
+      quoteRequestRepository: new DrizzleQuoteRequestRepository(db),
+      emailAdapter: stubEmailAdapter,
+    }),
+    templateAdminService: new TemplateAdminService(templateRepository),
   };
 }

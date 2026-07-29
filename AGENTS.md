@@ -16,7 +16,8 @@
 - Sprint 5 concluida: templates fixos e campos configuraveis.
 - Sprint 6 concluida: motor de calculo, regras de preco versionadas, margens e simulacao Admin com memoria de calculo.
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho e simulador Admin completo.
-- Proxima etapa recomendada para o MVP piloto: Sprint 10, fluxo publico, rascunho e solicitacao.
+- Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho no servidor, token de rascunho, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
+- Proxima etapa recomendada para o MVP piloto: Sprint 11, painel da empresa e revisao.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -70,6 +71,9 @@
 - Acoes criticas devem prever idempotencia.
 - Configuracoes publicadas devem ser imutaveis.
 - Regras de preco publicadas devem ser versionadas e preservadas em snapshot.
+- Rascunhos publicos usam token bruto somente no cliente; persistencia guarda hash.
+- No fluxo publico, quantidade representa itens identicos; itens com caracteristicas diferentes devem ser linhas separadas no rascunho.
+- Submissao publica de solicitacao exige `Idempotency-Key` UUID v4.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.
@@ -114,4 +118,5 @@
 - Sprint 6 cria o motor de calculo, regras de preco versionadas, margens e simulacao explicavel.
 - Sprint 7 consolida tecnicamente o template de limpeza de estofados.
 - Sprints 8 e 9, vidracaria e marmoraria, devem aguardar validacao do MVP piloto.
-- Sprint 10 deve iniciar o fluxo publico de orcamento somente apos nova autorizacao do usuario.
+- Sprint 10 cria o fluxo publico de orcamento com rascunho e solicitacao.
+- Sprint 11 deve iniciar painel da empresa e revisao somente apos nova autorizacao do usuario.

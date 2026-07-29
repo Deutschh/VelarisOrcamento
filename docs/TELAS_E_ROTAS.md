@@ -20,23 +20,23 @@
 
 ## Rotas de tela previstas
 
-| Area    | Rota                       | Tela/uso                                    | Status                |
-| ------- | -------------------------- | ------------------------------------------- | --------------------- |
-| Publica | `/`                        | Home publica                                | Implementado Sprint 4 |
-| Publica | `/onboarding`              | Onboarding geral                            | Implementado Sprint 4 |
-| Publica | `/empresas`                | Busca/listagem de empresas                  | Implementado Sprint 4 |
-| Publica | `/empresa/:slug`           | Perfil publico da empresa                   | Implementado Sprint 4 |
-| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento           | Requisito confirmado  |
-| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Requisito confirmado  |
-| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Requisito confirmado  |
-| Auth    | `/login`                   | Login                                       | Requisito confirmado  |
-| Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado  |
-| Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3 |
-| Cliente | `/cliente`                 | Home personalizada do cliente               | Requisito confirmado  |
-| Empresa | `/app`                     | Painel da empresa                           | Requisito confirmado  |
-| Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3 |
-| Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado  |
-| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 7 |
+| Area    | Rota                       | Tela/uso                                    | Status                 |
+| ------- | -------------------------- | ------------------------------------------- | ---------------------- |
+| Publica | `/`                        | Home publica                                | Implementado Sprint 4  |
+| Publica | `/onboarding`              | Onboarding geral                            | Implementado Sprint 4  |
+| Publica | `/empresas`                | Busca/listagem de empresas                  | Implementado Sprint 4  |
+| Publica | `/empresa/:slug`           | Perfil publico da empresa                   | Implementado Sprint 4  |
+| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento           | Implementado Sprint 10 |
+| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Requisito confirmado   |
+| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Requisito confirmado   |
+| Auth    | `/login`                   | Login                                       | Requisito confirmado   |
+| Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado   |
+| Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3  |
+| Cliente | `/cliente`                 | Home personalizada do cliente               | Requisito confirmado   |
+| Empresa | `/app`                     | Painel da empresa                           | Requisito confirmado   |
+| Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3  |
+| Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado   |
+| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 7  |
 
 ## Telas publicas
 
@@ -44,7 +44,7 @@
 - Onboarding: tres telas com acoes Pular, Continuar e Comecar. Implementado Sprint 4.
 - Busca de empresas: filtros por nicho/localizacao e listagem considerando regiao atendida, raio, status ativo e perfil publicado. Implementado Sprint 4.
 - Perfil publico da empresa: logotipo, capa, cor principal moderada, descricao, galeria, contatos, endereco, servicos, termos, raio/regioes e CTA de orcamento. Implementado Sprint 4.
-- Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF, dados pessoais, endereco, estimativa, revisao, termos e confirmacao.
+- Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF em metadados `stub`, dados pessoais, endereco, estimativa, revisao, termos e confirmacao. Implementado Sprint 10.
 - Acompanhamento: estado atual da jornada, codigo da solicitacao, proposta quando houver, agendamento quando aplicavel, acoes permitidas e WhatsApp assistido.
 - Recuperacao: entrada de codigo + e-mail ou codigo + WhatsApp, envio de OTP ao e-mail cadastrado e verificacao.
 
@@ -56,7 +56,7 @@
 - Fluxo visitante de solicitacao.
 - Rascunho no servidor.
 - Campos configurados para limpeza de estofados.
-- Upload de fotos.
+- Upload de fotos/PDF com metadados vinculados ao rascunho; armazenamento binario definitivo segue pendente.
 - Estimativa e revisao.
 - Codigo e link de acompanhamento.
 - Painel da empresa.
@@ -148,6 +148,8 @@ Status Sprint 4: rotas publicas de descoberta implementadas.
 - `DELETE /api/public/quote-requests/drafts/:draftToken/files/:fileId`
 - `POST /api/public/quote-requests/drafts/:draftToken/estimate`
 - `POST /api/public/quote-requests/drafts/:draftToken/submit`
+
+Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa e submissao implementadas. Submissao exige `Idempotency-Key`.
 
 ### Publicas - acompanhamento
 

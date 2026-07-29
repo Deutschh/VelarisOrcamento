@@ -10,4 +10,5 @@ export interface PersistedPublicCompany {
 export interface PublicCompanyRepository {
   listPublishedCompanies(): Promise<PersistedPublicCompany[]>;
   findPublishedCompanyBySlug(slug: string): Promise<PersistedPublicCompany | null>;
+  findPublishedCompanyById(companyId: string): Promise<PersistedPublicCompany | null>;
 }

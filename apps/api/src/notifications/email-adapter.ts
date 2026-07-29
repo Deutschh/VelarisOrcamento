@@ -11,9 +11,18 @@ export interface CompanyActivationMessage {
   companyName: string;
 }
 
+export interface QuoteRequestConfirmationMessage {
+  to: string;
+  name: string;
+  companyName: string;
+  requestCode: string;
+  trackingPath: string;
+}
+
 export interface EmailAdapter {
   sendEmailVerification(message: EmailVerificationMessage): Promise<void>;
   sendCompanyActivation(message: CompanyActivationMessage): Promise<void>;
+  sendQuoteRequestConfirmation?(message: QuoteRequestConfirmationMessage): Promise<void>;
 }
 
 export const stubEmailAdapter: EmailAdapter = {
@@ -36,6 +45,17 @@ export const stubEmailAdapter: EmailAdapter = {
         companyNameProvided: Boolean(message.companyName),
       },
       "Company activation email skipped because no email provider is configured.",
+    );
+  },
+
+  async sendQuoteRequestConfirmation(message) {
+    logger.info(
+      {
+        provider: "stub",
+        recipientProvided: Boolean(message.to),
+        requestCode: message.requestCode,
+      },
+      "Quote request confirmation email skipped because no email provider is configured.",
     );
   },
 };

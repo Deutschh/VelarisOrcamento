@@ -11,8 +11,9 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 5 concluida: templates fixos, configuracao por empresa, preview, simulacao, publicacao imutavel e snapshot de configuracao.
 - Sprint 6 concluida: motor de calculo deterministico, regras de preco versionadas, margens, memoria de calculo, simulacao Admin e migration aplicada no Neon.
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho, testes e simulador Admin completo.
+- Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho seguro no servidor, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
 - Pendencia operacional: validacao comercial com empresa real.
-- Proxima etapa recomendada para o MVP piloto: Sprint 10, fluxo publico, rascunho e solicitacao.
+- Proxima etapa recomendada para o MVP piloto: Sprint 11, painel da empresa e revisao.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -105,6 +106,9 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: rascunho seguro no servidor, `draft_token`, dispositivo salva apenas token/etapa, campos configurados, upload, estimativa, revisao, submissao idempotente, codigo, token publico, snapshot, aceites legais, e-mail e limpeza de rascunhos.
 - Padrao inicial configuravel: rascunhos expiram em 10 dias.
+- Implementado Sprint 10: rotas publicas de rascunho/estimativa/submissao; tabelas `quote_requests`, `quote_request_answers`, `quote_request_files`, `quote_request_calculations`, `public_access_tokens` e `idempotency_keys`; tela `/empresa/:slug/orcamento`; token bruto salvo apenas no navegador; hash de token no banco; multiplos itens por rascunho; estimativa agregada por itens; snapshot de configuracao/calculo/aceite; envio com `Idempotency-Key`.
+- Limitacao registrada: arquivos ainda sao registrados como metadados com `FILE_STORAGE_PROVIDER=stub`; upload binario e armazenamento privado aguardam fornecedor/contrato definitivo.
+- Limitacao registrada: e-mail de confirmacao usa adapter `stub` ate escolha do provedor transacional.
 - Estimativa da especificacao: 22 a 30 horas.
 
 ## Sprint 11 - Painel da empresa e revisao

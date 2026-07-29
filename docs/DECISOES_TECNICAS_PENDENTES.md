@@ -44,7 +44,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 ## Arquivos
 
 - Decisao pendente: provedor futuro de armazenamento privado.
-- Decisao pendente: contrato/interface interna para storage sem acoplar fornecedor.
+- Decisao pendente: contrato/interface interna definitiva para upload binario, leitura privada e troca de fornecedor.
 - Decisao pendente: politica de compressao e geracao de miniaturas.
 - Decisao pendente: tempo de expiracao das URLs temporarias.
 - Decisao pendente: limite de armazenamento por empresa.

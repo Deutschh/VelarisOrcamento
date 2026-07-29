@@ -49,6 +49,24 @@ export class DrizzlePublicCompanyRepository implements PublicCompanyRepository {
       ? mapPublicCompany(row.company, row.profile ? mapPublicProfile(row.profile) : null)
       : null;
   }
+
+  async findPublishedCompanyById(
+    companyId: string,
+  ): Promise<PersistedPublicCompany | null> {
+    const [row] = await this.db
+      .select({
+        company: companies,
+        profile: companyPublicProfiles,
+      })
+      .from(companies)
+      .leftJoin(companyPublicProfiles, eq(companyPublicProfiles.companyId, companies.id))
+      .where(and(publishedCompanyFilter, eq(companies.id, companyId)))
+      .limit(1);
+
+    return row
+      ? mapPublicCompany(row.company, row.profile ? mapPublicProfile(row.profile) : null)
+      : null;
+  }
 }
 
 function mapPublicCompany(
