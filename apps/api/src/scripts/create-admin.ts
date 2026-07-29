@@ -1,11 +1,13 @@
-import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { users } from "@velaris/database-schema";
 import { argon2idPasswordHasher } from "../auth/password.js";
+import { loadRepositoryEnv } from "../config/load-env.js";
 import { createDatabaseClient } from "../db/client.js";
+
+loadRepositoryEnv();
 
 const adminEnvSchema = z.object({
   DATABASE_URL: z.string().url(),

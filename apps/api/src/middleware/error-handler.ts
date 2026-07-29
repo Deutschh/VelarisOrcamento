@@ -5,6 +5,16 @@ import { isAppError } from "../lib/app-error.js";
 import { logger } from "../lib/logger.js";
 
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
+  if (isJsonParseError(error)) {
+    response.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Invalid JSON request body.",
+      },
+    });
+    return;
+  }
+
   if (error instanceof ZodError) {
     response.status(400).json({
       error: {
@@ -34,3 +44,20 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     },
   });
 };
+
+function isJsonParseError(
+  error: unknown,
+): error is Error & { statusCode: number; type: string } {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const maybeParseError = error as Error & {
+    statusCode?: number;
+    type?: string;
+  };
+
+  return (
+    maybeParseError.statusCode === 400 && maybeParseError.type === "entity.parse.failed"
+  );
+}

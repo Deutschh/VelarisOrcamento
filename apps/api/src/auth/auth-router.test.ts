@@ -61,4 +61,14 @@ describe("auth routes", () => {
     expect(response.body.user.role).toBe("company");
     expect(response.body.companyId).toEqual(expect.any(String));
   });
+
+  it("returns a validation response for malformed JSON", async () => {
+    const response = await request(createTestApp())
+      .post("/api/auth/login")
+      .set("Content-Type", "application/json")
+      .send("{");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_JSON");
+  });
 });
