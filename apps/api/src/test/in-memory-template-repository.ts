@@ -72,6 +72,12 @@ export class InMemoryTemplateRepository implements TemplateRepository {
         this.configurations.set(configuration.id, {
           ...configuration,
           status: "archived",
+          pricingVersion: configuration.pricingVersion
+            ? {
+                ...configuration.pricingVersion,
+                status: "archived",
+              }
+            : null,
         });
       }
     }
@@ -81,6 +87,14 @@ export class InMemoryTemplateRepository implements TemplateRepository {
       status: "published",
       publishedAt: input.publishedAt.toISOString(),
       snapshot: input.snapshot as unknown as CompanyConfigurationSnapshot,
+      pricingVersion: input.configuration.pricingVersion
+        ? {
+            ...input.configuration.pricingVersion,
+            status: "published",
+            publishedAt: input.publishedAt.toISOString(),
+            snapshot: null,
+          }
+        : null,
     });
   }
 }
@@ -101,6 +115,50 @@ export function createTestNicheTemplate(): NicheTemplate {
         displayOrder: 10,
         isActiveDefault: true,
         defaultSchedulingMode: "required_with_proposal",
+        pricingRules: [
+          {
+            id: "10000000-0000-4000-8000-000000020001",
+            templateServiceId: "10000000-0000-4000-8000-000000000101",
+            code: "sofa_base",
+            label: "Preco-base sofa",
+            ruleType: "option_price",
+            targetFieldCode: "item_type",
+            targetOptionCode: "sofa",
+            quantityFieldCode: "quantity",
+            amountCents: 12000,
+            percentageBps: null,
+            multiplierBps: null,
+            minimumValue: null,
+            maximumValue: null,
+            unit: "unit",
+            condition: null,
+            roundingMode: null,
+            roundingIncrementCents: null,
+            isActiveDefault: true,
+            displayOrder: 10,
+          },
+          {
+            id: "10000000-0000-4000-8000-000000020002",
+            templateServiceId: "10000000-0000-4000-8000-000000000101",
+            code: "minimum_visit",
+            label: "Valor minimo de visita",
+            ruleType: "minimum_value",
+            targetFieldCode: null,
+            targetOptionCode: null,
+            quantityFieldCode: null,
+            amountCents: 12000,
+            percentageBps: null,
+            multiplierBps: null,
+            minimumValue: null,
+            maximumValue: null,
+            unit: null,
+            condition: null,
+            roundingMode: null,
+            roundingIncrementCents: null,
+            isActiveDefault: true,
+            displayOrder: 20,
+          },
+        ],
         fields: [
           {
             id: "10000000-0000-4000-8000-000000001001",

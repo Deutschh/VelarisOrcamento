@@ -1,6 +1,6 @@
 # Plano de Implementacao - Velaris Orçamentos
 
-Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comecar sem nova autorizacao.
+Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve comecar sem nova autorizacao.
 
 ## Estado atual
 
@@ -9,6 +9,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 - Sprint 3 concluida: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
 - Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico editavel pelo Admin.
 - Sprint 5 concluida: templates fixos, configuracao por empresa, preview, simulacao, publicacao imutavel e snapshot de configuracao.
+- Sprint 6 concluida: motor de calculo deterministico, regras de preco versionadas, margens, memoria de calculo, simulacao Admin e migration aplicada no Neon.
+- Proxima etapa planejada: Sprint 7, template de limpeza de estofados.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
 ## Sprint 0 - Fechamento funcional e prototipo
@@ -19,7 +21,7 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 - Decisao confirmada: MVP piloto e definido pela secao 34.1.
 - Decisao confirmada: primeiro nicho e limpeza de estofados.
 - Decisao confirmada: vidraçaria e marmoraria entram depois da validacao do MVP.
-- Pendente antes do codigo: wireframes, prototipo, textos finais e regras completas do template de limpeza.
+- Pendencia funcional: wireframes, prototipo, textos finais e validacao comercial completa do template de limpeza.
 - Estimativa da especificacao: 8 a 12 horas.
 
 ## Sprint 1 - Fundacao do projeto
@@ -60,7 +62,7 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 
 - Requisito confirmado: templates fixos por nicho, tipos de campo predefinidos, opcoes, obrigatoriedade, ativacao por empresa, condicoes simples, ordenacao, preview, configuracao Admin, modo de agendamento, versionamento, simulacao, snapshot e bloqueio de edicao de versao publicada.
 - Implementado Sprint 5: tabelas `niche_templates`, `template_services`, `template_fields`, `template_field_options`, `company_configurations`, `company_services`, `company_service_fields` e `company_field_options`; template inicial fixo de limpeza de estofados; contratos compartilhados; regras puras de ciclo/condicoes; API Admin de templates/configuracoes; painel Admin para criar rascunho, ajustar campos/opcoes, simular condicionais e publicar versoes imutaveis.
-- Limitacao registrada: regras comerciais de preco, margens, deslocamento, duracao e memoria de calculo continuam para Sprint 6/7.
+- Limitacao registrada: regras comerciais iniciais de preco foram criadas na Sprint 6, mas a validacao e ajuste fino com empresa real continuam na Sprint 7.
 - Fora da V1: construtor livre, codigo livre, formulas arbitrarias, regras profundamente aninhadas e novos tipos tecnicos criados pelo Admin.
 - Estimativa da especificacao: 18 a 26 horas.
 
@@ -69,6 +71,8 @@ Este plano segue a ordem das sprints da especificacao. A Sprint 1 nao deve comec
 - Requisito confirmado: contrato do motor, dinheiro, unidades, preco fixo, quantidade, area, metro linear, multiplicadores, adicionais, percentuais, minimos, faixas, condicoes, deslocamento, margem, valor final sugerido, justificativa fora da faixa, memoria de calculo, snapshot, testes e simulacao.
 - Regra confirmada: calculos internos devem usar preferencialmente centavos inteiros; persistencia monetaria usa `NUMERIC(12, 2)`.
 - Regra confirmada: regras puras de calculo ficam em `packages/domain`.
+- Implementado Sprint 6: contratos compartilhados de regras e respostas de calculo em `packages/shared`; motor puro em `packages/domain`; tabelas `template_pricing_rules`, `company_pricing_versions` e `company_pricing_rules`; regras iniciais versionadas para limpeza de estofados; margens por servico; snapshot de precos; simulacao Admin retornando preview e memoria de calculo.
+- Limitacao registrada: os valores comerciais semeados sao padroes iniciais configuraveis e ainda precisam de validacao real na Sprint 7.
 - Estimativa da especificacao: 24 a 34 horas.
 
 ## Sprint 7 - Template de limpeza de estofados

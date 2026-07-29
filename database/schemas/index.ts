@@ -65,6 +65,30 @@ export const schedulingModeEnum = pgEnum("scheduling_mode", [
   "after_proposal_acceptance",
   "external_only",
 ]);
+export const pricingRuleTypeEnum = pgEnum("pricing_rule_type", [
+  "fixed_price",
+  "quantity",
+  "area",
+  "linear_meter",
+  "multiplier",
+  "fixed_addition",
+  "percentage_addition",
+  "minimum_value",
+  "minimum_area",
+  "price_range",
+  "option_price",
+  "distance_fee",
+  "administrative_discount",
+  "rounding",
+]);
+export const pricingRuleUnitEnum = pgEnum("pricing_rule_unit", [
+  "unit",
+  "m",
+  "m2",
+  "linear_m",
+  "km",
+]);
+export const roundingModeEnum = pgEnum("rounding_mode", ["nearest", "up", "down"]);
 export const companyConfigurationStatusEnum = pgEnum("company_configuration_status", [
   "draft",
   "published",
@@ -306,6 +330,45 @@ export const templateFieldOptions = pgTable(
   }),
 );
 
+export const templatePricingRules = pgTable(
+  "template_pricing_rules",
+  {
+    id: uuid("id").primaryKey(),
+    templateServiceId: uuid("template_service_id")
+      .notNull()
+      .references(() => templateServices.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    label: text("label").notNull(),
+    ruleType: pricingRuleTypeEnum("rule_type").notNull(),
+    targetFieldCode: text("target_field_code"),
+    targetOptionCode: text("target_option_code"),
+    quantityFieldCode: text("quantity_field_code"),
+    amount: numeric("amount", { precision: 12, scale: 2 }),
+    percentageBps: integer("percentage_bps"),
+    multiplierBps: integer("multiplier_bps"),
+    minimumValue: numeric("minimum_value", { precision: 12, scale: 4 }),
+    maximumValue: numeric("maximum_value", { precision: 12, scale: 4 }),
+    unit: pricingRuleUnitEnum("unit"),
+    condition: jsonb("condition").$type<{
+      sourceFieldCode: string;
+      operator: "equals" | "not_equals" | "includes";
+      value: string | number | boolean | string[] | number[];
+    }>(),
+    roundingMode: roundingModeEnum("rounding_mode"),
+    roundingIncrementCents: integer("rounding_increment_cents"),
+    isActiveDefault: boolean("is_active_default").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    serviceCodeUnique: uniqueIndex("template_pricing_rules_service_code_unique").on(
+      table.templateServiceId,
+      table.code,
+    ),
+  }),
+);
+
 export const companyConfigurations = pgTable(
   "company_configurations",
   {
@@ -420,6 +483,86 @@ export const companyFieldOptions = pgTable(
       table.companyServiceFieldId,
       table.templateFieldOptionId,
     ),
+  }),
+);
+
+export const companyPricingVersions = pgTable(
+  "company_pricing_versions",
+  {
+    id: uuid("id").primaryKey(),
+    companyConfigurationId: uuid("company_configuration_id")
+      .notNull()
+      .references(() => companyConfigurations.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => nicheTemplates.id, { onDelete: "restrict" }),
+    status: companyConfigurationStatusEnum("status").notNull().default("draft"),
+    version: integer("version").notNull(),
+    pricingSnapshot: jsonb("pricing_snapshot").$type<Record<string, unknown> | null>(),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedByUserId: uuid("updated_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => ({
+    configurationUnique: uniqueIndex("company_pricing_versions_configuration_unique").on(
+      table.companyConfigurationId,
+    ),
+    companyTemplateVersionUnique: uniqueIndex(
+      "company_pricing_versions_company_template_version_unique",
+    ).on(table.companyId, table.templateId, table.version),
+  }),
+);
+
+export const companyPricingRules = pgTable(
+  "company_pricing_rules",
+  {
+    id: uuid("id").primaryKey(),
+    companyPricingVersionId: uuid("company_pricing_version_id")
+      .notNull()
+      .references(() => companyPricingVersions.id, { onDelete: "cascade" }),
+    companyServiceId: uuid("company_service_id")
+      .notNull()
+      .references(() => companyServices.id, { onDelete: "cascade" }),
+    templatePricingRuleId: uuid("template_pricing_rule_id").references(
+      () => templatePricingRules.id,
+      { onDelete: "restrict" },
+    ),
+    code: text("code").notNull(),
+    label: text("label").notNull(),
+    ruleType: pricingRuleTypeEnum("rule_type").notNull(),
+    targetFieldCode: text("target_field_code"),
+    targetOptionCode: text("target_option_code"),
+    quantityFieldCode: text("quantity_field_code"),
+    amount: numeric("amount", { precision: 12, scale: 2 }),
+    percentageBps: integer("percentage_bps"),
+    multiplierBps: integer("multiplier_bps"),
+    minimumValue: numeric("minimum_value", { precision: 12, scale: 4 }),
+    maximumValue: numeric("maximum_value", { precision: 12, scale: 4 }),
+    unit: pricingRuleUnitEnum("unit"),
+    condition: jsonb("condition").$type<{
+      sourceFieldCode: string;
+      operator: "equals" | "not_equals" | "includes";
+      value: string | number | boolean | string[] | number[];
+    }>(),
+    roundingMode: roundingModeEnum("rounding_mode"),
+    roundingIncrementCents: integer("rounding_increment_cents"),
+    isActive: boolean("is_active").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    versionServiceCodeUnique: uniqueIndex(
+      "company_pricing_rules_version_service_code_unique",
+    ).on(table.companyPricingVersionId, table.companyServiceId, table.code),
   }),
 );
 

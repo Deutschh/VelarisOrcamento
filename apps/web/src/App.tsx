@@ -16,6 +16,7 @@ import type {
   AdminCompanyDetail,
   AdminCompanySummary,
   AuthUser,
+  CalculationResult,
   CompanyConfigurationDetail,
   CompanyConfigurationPreview,
   CompanyFieldConfiguration,
@@ -29,6 +30,7 @@ import type {
   PublicCompanyCategoryCode,
   PublicCompanyDetail,
   PublicCompanySummary,
+  PricingRuleConfiguration,
   RegisterCompanyRequest,
   SchedulingMode,
 } from "@velaris/shared";
@@ -1394,16 +1396,18 @@ function AdminConfigurationPanel({
         answers: {
           has_stains: simulateWithStains,
           item_type: "sofa",
+          quantity: 1,
+          stain_type: simulateWithStains ? ["food"] : [],
         },
       });
 
-      return apiRequest<{ preview: CompanyConfigurationPreview }>(
-        `/api/admin/company-configurations/${configuration.id}/simulate`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-      );
+      return apiRequest<{
+        preview: CompanyConfigurationPreview;
+        calculation: CalculationResult | null;
+      }>(`/api/admin/company-configurations/${configuration.id}/simulate`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     },
     async onSuccess() {
       await invalidateCompany();
@@ -1433,7 +1437,16 @@ function AdminConfigurationPanel({
 
   function updateService(
     serviceId: string,
-    patch: Partial<Pick<CompanyServiceConfiguration, "isActive" | "schedulingMode">>,
+    patch: Partial<
+      Pick<
+        CompanyServiceConfiguration,
+        | "isActive"
+        | "schedulingMode"
+        | "estimateMarginLowerBps"
+        | "estimateMarginUpperBps"
+        | "estimatedDurationMinutes"
+      >
+    >,
   ) {
     setWorkingConfiguration((current) =>
       current
@@ -1514,6 +1527,44 @@ function AdminConfigurationPanel({
     );
   }
 
+  function updatePricingRule(
+    serviceId: string,
+    pricingRuleId: string,
+    patch: Partial<
+      Pick<
+        PricingRuleConfiguration,
+        | "amountCents"
+        | "isActive"
+        | "percentageBps"
+        | "multiplierBps"
+        | "minimumValue"
+        | "maximumValue"
+        | "roundingIncrementCents"
+        | "roundingMode"
+      >
+    >,
+  ) {
+    setWorkingConfiguration((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.map((service) =>
+              service.id === serviceId
+                ? {
+                    ...service,
+                    pricingRules: service.pricingRules.map((pricingRule) =>
+                      pricingRule.id === pricingRuleId
+                        ? { ...pricingRule, ...patch }
+                        : pricingRule,
+                    ),
+                  }
+                : service,
+            ),
+          }
+        : current,
+    );
+  }
+
   const panelError =
     templatesError ??
     mutationErrorMessage(createConfigurationMutation.error) ??
@@ -1521,6 +1572,7 @@ function AdminConfigurationPanel({
     mutationErrorMessage(simulateConfigurationMutation.error) ??
     mutationErrorMessage(publishConfigurationMutation.error);
   const preview = simulateConfigurationMutation.data?.preview ?? null;
+  const calculation = simulateConfigurationMutation.data?.calculation ?? null;
 
   return (
     <section>
@@ -1616,6 +1668,159 @@ function AdminConfigurationPanel({
                   </label>
                 </div>
               </div>
+              <div className="mt-4 grid gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3 md:grid-cols-3">
+                <label className="text-xs text-white/60">
+                  Margem inferior (%)
+                  <input
+                    className="mt-2 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                    disabled={!isEditable}
+                    inputMode="decimal"
+                    value={bpsToPercentInput(service.estimateMarginLowerBps)}
+                    onChange={(event) =>
+                      updateService(service.id, {
+                        estimateMarginLowerBps: percentInputToBps(event.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Margem superior (%)
+                  <input
+                    className="mt-2 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                    disabled={!isEditable}
+                    inputMode="decimal"
+                    value={bpsToPercentInput(service.estimateMarginUpperBps)}
+                    onChange={(event) =>
+                      updateService(service.id, {
+                        estimateMarginUpperBps: percentInputToBps(event.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Duracao estimada (min)
+                  <input
+                    className="mt-2 h-10 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                    disabled={!isEditable}
+                    inputMode="numeric"
+                    value={service.estimatedDurationMinutes ?? ""}
+                    onChange={(event) =>
+                      updateService(service.id, {
+                        estimatedDurationMinutes:
+                          event.target.value.trim() === ""
+                            ? null
+                            : Math.max(1, Number(event.target.value)),
+                      })
+                    }
+                  />
+                </label>
+              </div>
+              {service.pricingRules.length > 0 ? (
+                <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-3">
+                  <h4 className="text-sm font-medium text-white/85">Regras de preco</h4>
+                  <div className="mt-3 divide-y divide-white/10">
+                    {service.pricingRules.map((pricingRule) => (
+                      <div
+                        className="grid gap-3 py-3 lg:grid-cols-[1fr_120px_120px_120px]"
+                        key={pricingRule.id}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <ToggleLabel
+                              checked={pricingRule.isActive}
+                              disabled={!isEditable}
+                              label={pricingRule.label}
+                              onChange={(checked) =>
+                                updatePricingRule(service.id, pricingRule.id, {
+                                  isActive: checked,
+                                })
+                              }
+                            />
+                            <span className="text-xs text-white/40">
+                              {pricingRule.ruleType}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-white/40">{pricingRule.code}</p>
+                        </div>
+                        <label className="text-xs text-white/55">
+                          Valor
+                          <input
+                            className="mt-2 h-9 w-full rounded-md border border-white/15 bg-[#15171d] px-2 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                            disabled={!isEditable || pricingRule.amountCents === null}
+                            inputMode="decimal"
+                            value={
+                              pricingRule.amountCents === null
+                                ? ""
+                                : centsToMoneyInput(pricingRule.amountCents)
+                            }
+                            onChange={(event) =>
+                              updatePricingRule(service.id, pricingRule.id, {
+                                amountCents: moneyInputToCents(event.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="text-xs text-white/55">
+                          Percentual
+                          <input
+                            className="mt-2 h-9 w-full rounded-md border border-white/15 bg-[#15171d] px-2 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                            disabled={
+                              !isEditable ||
+                              (pricingRule.percentageBps === null &&
+                                pricingRule.multiplierBps === null)
+                            }
+                            inputMode="decimal"
+                            value={
+                              pricingRule.multiplierBps !== null
+                                ? bpsToPercentInput(pricingRule.multiplierBps)
+                                : pricingRule.percentageBps !== null
+                                  ? bpsToPercentInput(pricingRule.percentageBps)
+                                  : ""
+                            }
+                            onChange={(event) =>
+                              updatePricingRule(service.id, pricingRule.id, {
+                                ...(pricingRule.multiplierBps !== null
+                                  ? {
+                                      multiplierBps: percentInputToBps(
+                                        event.target.value,
+                                      ),
+                                    }
+                                  : {
+                                      percentageBps: percentInputToBps(
+                                        event.target.value,
+                                      ),
+                                    }),
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="text-xs text-white/55">
+                          Arredondar
+                          <input
+                            className="mt-2 h-9 w-full rounded-md border border-white/15 bg-[#15171d] px-2 text-sm text-white outline-none focus:border-emerald-300 disabled:text-white/45"
+                            disabled={
+                              !isEditable || pricingRule.roundingIncrementCents === null
+                            }
+                            inputMode="decimal"
+                            value={
+                              pricingRule.roundingIncrementCents === null
+                                ? ""
+                                : centsToMoneyInput(pricingRule.roundingIncrementCents)
+                            }
+                            onChange={(event) =>
+                              updatePricingRule(service.id, pricingRule.id, {
+                                roundingIncrementCents: moneyInputToCents(
+                                  event.target.value,
+                                ),
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="mt-4 divide-y divide-white/10">
                 {service.fields.map((field) => (
                   <div className="py-4" key={field.id}>
@@ -1749,6 +1954,7 @@ function AdminConfigurationPanel({
             </ActionButton>
           </div>
           {preview ? <ConfigurationPreview preview={preview} /> : null}
+          {calculation ? <CalculationSummary calculation={calculation} /> : null}
         </div>
       ) : null}
       <FormError message={panelError} />
@@ -1789,6 +1995,47 @@ function ConfigurationPreview({ preview }: { preview: CompanyConfigurationPrevie
   );
 }
 
+function CalculationSummary({ calculation }: { calculation: CalculationResult }) {
+  return (
+    <div className="border-t border-white/10 pt-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-medium text-white/85">Estimativa simulada</h3>
+          <p className="mt-1 text-xs text-white/45">
+            Configuracao v{calculation.configurationVersion} - precos v
+            {calculation.pricingVersion}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-xl font-semibold text-emerald-200">
+            {formatMoneyCents(calculation.estimateMinCents)} a{" "}
+            {formatMoneyCents(calculation.estimateMaxCents)}
+          </div>
+          <div className="mt-1 text-xs text-white/45">
+            Total interno {formatMoneyCents(calculation.internalTotalCents)}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 divide-y divide-white/10 rounded-md border border-white/10">
+        {calculation.memory.map((line) => (
+          <div
+            className="grid gap-2 px-3 py-2 text-sm sm:grid-cols-[1fr_auto]"
+            key={line.id}
+          >
+            <div>
+              <div className="font-medium text-white/85">{line.label}</div>
+              <div className="mt-1 text-xs text-white/45">{line.explanation}</div>
+            </div>
+            <div className={line.amountCents < 0 ? "text-rose-200" : "text-white/80"}>
+              {formatMoneyCents(line.amountCents)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ToggleLabel({
   checked,
   disabled,
@@ -1820,7 +2067,31 @@ function toConfigurationUpdatePayload(configuration: CompanyConfigurationDetail)
       templateServiceId: service.templateServiceId,
       isActive: service.isActive,
       schedulingMode: service.schedulingMode,
+      estimateMarginLowerBps: service.estimateMarginLowerBps,
+      estimateMarginUpperBps: service.estimateMarginUpperBps,
+      estimatedDurationMinutes: service.estimatedDurationMinutes,
       displayOrder: service.displayOrder,
+      pricingRules: service.pricingRules.map((pricingRule) => ({
+        id: pricingRule.id,
+        templatePricingRuleId: pricingRule.templatePricingRuleId,
+        code: pricingRule.code,
+        label: pricingRule.label,
+        ruleType: pricingRule.ruleType,
+        targetFieldCode: pricingRule.targetFieldCode,
+        targetOptionCode: pricingRule.targetOptionCode,
+        quantityFieldCode: pricingRule.quantityFieldCode,
+        amountCents: pricingRule.amountCents,
+        percentageBps: pricingRule.percentageBps,
+        multiplierBps: pricingRule.multiplierBps,
+        minimumValue: pricingRule.minimumValue,
+        maximumValue: pricingRule.maximumValue,
+        unit: pricingRule.unit,
+        condition: pricingRule.condition,
+        roundingMode: pricingRule.roundingMode,
+        roundingIncrementCents: pricingRule.roundingIncrementCents,
+        isActive: pricingRule.isActive,
+        displayOrder: pricingRule.displayOrder,
+      })),
       fields: service.fields.map((field) => ({
         id: field.id,
         templateFieldId: field.templateFieldId,
@@ -1841,6 +2112,51 @@ function toConfigurationUpdatePayload(configuration: CompanyConfigurationDetail)
       })),
     })),
   };
+}
+
+function centsToMoneyInput(value: number) {
+  const sign = value < 0 ? "-" : "";
+  const absoluteValue = Math.abs(value);
+  const whole = Math.floor(absoluteValue / 100);
+  const cents = String(absoluteValue % 100).padStart(2, "0");
+
+  return `${sign}${whole}.${cents}`;
+}
+
+function moneyInputToCents(value: string) {
+  const normalized = value.trim().replace(",", ".");
+
+  if (!/^\d+(\.\d{0,2})?$/.test(normalized)) {
+    return 0;
+  }
+
+  const [whole = "0", cents = ""] = normalized.split(".");
+  return Number(`${whole}${cents.padEnd(2, "0").slice(0, 2)}`);
+}
+
+function bpsToPercentInput(value: number) {
+  const whole = Math.floor(value / 100);
+  const decimals = value % 100;
+
+  return decimals === 0 ? String(whole) : `${whole}.${String(decimals).padStart(2, "0")}`;
+}
+
+function percentInputToBps(value: string) {
+  const normalized = value.trim().replace(",", ".");
+
+  if (!/^\d+(\.\d{0,2})?$/.test(normalized)) {
+    return 0;
+  }
+
+  const [whole = "0", decimals = ""] = normalized.split(".");
+  return Number(`${whole}${decimals.padEnd(2, "0").slice(0, 2)}`);
+}
+
+function formatMoneyCents(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value / 100);
 }
 
 function mutationErrorMessage(error: unknown) {

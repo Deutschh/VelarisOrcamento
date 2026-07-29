@@ -6,24 +6,31 @@ import {
   auditLogs,
   companyConfigurations,
   companyFieldOptions,
+  companyPricingRules,
+  companyPricingVersions,
   companyServiceFields,
   companyServices,
   nicheTemplates,
   templateFieldOptions,
   templateFields,
+  templatePricingRules,
   templateServices,
 } from "@velaris/database-schema";
 import type {
   CompanyConfigurationDetail,
+  CompanyPricingSnapshot,
+  CompanyPricingVersionSummary,
   CompanyConfigurationSnapshot,
   CompanyConfigurationStatus,
   CompanyFieldConfiguration,
   CompanyFieldOptionConfiguration,
   CompanyServiceConfiguration,
   NicheTemplate,
+  PricingRuleConfiguration,
   PublicCompanyCategoryCode,
   TemplateField,
   TemplateFieldOption,
+  TemplatePricingRule,
   TemplateService,
 } from "@velaris/shared";
 
@@ -135,6 +142,9 @@ export class DrizzleTemplateRepository implements TemplateRepository {
   async replaceDraftConfiguration(input: PersistConfigurationInput): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx
+        .delete(companyPricingVersions)
+        .where(eq(companyPricingVersions.companyConfigurationId, input.configuration.id));
+      await tx
         .delete(companyServices)
         .where(eq(companyServices.companyConfigurationId, input.configuration.id));
       await insertConfigurationTree(tx, input.configuration);
@@ -172,6 +182,21 @@ export class DrizzleTemplateRepository implements TemplateRepository {
         );
 
       await tx
+        .update(companyPricingVersions)
+        .set({
+          status: "archived",
+          updatedAt: input.publishedAt,
+          updatedByUserId: input.actorUserId,
+        })
+        .where(
+          and(
+            eq(companyPricingVersions.companyId, input.configuration.companyId),
+            eq(companyPricingVersions.templateId, input.configuration.templateId),
+            eq(companyPricingVersions.status, "published"),
+          ),
+        );
+
+      await tx
         .update(companyConfigurations)
         .set({
           status: "published",
@@ -181,6 +206,22 @@ export class DrizzleTemplateRepository implements TemplateRepository {
           updatedByUserId: input.actorUserId,
         })
         .where(eq(companyConfigurations.id, input.configuration.id));
+
+      if (input.configuration.pricingVersion) {
+        await tx
+          .update(companyPricingVersions)
+          .set({
+            status: "published",
+            pricingSnapshot: createPricingSnapshot(
+              input.configuration,
+              input.publishedAt,
+            ) as unknown as Record<string, unknown>,
+            publishedAt: input.publishedAt,
+            updatedAt: input.publishedAt,
+            updatedByUserId: input.actorUserId,
+          })
+          .where(eq(companyPricingVersions.id, input.configuration.pricingVersion.id));
+      }
 
       await insertConfigurationAudit(tx, {
         action: "company.configuration.published",
@@ -233,6 +274,13 @@ export class DrizzleTemplateRepository implements TemplateRepository {
             .from(templateFieldOptions)
             .where(inArray(templateFieldOptions.templateFieldId, fieldIds))
         : [];
+    const pricingRuleRows =
+      serviceIds.length > 0
+        ? await this.db
+            .select()
+            .from(templatePricingRules)
+            .where(inArray(templatePricingRules.templateServiceId, serviceIds))
+        : [];
 
     const optionsByFieldId = new Map<string, TemplateFieldOption[]>();
     for (const option of optionRows) {
@@ -270,6 +318,34 @@ export class DrizzleTemplateRepository implements TemplateRepository {
     }
 
     const servicesByTemplateId = new Map<string, TemplateService[]>();
+    const pricingRulesByServiceId = new Map<string, TemplatePricingRule[]>();
+
+    for (const rule of pricingRuleRows) {
+      const pricingRules = pricingRulesByServiceId.get(rule.templateServiceId) ?? [];
+      pricingRules.push({
+        id: rule.id,
+        templateServiceId: rule.templateServiceId,
+        code: rule.code,
+        label: rule.label,
+        ruleType: rule.ruleType,
+        targetFieldCode: rule.targetFieldCode,
+        targetOptionCode: rule.targetOptionCode,
+        quantityFieldCode: rule.quantityFieldCode,
+        amountCents: decimalMoneyToCents(rule.amount),
+        percentageBps: rule.percentageBps,
+        multiplierBps: rule.multiplierBps,
+        minimumValue: rule.minimumValue,
+        maximumValue: rule.maximumValue,
+        unit: rule.unit,
+        condition: rule.condition ?? null,
+        roundingMode: rule.roundingMode,
+        roundingIncrementCents: rule.roundingIncrementCents,
+        isActiveDefault: rule.isActiveDefault,
+        displayOrder: rule.displayOrder,
+      });
+      pricingRulesByServiceId.set(rule.templateServiceId, pricingRules);
+    }
+
     for (const service of serviceRows) {
       const services = servicesByTemplateId.get(service.templateId) ?? [];
       services.push({
@@ -280,6 +356,9 @@ export class DrizzleTemplateRepository implements TemplateRepository {
         displayOrder: service.displayOrder,
         isActiveDefault: service.isActiveDefault,
         defaultSchedulingMode: service.defaultSchedulingMode,
+        pricingRules: (pricingRulesByServiceId.get(service.id) ?? []).sort(
+          byDisplayOrder,
+        ),
         fields: (fieldsByServiceId.get(service.id) ?? []).sort(byDisplayOrder),
       });
       servicesByTemplateId.set(service.templateId, services);
@@ -344,6 +423,20 @@ export class DrizzleTemplateRepository implements TemplateRepository {
             )
             .where(inArray(companyFieldOptions.companyServiceFieldId, fieldIds))
         : [];
+    const pricingVersionRows = await this.db
+      .select()
+      .from(companyPricingVersions)
+      .where(inArray(companyPricingVersions.companyConfigurationId, configurationIds));
+    const pricingVersionIds = pricingVersionRows.map((row) => row.id);
+    const pricingRuleRows =
+      pricingVersionIds.length > 0
+        ? await this.db
+            .select()
+            .from(companyPricingRules)
+            .where(
+              inArray(companyPricingRules.companyPricingVersionId, pricingVersionIds),
+            )
+        : [];
 
     const serviceById = new Map<string, CompanyServiceConfiguration>();
     const servicesByConfigurationId = new Map<string, CompanyServiceConfiguration[]>();
@@ -358,6 +451,14 @@ export class DrizzleTemplateRepository implements TemplateRepository {
         displayOrder: row.companyService.displayOrder,
         isActive: row.companyService.isActive,
         schedulingMode: row.companyService.schedulingMode,
+        estimateMarginLowerBps: percentageNumericToBps(
+          row.companyService.estimateMarginLower,
+        ),
+        estimateMarginUpperBps: percentageNumericToBps(
+          row.companyService.estimateMarginUpper,
+        ),
+        estimatedDurationMinutes: row.companyService.estimatedDurationMinutes,
+        pricingRules: [],
         fields: [],
       };
       const services =
@@ -402,11 +503,51 @@ export class DrizzleTemplateRepository implements TemplateRepository {
       fieldById.get(row.companyOption.companyServiceFieldId)?.options.push(option);
     }
 
+    for (const row of pricingRuleRows) {
+      const pricingRule: PricingRuleConfiguration = {
+        id: row.id,
+        templatePricingRuleId: row.templatePricingRuleId,
+        code: row.code,
+        label: row.label,
+        ruleType: row.ruleType,
+        targetFieldCode: row.targetFieldCode,
+        targetOptionCode: row.targetOptionCode,
+        quantityFieldCode: row.quantityFieldCode,
+        amountCents: decimalMoneyToCents(row.amount),
+        percentageBps: row.percentageBps,
+        multiplierBps: row.multiplierBps,
+        minimumValue: row.minimumValue,
+        maximumValue: row.maximumValue,
+        unit: row.unit,
+        condition: row.condition ?? null,
+        roundingMode: row.roundingMode,
+        roundingIncrementCents: row.roundingIncrementCents,
+        isActive: row.isActive,
+        displayOrder: row.displayOrder,
+      };
+      serviceById.get(row.companyServiceId)?.pricingRules.push(pricingRule);
+    }
+
     for (const service of serviceById.values()) {
+      service.pricingRules.sort(byDisplayOrder);
       service.fields.sort(byDisplayOrder);
       for (const field of service.fields) {
         field.options.sort(byDisplayOrder);
       }
+    }
+
+    const pricingVersionByConfigurationId = new Map<
+      string,
+      CompanyPricingVersionSummary
+    >();
+    for (const row of pricingVersionRows) {
+      pricingVersionByConfigurationId.set(row.companyConfigurationId, {
+        id: row.id,
+        status: row.status,
+        version: row.version,
+        publishedAt: row.publishedAt?.toISOString() ?? null,
+        snapshot: (row.pricingSnapshot as CompanyPricingSnapshot | null) ?? null,
+      });
     }
 
     return rows.map((row) => ({
@@ -421,6 +562,7 @@ export class DrizzleTemplateRepository implements TemplateRepository {
       snapshot:
         (row.configuration
           .configurationSnapshot as CompanyConfigurationSnapshot | null) ?? null,
+      pricingVersion: pricingVersionByConfigurationId.get(row.configuration.id) ?? null,
       services: (servicesByConfigurationId.get(row.configuration.id) ?? []).sort(
         byDisplayOrder,
       ),
@@ -445,6 +587,9 @@ async function insertConfigurationTree(
       isActive: service.isActive,
       schedulingMode: service.schedulingMode,
       displayOrder: service.displayOrder,
+      estimateMarginLower: bpsToPercentageNumeric(service.estimateMarginLowerBps),
+      estimateMarginUpper: bpsToPercentageNumeric(service.estimateMarginUpperBps),
+      estimatedDurationMinutes: service.estimatedDurationMinutes,
     });
 
     for (const field of service.fields) {
@@ -469,6 +614,46 @@ async function insertConfigurationTree(
           templateFieldOptionId: option.templateFieldOptionId,
           isActive: option.isActive,
           displayOrder: option.displayOrder,
+        });
+      }
+    }
+  }
+
+  if (configuration.pricingVersion) {
+    await tx.insert(companyPricingVersions).values({
+      id: configuration.pricingVersion.id,
+      companyConfigurationId: configuration.id,
+      companyId: configuration.companyId,
+      templateId: configuration.templateId,
+      status: configuration.pricingVersion.status,
+      version: configuration.pricingVersion.version,
+      pricingSnapshot: null,
+    });
+
+    for (const service of configuration.services) {
+      for (const pricingRule of service.pricingRules) {
+        await tx.insert(companyPricingRules).values({
+          id: pricingRule.id,
+          companyPricingVersionId: configuration.pricingVersion.id,
+          companyServiceId: service.id,
+          templatePricingRuleId: pricingRule.templatePricingRuleId,
+          code: pricingRule.code,
+          label: pricingRule.label,
+          ruleType: pricingRule.ruleType,
+          targetFieldCode: pricingRule.targetFieldCode,
+          targetOptionCode: pricingRule.targetOptionCode,
+          quantityFieldCode: pricingRule.quantityFieldCode,
+          amount: centsToDecimalMoney(pricingRule.amountCents),
+          percentageBps: pricingRule.percentageBps,
+          multiplierBps: pricingRule.multiplierBps,
+          minimumValue: pricingRule.minimumValue,
+          maximumValue: pricingRule.maximumValue,
+          unit: pricingRule.unit,
+          condition: pricingRule.condition,
+          roundingMode: pricingRule.roundingMode,
+          roundingIncrementCents: pricingRule.roundingIncrementCents,
+          isActive: pricingRule.isActive,
+          displayOrder: pricingRule.displayOrder,
         });
       }
     }
@@ -505,6 +690,68 @@ function toKnownTemplateCode(value: string): PublicCompanyCategoryCode {
   }
 
   return "cleaning_upholstery";
+}
+
+function decimalMoneyToCents(value: string | null) {
+  if (value === null) {
+    return null;
+  }
+
+  const [whole = "0", decimals = ""] = value.split(".");
+  return Number(`${whole}${decimals.padEnd(2, "0").slice(0, 2)}`);
+}
+
+function centsToDecimalMoney(value: number | null) {
+  if (value === null) {
+    return null;
+  }
+
+  const sign = value < 0 ? "-" : "";
+  const absoluteValue = Math.abs(value);
+  const whole = Math.floor(absoluteValue / 100);
+  const cents = String(absoluteValue % 100).padStart(2, "0");
+
+  return `${sign}${whole}.${cents}`;
+}
+
+function percentageNumericToBps(value: string | null) {
+  if (value === null) {
+    return 500;
+  }
+
+  const [whole = "0", decimals = ""] = value.split(".");
+  return Number(`${whole}${decimals.padEnd(2, "0").slice(0, 2)}`);
+}
+
+function bpsToPercentageNumeric(value: number) {
+  const whole = Math.floor(value / 100);
+  const decimals = String(value % 100).padStart(2, "0");
+
+  return `${whole}.${decimals}`;
+}
+
+function createPricingSnapshot(
+  configuration: CompanyConfigurationDetail,
+  publishedAt: Date,
+): CompanyPricingSnapshot | null {
+  if (!configuration.pricingVersion) {
+    return null;
+  }
+
+  return {
+    pricingVersionId: configuration.pricingVersion.id,
+    companyConfigurationId: configuration.id,
+    configurationVersion: configuration.version,
+    pricingVersion: configuration.pricingVersion.version,
+    publishedAt: publishedAt.toISOString(),
+    services: configuration.services.map((service) => ({
+      id: service.id,
+      code: service.code,
+      estimateMarginLowerBps: service.estimateMarginLowerBps,
+      estimateMarginUpperBps: service.estimateMarginUpperBps,
+      rules: service.pricingRules,
+    })),
+  };
 }
 
 function byDisplayOrder<T extends { displayOrder: number }>(left: T, right: T) {

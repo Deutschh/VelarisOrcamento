@@ -1,4 +1,11 @@
 import { z } from "zod";
+import type {
+  CalculationAnswers,
+  CalculationResult,
+  CompanyPricingVersionSummary,
+  PricingRuleConfiguration,
+  TemplatePricingRule,
+} from "./pricing.js";
 import type { publicCompanyCategorySchema } from "./public.js";
 
 export const templateFieldTypeSchema = z.enum([
@@ -84,6 +91,7 @@ export interface TemplateService {
   displayOrder: number;
   isActiveDefault: boolean;
   defaultSchedulingMode: SchedulingMode;
+  pricingRules: TemplatePricingRule[];
   fields: TemplateField[];
 }
 
@@ -132,6 +140,10 @@ export interface CompanyServiceConfiguration {
   displayOrder: number;
   isActive: boolean;
   schedulingMode: SchedulingMode;
+  estimateMarginLowerBps: number;
+  estimateMarginUpperBps: number;
+  estimatedDurationMinutes: number | null;
+  pricingRules: PricingRuleConfiguration[];
   fields: CompanyFieldConfiguration[];
 }
 
@@ -145,6 +157,7 @@ export interface CompanyConfigurationDetail {
   version: number;
   publishedAt: string | null;
   snapshot: CompanyConfigurationSnapshot | null;
+  pricingVersion: CompanyPricingVersionSummary | null;
   services: CompanyServiceConfiguration[];
 }
 
@@ -156,6 +169,7 @@ export interface CompanyConfigurationSnapshot {
   templateVersion: number;
   configurationVersion: number;
   publishedAt: string;
+  pricingVersion: CompanyPricingVersionSummary | null;
   services: CompanyServiceConfiguration[];
 }
 
@@ -194,7 +208,56 @@ const serviceConfigurationRequestSchema = z.object({
   templateServiceId: z.string().uuid(),
   isActive: z.boolean(),
   schedulingMode: schedulingModeSchema,
+  estimateMarginLowerBps: z.number().int().min(0).max(10000),
+  estimateMarginUpperBps: z.number().int().min(0).max(10000),
+  estimatedDurationMinutes: z.number().int().positive().nullable(),
   displayOrder: z.number().int().min(0),
+  pricingRules: z.array(
+    z.object({
+      id: z.string().uuid().optional(),
+      templatePricingRuleId: z.string().uuid().nullable(),
+      code: z.string().trim().min(1).max(120),
+      label: z.string().trim().min(1).max(160),
+      ruleType: z.enum([
+        "fixed_price",
+        "quantity",
+        "area",
+        "linear_meter",
+        "multiplier",
+        "fixed_addition",
+        "percentage_addition",
+        "minimum_value",
+        "minimum_area",
+        "price_range",
+        "option_price",
+        "distance_fee",
+        "administrative_discount",
+        "rounding",
+      ]),
+      targetFieldCode: z.string().trim().min(1).max(120).nullable(),
+      targetOptionCode: z.string().trim().min(1).max(120).nullable(),
+      quantityFieldCode: z.string().trim().min(1).max(120).nullable(),
+      amountCents: z.number().int().min(0).nullable(),
+      percentageBps: z.number().int().min(0).max(10000).nullable(),
+      multiplierBps: z.number().int().min(0).max(100000).nullable(),
+      minimumValue: z
+        .string()
+        .trim()
+        .regex(/^\d+(\.\d{1,4})?$/)
+        .nullable(),
+      maximumValue: z
+        .string()
+        .trim()
+        .regex(/^\d+(\.\d{1,4})?$/)
+        .nullable(),
+      unit: z.enum(["unit", "m", "m2", "linear_m", "km"]).nullable(),
+      condition: templateFieldConditionSchema.nullable(),
+      roundingMode: z.enum(["nearest", "up", "down"]).nullable(),
+      roundingIncrementCents: z.number().int().min(1).nullable(),
+      isActive: z.boolean(),
+      displayOrder: z.number().int().min(0),
+    }),
+  ),
   fields: z.array(fieldConfigurationRequestSchema),
 });
 
@@ -206,8 +269,19 @@ export type AdminUpdateCompanyConfigurationRequest = z.infer<
   typeof adminUpdateCompanyConfigurationRequestSchema
 >;
 
+const measurementAnswerSchema = z.object({
+  originalValue: z.union([z.number(), z.string()]),
+  originalUnit: z.enum(["mm", "cm", "m", "m2", "km", "unit"]),
+  normalizedValue: z.union([z.number(), z.string()]),
+  normalizedUnit: z.enum(["unit", "m", "m2", "linear_m", "km"]),
+});
+
 export const adminSimulateCompanyConfigurationRequestSchema = z.object({
-  answers: z.record(z.string(), conditionValueSchema).default({}),
+  answers: z
+    .record(z.string(), z.union([conditionValueSchema, measurementAnswerSchema]))
+    .default({}),
+  finalAmountCents: z.number().int().min(0).optional(),
+  finalAmountJustification: z.string().trim().max(800).optional(),
 });
 
 export type AdminSimulateCompanyConfigurationRequest = z.infer<
@@ -235,6 +309,12 @@ export interface CompanyConfigurationPreview {
   }>;
 }
 
+export interface CompanyConfigurationSimulation {
+  preview: CompanyConfigurationPreview;
+  calculation: CalculationResult | null;
+  answers: CalculationAnswers;
+}
+
 export interface NicheTemplatesResponse {
   templates: NicheTemplate[];
 }
@@ -245,4 +325,5 @@ export interface CompanyConfigurationResponse {
 
 export interface CompanyConfigurationPreviewResponse {
   preview: CompanyConfigurationPreview;
+  calculation: CalculationResult | null;
 }

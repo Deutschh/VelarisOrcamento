@@ -31,3 +31,9 @@ export class CompanyConfigurationTemplateMismatchError extends AppError {
     );
   }
 }
+
+export class CompanyConfigurationCalculationError extends AppError {
+  constructor(code: string, message: string) {
+    super(message, 400, code);
+  }
+}

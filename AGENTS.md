@@ -14,8 +14,9 @@
 - Sprint 3 concluida: cadastro empresarial, ativacao manual e painel Admin inicial.
 - Sprint 4 concluida: Home publica, busca e perfil publico.
 - Sprint 5 concluida: templates fixos e campos configuraveis.
-- Proxima etapa planejada: Sprint 6, motor de calculo.
-- Nao iniciar a Sprint 6 sem nova autorizacao do usuario.
+- Sprint 6 concluida: motor de calculo, regras de preco versionadas, margens e simulacao Admin com memoria de calculo.
+- Proxima etapa planejada: Sprint 7, template de limpeza de estofados.
+- Nao iniciar a Sprint 7 sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
 - Nao fazer deploy sem autorizacao explicita.
 - Nao alterar configuracoes globais do Windows.
@@ -66,6 +67,7 @@
 - Estados nao podem ser atualizados livremente por rotas ou controllers.
 - Acoes criticas devem prever idempotencia.
 - Configuracoes publicadas devem ser imutaveis.
+- Regras de preco publicadas devem ser versionadas e preservadas em snapshot.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.
@@ -107,4 +109,5 @@
 - Sprint 3 cria cadastro, ativacao e painel inicial do Admin.
 - Sprint 4 cria Home, busca e perfil publico.
 - Sprint 5 cria templates fixos e campos configuraveis.
-- Sprint 6 deve iniciar o motor de calculo somente apos nova autorizacao do usuario.
+- Sprint 6 cria o motor de calculo, regras de preco versionadas, margens e simulacao explicavel.
+- Sprint 7 deve consolidar o template de limpeza de estofados somente apos nova autorizacao do usuario.

@@ -83,11 +83,14 @@ export function createAdminRouter(
     "/company-configurations/:configurationId/simulate",
     asyncHandler(async (request, response) => {
       const body = adminSimulateCompanyConfigurationRequestSchema.parse(request.body);
-      const preview = await getTemplateAdminService(
+      const simulation = await getTemplateAdminService(
         templateAdminService,
       ).simulateConfiguration(getConfigurationId(request.params), body);
 
-      response.json({ preview });
+      response.json({
+        preview: simulation.preview,
+        calculation: simulation.calculation,
+      });
     }),
   );
 

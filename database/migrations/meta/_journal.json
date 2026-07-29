@@ -29,6 +29,13 @@
       "when": 1785299233266,
       "tag": "0003_yummy_gravity",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785304240289,
+      "tag": "0004_rapid_polaris",
+      "breakpoints": true
     }
   ]
 }

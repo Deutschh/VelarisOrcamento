@@ -1,26 +1,33 @@
 import { randomUUID } from "node:crypto";
 import {
+  CalculationError,
+  calculateEstimate,
   ConfigurationLifecycleError,
   assertDraftConfiguration,
   shouldShowField,
 } from "@velaris/domain";
+import type { CalculationAnswers, CalculationPricingRule } from "@velaris/domain";
 import type {
   AdminCreateCompanyConfigurationRequest,
   AdminSimulateCompanyConfigurationRequest,
   AdminUpdateCompanyConfigurationRequest,
   CompanyConfigurationDetail,
   CompanyConfigurationPreview,
+  CompanyConfigurationSimulation,
   CompanyConfigurationSnapshot,
   CompanyFieldConfiguration,
   CompanyFieldOptionConfiguration,
   CompanyServiceConfiguration,
   NicheTemplate,
+  PricingRuleConfiguration,
+  TemplatePricingRule,
   TemplateField,
   TemplateFieldOption,
   TemplateService,
 } from "@velaris/shared";
 
 import {
+  CompanyConfigurationCalculationError,
   CompanyConfigurationNotEditableError,
   CompanyConfigurationNotFoundError,
   CompanyConfigurationTemplateMismatchError,
@@ -139,44 +146,27 @@ export class TemplateAdminService {
   async simulateConfiguration(
     id: string,
     input: AdminSimulateCompanyConfigurationRequest,
-  ): Promise<CompanyConfigurationPreview> {
+  ): Promise<CompanyConfigurationSimulation> {
     const configuration = await this.getConfiguration(id);
+    const preview = createConfigurationPreview(configuration, input);
+    const serviceForCalculation =
+      configuration.services.find(
+        (service) =>
+          service.isActive && service.pricingRules.some((rule) => rule.isActive),
+      ) ?? null;
+    const calculation =
+      serviceForCalculation && configuration.pricingVersion
+        ? runCalculation({
+            configuration,
+            service: serviceForCalculation,
+            request: input,
+          })
+        : null;
 
     return {
-      configurationId: configuration.id,
-      version: configuration.version,
-      services: configuration.services
-        .filter((service) => service.isActive)
-        .sort(byDisplayOrder)
-        .map((service) => ({
-          id: service.id,
-          code: service.code,
-          name: service.name,
-          schedulingMode: service.schedulingMode,
-          fields: service.fields
-            .filter(
-              (field) =>
-                field.isActive &&
-                field.isClientVisible &&
-                shouldShowField({
-                  condition: field.condition,
-                  answers: input.answers,
-                }),
-            )
-            .sort(byDisplayOrder)
-            .map((field) => ({
-              id: field.id,
-              code: field.code,
-              label: field.label,
-              fieldType: field.fieldType,
-              helpText: field.helpText,
-              isRequired: field.isRequired,
-              requiresPhoto: field.requiresPhoto,
-              options: field.options
-                .filter((option) => option.isActive)
-                .sort(byDisplayOrder),
-            })),
-        })),
+      preview,
+      calculation,
+      answers: input.answers,
     };
   }
 
@@ -210,6 +200,36 @@ export class TemplateAdminService {
   }
 }
 
+function runCalculation(input: {
+  configuration: CompanyConfigurationDetail;
+  service: CompanyServiceConfiguration;
+  request: AdminSimulateCompanyConfigurationRequest;
+}) {
+  try {
+    return calculateEstimate({
+      configurationVersion: input.configuration.version,
+      pricingVersion: input.configuration.pricingVersion?.version ?? 1,
+      answers: input.request.answers as CalculationAnswers,
+      rules: input.service.pricingRules.map(toCalculationRule),
+      estimateMarginLowerBps: input.service.estimateMarginLowerBps,
+      estimateMarginUpperBps: input.service.estimateMarginUpperBps,
+      ...(input.request.finalAmountCents !== undefined
+        ? { finalAmountCents: input.request.finalAmountCents }
+        : {}),
+      ...(input.request.finalAmountJustification
+        ? { finalAmountJustification: input.request.finalAmountJustification }
+        : {}),
+      allowZeroTotal: true,
+    });
+  } catch (error) {
+    if (error instanceof CalculationError) {
+      throw new CompanyConfigurationCalculationError(error.code, error.message);
+    }
+
+    throw error;
+  }
+}
+
 function createConfigurationFromTemplate(
   companyId: string,
   template: NicheTemplate,
@@ -225,6 +245,13 @@ function createConfigurationFromTemplate(
     version,
     publishedAt: null,
     snapshot: null,
+    pricingVersion: {
+      id: randomUUID(),
+      status: "draft",
+      version,
+      publishedAt: null,
+      snapshot: null,
+    },
     services: template.services
       .sort(byDisplayOrder)
       .map((service) => createServiceConfiguration(service)),
@@ -242,9 +269,20 @@ function cloneConfiguration(
     version,
     publishedAt: null,
     snapshot: null,
+    pricingVersion: {
+      id: randomUUID(),
+      status: "draft",
+      version,
+      publishedAt: null,
+      snapshot: null,
+    },
     services: configuration.services.map((service) => ({
       ...service,
       id: randomUUID(),
+      pricingRules: service.pricingRules.map((rule) => ({
+        ...rule,
+        id: randomUUID(),
+      })),
       fields: service.fields.map((field) => ({
         ...field,
         id: randomUUID(),
@@ -269,6 +307,12 @@ function createServiceConfiguration(
     displayOrder: service.displayOrder,
     isActive: service.isActiveDefault,
     schedulingMode: service.defaultSchedulingMode,
+    estimateMarginLowerBps: 500,
+    estimateMarginUpperBps: 500,
+    estimatedDurationMinutes: null,
+    pricingRules: service.pricingRules
+      .sort(byDisplayOrder)
+      .map((rule) => createPricingRuleConfiguration(rule)),
     fields: service.fields
       .sort(byDisplayOrder)
       .map((field) => createFieldConfiguration(field)),
@@ -331,6 +375,12 @@ function mergeServiceConfiguration(
     displayOrder: serviceInput.displayOrder,
     isActive: serviceInput.isActive,
     schedulingMode: serviceInput.schedulingMode,
+    estimateMarginLowerBps: serviceInput.estimateMarginLowerBps,
+    estimateMarginUpperBps: serviceInput.estimateMarginUpperBps,
+    estimatedDurationMinutes: serviceInput.estimatedDurationMinutes,
+    pricingRules: serviceInput.pricingRules.map((ruleInput) =>
+      mergePricingRuleConfiguration(ruleInput, templateService),
+    ),
     fields: serviceInput.fields.map((fieldInput) =>
       mergeFieldConfiguration(fieldInput, templateService),
     ),
@@ -404,7 +454,149 @@ function createConfigurationSnapshot(
     templateVersion: configuration.version,
     configurationVersion: configuration.version,
     publishedAt: publishedAt.toISOString(),
+    pricingVersion: configuration.pricingVersion
+      ? {
+          ...configuration.pricingVersion,
+          status: "published",
+          publishedAt: publishedAt.toISOString(),
+        }
+      : null,
     services: configuration.services,
+  };
+}
+
+function createConfigurationPreview(
+  configuration: CompanyConfigurationDetail,
+  input: AdminSimulateCompanyConfigurationRequest,
+): CompanyConfigurationPreview {
+  return {
+    configurationId: configuration.id,
+    version: configuration.version,
+    services: configuration.services
+      .filter((service) => service.isActive)
+      .sort(byDisplayOrder)
+      .map((service) => ({
+        id: service.id,
+        code: service.code,
+        name: service.name,
+        schedulingMode: service.schedulingMode,
+        fields: service.fields
+          .filter(
+            (field) =>
+              field.isActive &&
+              field.isClientVisible &&
+              shouldShowField({
+                condition: field.condition,
+                answers: toConditionAnswers(input.answers),
+              }),
+          )
+          .sort(byDisplayOrder)
+          .map((field) => ({
+            id: field.id,
+            code: field.code,
+            label: field.label,
+            fieldType: field.fieldType,
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            requiresPhoto: field.requiresPhoto,
+            options: field.options
+              .filter((option) => option.isActive)
+              .sort(byDisplayOrder),
+          })),
+      })),
+  };
+}
+
+function createPricingRuleConfiguration(
+  rule: TemplatePricingRule,
+): PricingRuleConfiguration {
+  return {
+    id: randomUUID(),
+    templatePricingRuleId: rule.id,
+    code: rule.code,
+    label: rule.label,
+    ruleType: rule.ruleType,
+    targetFieldCode: rule.targetFieldCode,
+    targetOptionCode: rule.targetOptionCode,
+    quantityFieldCode: rule.quantityFieldCode,
+    amountCents: rule.amountCents,
+    percentageBps: rule.percentageBps,
+    multiplierBps: rule.multiplierBps,
+    minimumValue: rule.minimumValue,
+    maximumValue: rule.maximumValue,
+    unit: rule.unit,
+    condition: rule.condition,
+    roundingMode: rule.roundingMode,
+    roundingIncrementCents: rule.roundingIncrementCents,
+    isActive: rule.isActiveDefault,
+    displayOrder: rule.displayOrder,
+  };
+}
+
+function mergePricingRuleConfiguration(
+  ruleInput: AdminUpdateCompanyConfigurationRequest["services"][number]["pricingRules"][number],
+  templateService: TemplateService,
+): PricingRuleConfiguration {
+  const templateRule = templateService.pricingRules.find(
+    (rule) => rule.id === ruleInput.templatePricingRuleId,
+  );
+
+  if (!templateRule) {
+    throw new CompanyConfigurationTemplateMismatchError();
+  }
+
+  return {
+    id: ruleInput.id ?? randomUUID(),
+    templatePricingRuleId: templateRule.id,
+    code: templateRule.code,
+    label: templateRule.label,
+    ruleType: templateRule.ruleType,
+    targetFieldCode: templateRule.targetFieldCode,
+    targetOptionCode: templateRule.targetOptionCode,
+    quantityFieldCode: templateRule.quantityFieldCode,
+    amountCents: ruleInput.amountCents,
+    percentageBps: ruleInput.percentageBps,
+    multiplierBps: ruleInput.multiplierBps,
+    minimumValue: ruleInput.minimumValue,
+    maximumValue: ruleInput.maximumValue,
+    unit: templateRule.unit,
+    condition: templateRule.condition,
+    roundingMode: ruleInput.roundingMode,
+    roundingIncrementCents: ruleInput.roundingIncrementCents,
+    isActive: ruleInput.isActive,
+    displayOrder: ruleInput.displayOrder,
+  };
+}
+
+function toConditionAnswers(input: AdminSimulateCompanyConfigurationRequest["answers"]) {
+  return Object.fromEntries(
+    Object.entries(input).filter(
+      ([, value]) => typeof value !== "object" || value === null || Array.isArray(value),
+    ),
+  ) as Record<string, string | number | boolean | string[] | number[]>;
+}
+
+function toCalculationRule(rule: PricingRuleConfiguration): CalculationPricingRule {
+  return {
+    id: rule.id,
+    templatePricingRuleId: rule.templatePricingRuleId,
+    code: rule.code,
+    label: rule.label,
+    ruleType: rule.ruleType,
+    targetFieldCode: rule.targetFieldCode,
+    targetOptionCode: rule.targetOptionCode,
+    quantityFieldCode: rule.quantityFieldCode,
+    amountCents: rule.amountCents,
+    percentageBps: rule.percentageBps,
+    multiplierBps: rule.multiplierBps,
+    minimumValue: rule.minimumValue,
+    maximumValue: rule.maximumValue,
+    unit: rule.unit,
+    condition: rule.condition,
+    roundingMode: rule.roundingMode,
+    roundingIncrementCents: rule.roundingIncrementCents,
+    isActive: rule.isActive,
+    displayOrder: rule.displayOrder,
   };
 }
 

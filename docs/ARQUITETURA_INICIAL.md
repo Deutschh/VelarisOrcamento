@@ -103,7 +103,13 @@ Requisito implementado: templates fixos e configuracoes por empresa usam contrat
 
 Requisito implementado: configuracoes publicadas sao imutaveis no servico de dominio/aplicacao; alteracoes futuras criam novo rascunho/versionamento e a publicacao grava snapshot em `JSONB`.
 
-Requisito implementado: o frontend Admin consome somente a API para listar templates, criar/editar rascunhos, simular preview e publicar configuracoes; ele nao acessa o Neon diretamente.
+Requisito implementado: o motor de calculo fica em `packages/domain`, sem dependencia de HTTP, banco ou UI, e trabalha com centavos inteiros, basis points para percentuais, medidas normalizadas, memoria explicavel e resultado deterministico.
+
+Requisito implementado: contratos de precificacao, respostas tecnicas, regras, snapshots e resultado de calculo ficam em `packages/shared`, permitindo uso consistente entre API, dominio e web sem expor codigo interno da API ao frontend.
+
+Requisito implementado: regras de preco e versoes de preco sao persistidas no backend por `template_pricing_rules`, `company_pricing_versions` e `company_pricing_rules`; valores monetarios persistidos usam `NUMERIC(12, 2)` e snapshots comerciais usam `JSONB`.
+
+Requisito implementado: o frontend Admin consome somente a API para listar templates, criar/editar rascunhos, ajustar campos, ajustar regras de preco permitidas, simular preview/calculo e publicar configuracoes; ele nao acessa o Neon diretamente.
 
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
@@ -145,7 +151,7 @@ ImagesExemplos/
 - `apps/web`: aplicacao React/Vite, rotas de tela, integracao com API e PWA futuro.
 - `apps/api`: API Express, autenticacao, autorizacao, controllers, servicos de aplicacao, adapters, jobs e acesso ao banco.
 - `packages/shared`: tipos, schemas Zod, contratos, constantes, enums e helpers compartilhados.
-- `packages/domain`: regras puras de negocio, maquinas de estado, calculo, dinheiro, medidas, snapshots e validacoes de dominio.
+- `packages/domain`: regras puras de negocio, maquinas de estado, motor de calculo, dinheiro, medidas, snapshots e validacoes de dominio.
 - `packages/config`: configuracoes compartilhadas de TypeScript, ESLint, Prettier e testes quando forem inicializadas.
 - `packages/ui`: componentes visuais reutilizaveis que nao dependem da API.
 - `database/migrations`: migrations Drizzle revisaveis.
@@ -180,7 +186,7 @@ ImagesExemplos/
 - Medidas devem guardar valor e unidade originais, alem do valor e unidade normalizados.
 - Acoes criticas devem prever idempotencia.
 - Configuracoes publicadas devem ser imutaveis.
-- Configuracoes publicadas devem gerar snapshot com template, campos, opcoes, condicoes e modo de agendamento usados naquela versao.
+- Configuracoes publicadas devem gerar snapshot com template, campos, opcoes, condicoes, regras, precos, margens, modo de agendamento e dados de calculo usados naquela versao.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.

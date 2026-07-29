@@ -20,23 +20,23 @@
 
 ## Rotas de tela previstas
 
-| Area    | Rota                       | Tela/uso                                 | Status                |
-| ------- | -------------------------- | ---------------------------------------- | --------------------- |
-| Publica | `/`                        | Home publica                             | Implementado Sprint 4 |
-| Publica | `/onboarding`              | Onboarding geral                         | Implementado Sprint 4 |
-| Publica | `/empresas`                | Busca/listagem de empresas               | Implementado Sprint 4 |
-| Publica | `/empresa/:slug`           | Perfil publico da empresa                | Implementado Sprint 4 |
-| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento        | Requisito confirmado  |
-| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro            | Requisito confirmado  |
-| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp | Requisito confirmado  |
-| Auth    | `/login`                   | Login                                    | Requisito confirmado  |
-| Auth    | `/cadastro`                | Escolha do tipo de cadastro              | Requisito confirmado  |
-| Auth    | `/cadastro/empresa`        | Cadastro empresarial                     | Implementado Sprint 3 |
-| Cliente | `/cliente`                 | Home personalizada do cliente            | Requisito confirmado  |
-| Empresa | `/app`                     | Painel da empresa                        | Requisito confirmado  |
-| Empresa | `/app/pendente`            | Status de cadastro pendente              | Implementado Sprint 3 |
-| Admin   | `/admin`                   | Painel da Velaris                        | Requisito confirmado  |
-| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao e configuracao         | Implementado Sprint 5 |
+| Area    | Rota                       | Tela/uso                                    | Status                |
+| ------- | -------------------------- | ------------------------------------------- | --------------------- |
+| Publica | `/`                        | Home publica                                | Implementado Sprint 4 |
+| Publica | `/onboarding`              | Onboarding geral                            | Implementado Sprint 4 |
+| Publica | `/empresas`                | Busca/listagem de empresas                  | Implementado Sprint 4 |
+| Publica | `/empresa/:slug`           | Perfil publico da empresa                   | Implementado Sprint 4 |
+| Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento           | Requisito confirmado  |
+| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Requisito confirmado  |
+| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Requisito confirmado  |
+| Auth    | `/login`                   | Login                                       | Requisito confirmado  |
+| Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado  |
+| Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3 |
+| Cliente | `/cliente`                 | Home personalizada do cliente               | Requisito confirmado  |
+| Empresa | `/app`                     | Painel da empresa                           | Requisito confirmado  |
+| Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3 |
+| Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado  |
+| Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 6 |
 
 ## Telas publicas
 
@@ -121,8 +121,8 @@
 - Publicacao/despublicacao de perfil.
 - Templates de nicho.
 - Configuracao personalizada por empresa. Implementado Sprint 5 no detalhe Admin.
-- Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao.
-- Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes.
+- Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao. Implementado Sprint 6 em modo controlado pelo template.
+- Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes e ampliado na Sprint 6 com calculo, faixa estimada, total interno e memoria explicavel.
 - Solicitacoes de alteracao de preco.
 - Auditoria.
 - Metricas gerais.
@@ -203,7 +203,7 @@ Status Sprint 4: rotas publicas de descoberta implementadas.
 - `POST /api/admin/company-configurations/:id/simulate`
 - `POST /api/admin/company-configurations/:id/publish`
 
-Status Sprint 5: rotas Admin de templates/configuracoes implementadas.
+Status Sprint 6: rotas Admin de templates/configuracoes implementadas; `POST /api/admin/company-configurations/:id/simulate` retorna `preview` e `calculation`.
 
 - `GET /api/admin/price-change-requests`
 - `POST /api/admin/price-change-requests/:id/resolve`
