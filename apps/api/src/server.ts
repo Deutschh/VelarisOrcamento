@@ -11,6 +11,7 @@ import type { TokenService } from "./auth/token-service.js";
 import { createUnavailableAuthRouter } from "./auth/unavailable-auth-router.js";
 import { createCompanyRouter } from "./company/company-router.js";
 import type { CompanyAccountService } from "./company/company-account-service.js";
+import type { CompanyQuoteRequestService } from "./company/company-quote-request-service.js";
 import { env } from "./config/env.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { authorizeAdmin } from "./middleware/authorize-admin.js";
@@ -29,6 +30,7 @@ export interface AppDependencies {
   tokenService?: TokenService;
   adminService?: AdminService;
   companyAccountService?: CompanyAccountService;
+  companyQuoteRequestService?: CompanyQuoteRequestService;
   publicCompanyService?: PublicCompanyService;
   publicQuoteRequestService?: PublicQuoteRequestService;
   templateAdminService?: TemplateAdminService;
@@ -65,6 +67,7 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.tokenService ||
     dependencies.adminService ||
     dependencies.companyAccountService ||
+    dependencies.companyQuoteRequestService ||
     dependencies.publicCompanyService ||
     dependencies.publicQuoteRequestService ||
     dependencies.templateAdminService
@@ -108,7 +111,10 @@ function createProtectedCompanyRouterIfAvailable(dependencies: AppDependencies) 
   if (dependencies.tokenService && dependencies.companyAccountService) {
     return [
       authenticate(dependencies.tokenService),
-      createCompanyRouter(dependencies.companyAccountService),
+      createCompanyRouter(
+        dependencies.companyAccountService,
+        dependencies.companyQuoteRequestService,
+      ),
     ];
   }
 

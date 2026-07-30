@@ -6,7 +6,16 @@ const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
 
 const draftText = (maxLength: number) => z.string().trim().max(maxLength).default("");
 
-export const quoteRequestStatusSchema = z.enum(["draft", "submitted"]);
+export const quoteRequestStatusSchema = z.enum([
+  "draft",
+  "submitted",
+  "under_review",
+  "awaiting_information",
+  "accepted_for_proposal",
+  "declined_by_company",
+  "cancelled",
+  "archived",
+]);
 
 export type QuoteRequestStatus = z.infer<typeof quoteRequestStatusSchema>;
 
@@ -130,6 +139,64 @@ export const submitQuoteDraftRequestSchema = z.object({
 
 export type SubmitQuoteDraftRequest = z.infer<typeof submitQuoteDraftRequestSchema>;
 
+export const companyQuoteRequestListQuerySchema = z.object({
+  status: z
+    .enum([
+      "submitted",
+      "under_review",
+      "awaiting_information",
+      "accepted_for_proposal",
+      "declined_by_company",
+      "cancelled",
+      "archived",
+    ])
+    .optional(),
+});
+
+export type CompanyQuoteRequestListQuery = z.infer<
+  typeof companyQuoteRequestListQuerySchema
+>;
+
+export const companyQuoteRequestReviewActionSchema = z.enum([
+  "open_review",
+  "save_review",
+  "accept_for_proposal",
+]);
+
+export type CompanyQuoteRequestReviewAction = z.infer<
+  typeof companyQuoteRequestReviewActionSchema
+>;
+
+export const companyQuoteRequestReviewRequestSchema = z.object({
+  action: companyQuoteRequestReviewActionSchema,
+  data: quoteDraftDataSchema.optional(),
+  reason: z.string().trim().max(800).optional(),
+});
+
+export type CompanyQuoteRequestReviewRequest = z.infer<
+  typeof companyQuoteRequestReviewRequestSchema
+>;
+
+export const companyDeclineReasonCodeSchema = z.enum([
+  "price",
+  "deadline",
+  "schedule",
+  "hired_another_company",
+  "gave_up",
+  "other",
+]);
+
+export type CompanyDeclineReasonCode = z.infer<typeof companyDeclineReasonCodeSchema>;
+
+export const companyQuoteRequestDeclineRequestSchema = z.object({
+  reasonCode: companyDeclineReasonCodeSchema,
+  reason: z.string().trim().min(3).max(800),
+});
+
+export type CompanyQuoteRequestDeclineRequest = z.infer<
+  typeof companyQuoteRequestDeclineRequestSchema
+>;
+
 export interface QuoteDraftServiceSummary {
   id: string;
   code: string;
@@ -205,4 +272,74 @@ export interface QuoteSubmitResponse {
   trackingPath: string;
   submittedAt: string;
   estimate: QuoteEstimateSummary;
+}
+
+export interface CompanyQuoteDashboard {
+  receivedCount: number;
+  submittedCount: number;
+  underReviewCount: number;
+  acceptedForProposalCount: number;
+  declinedCount: number;
+  averageResponseMinutes: number | null;
+}
+
+export interface CompanyQuoteRequestSummary {
+  id: string;
+  requestCode: string | null;
+  status: QuoteRequestStatus;
+  serviceName: string;
+  customerName: string;
+  customerWhatsapp: string;
+  itemCount: number;
+  internalTotalCents: number | null;
+  estimateMinCents: number | null;
+  estimateMaxCents: number | null;
+  submittedAt: string | null;
+  updatedAt: string;
+}
+
+export interface CompanyQuoteRequestRevision {
+  id: string;
+  itemId: string | null;
+  fieldCode: string;
+  originalValue: unknown;
+  revisedValue: unknown;
+  reason: string | null;
+  impactCents: number | null;
+  configurationVersion: number;
+  pricingVersion: number;
+  actorUserId: string | null;
+  createdAt: string;
+}
+
+export interface CompanyQuoteRequestEvent {
+  id: string;
+  eventType: string;
+  fromStatus: QuoteRequestStatus | null;
+  toStatus: QuoteRequestStatus | null;
+  actorUserId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface CompanyQuoteRequestDetail extends CompanyQuoteRequestSummary {
+  companyId: string;
+  service: QuoteDraftServiceSummary;
+  data: QuoteDraftData;
+  files: QuoteDraftFileSummary[];
+  estimate: QuoteEstimateSummary | null;
+  calculationSnapshot: Record<string, unknown> | null;
+  configurationVersion: number;
+  pricingVersion: number;
+  revisions: CompanyQuoteRequestRevision[];
+  events: CompanyQuoteRequestEvent[];
+}
+
+export interface CompanyQuoteRequestsListResponse {
+  dashboard: CompanyQuoteDashboard;
+  quoteRequests: CompanyQuoteRequestSummary[];
+}
+
+export interface CompanyQuoteRequestDetailResponse {
+  quoteRequest: CompanyQuoteRequestDetail;
 }

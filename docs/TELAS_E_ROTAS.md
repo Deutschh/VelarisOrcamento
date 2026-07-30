@@ -33,7 +33,7 @@
 | Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado   |
 | Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3  |
 | Cliente | `/cliente`                 | Home personalizada do cliente               | Requisito confirmado   |
-| Empresa | `/app`                     | Painel da empresa                           | Requisito confirmado   |
+| Empresa | `/app`                     | Painel da empresa                           | Implementado Sprint 11 |
 | Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3  |
 | Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado   |
 | Admin   | `/admin/empresas/:id`      | Detalhe, ativacao, configuracao e simulacao | Implementado Sprint 7  |
@@ -60,7 +60,7 @@
 - Estimativa e revisao.
 - Codigo e link de acompanhamento.
 - Painel da empresa.
-- Revisao e recalculo.
+- Revisao e recalculo. Implementado Sprint 11.
 - Proposta final.
 - Agendamento assistido.
 - Recuperacao por e-mail.
@@ -100,11 +100,11 @@
 
 - Status de cadastro pendente.
 - Dashboard.
-- Lista de solicitacoes.
-- Detalhe da solicitacao.
-- Revisao de campos tecnicos.
-- Recalculo e memoria de calculo.
-- Recusa com motivo.
+- Lista de solicitacoes. Implementado Sprint 11.
+- Detalhe da solicitacao. Implementado Sprint 11.
+- Revisao de campos tecnicos. Implementado Sprint 11.
+- Recalculo e memoria de calculo. Implementado Sprint 11.
+- Recusa com motivo. Implementado Sprint 11.
 - Criacao/preview/envio de proposta.
 - Agendamento assistido.
 - Clientes.
@@ -180,6 +180,9 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 - `GET /api/company/quote-requests/:id`
 - `PATCH /api/company/quote-requests/:id/review`
 - `POST /api/company/quote-requests/:id/decline`
+
+Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implementadas. Criacao de propostas permanece Sprint 12.
+
 - `POST /api/company/quote-requests/:id/proposals`
 - `POST /api/company/proposals/:id/send`
 - `POST /api/company/proposals/:id/appointment`

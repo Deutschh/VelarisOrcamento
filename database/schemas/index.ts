@@ -97,6 +97,12 @@ export const companyConfigurationStatusEnum = pgEnum("company_configuration_stat
 export const quoteRequestStatusEnum = pgEnum("quote_request_status", [
   "draft",
   "submitted",
+  "under_review",
+  "awaiting_information",
+  "accepted_for_proposal",
+  "declined_by_company",
+  "cancelled",
+  "archived",
 ]);
 
 const timestamps = {
@@ -678,6 +684,54 @@ export const quoteRequestAnswers = pgTable(
       table.fieldCode,
     ),
     requestIdx: index("quote_request_answers_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const quoteRequestAnswerRevisions = pgTable(
+  "quote_request_answer_revisions",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    itemId: text("item_id"),
+    fieldCode: text("field_code").notNull(),
+    originalValue: jsonb("original_value").$type<unknown>().notNull(),
+    revisedValue: jsonb("revised_value").$type<unknown>().notNull(),
+    reason: text("reason"),
+    impactAmount: numeric("impact_amount", { precision: 12, scale: 2 }),
+    configurationVersion: integer("configuration_version").notNull(),
+    pricingVersion: integer("pricing_version").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    requestIdx: index("quote_request_answer_revisions_request_idx").on(
+      table.quoteRequestId,
+    ),
+  }),
+);
+
+export const quoteRequestEvents = pgTable(
+  "quote_request_events",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    eventType: text("event_type").notNull(),
+    fromStatus: quoteRequestStatusEnum("from_status"),
+    toStatus: quoteRequestStatusEnum("to_status"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    requestIdx: index("quote_request_events_request_idx").on(table.quoteRequestId),
   }),
 );
 

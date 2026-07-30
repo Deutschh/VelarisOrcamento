@@ -127,6 +127,14 @@ Requisito implementado: a estimativa publica agrupa calculos por item e aplica r
 
 Requisito implementado: a submissao publica exige `Idempotency-Key` UUID v4, gera codigo da solicitacao, token publico e snapshots de configuracao, aceite legal e calculo.
 
+Requisito implementado: a revisao empresarial de solicitacoes fica em `apps/api/src/company`, com `CompanyQuoteRequestService`, repositorio Drizzle especifico, contratos em `packages/shared` e transicoes puras em `packages/domain`.
+
+Requisito implementado: solicitacoes submetidas podem transicionar para `under_review`, `accepted_for_proposal` ou `declined_by_company` apenas por servico de aplicacao usando a matriz de estados da especificacao.
+
+Requisito implementado: revisoes tecnicas persistem auditoria em `quote_request_answer_revisions`, eventos em `quote_request_events` e recalculos em `quote_request_calculations`, preservando snapshot de calculo e versoes de configuracao/preco.
+
+Requisito implementado: o painel da empresa em `apps/web` consome somente endpoints da API para dashboard, lista, detalhe, revisao, recalculo, aceite para proposta e recusa; nao acessa o Neon diretamente.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 Limitacao registrada: `quote_request_files` registra metadados de fotos/PDF com `storageProvider = stub`; armazenamento binario privado, thumbnails e URLs temporarias aguardam decisao futura.

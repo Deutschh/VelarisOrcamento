@@ -17,7 +17,8 @@
 - Sprint 6 concluida: motor de calculo, regras de preco versionadas, margens e simulacao Admin com memoria de calculo.
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho e simulador Admin completo.
 - Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho no servidor, token de rascunho, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
-- Proxima etapa recomendada para o MVP piloto: Sprint 11, painel da empresa e revisao.
+- Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, detalhe, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
+- Proxima etapa recomendada para o MVP piloto: Sprint 12, propostas, versoes e valor final.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -74,6 +75,9 @@
 - Rascunhos publicos usam token bruto somente no cliente; persistencia guarda hash.
 - No fluxo publico, quantidade representa itens identicos; itens com caracteristicas diferentes devem ser linhas separadas no rascunho.
 - Submissao publica de solicitacao exige `Idempotency-Key` UUID v4.
+- Revisoes empresariais de solicitacoes devem auditar valor original, valor revisado, responsavel, data, motivo quando houver alteracao tecnica, versao da configuracao e versao de precos.
+- Transicoes de solicitacao da empresa devem seguir a matriz da especificacao: `submitted -> under_review`, `under_review -> awaiting_information`, `awaiting_information -> under_review`, `under_review -> accepted_for_proposal` e `under_review -> declined_by_company`.
+- A recusa empresarial deve registrar motivo, usuario, data e historico; proposta nao deve ser criada para solicitacao recusada sem reabertura administrativa futura.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.
@@ -119,4 +123,5 @@
 - Sprint 7 consolida tecnicamente o template de limpeza de estofados.
 - Sprints 8 e 9, vidracaria e marmoraria, devem aguardar validacao do MVP piloto.
 - Sprint 10 cria o fluxo publico de orcamento com rascunho e solicitacao.
-- Sprint 11 deve iniciar painel da empresa e revisao somente apos nova autorizacao do usuario.
+- Sprint 11 cria o painel da empresa e revisao.
+- Sprint 12 deve iniciar propostas, versoes e valor final somente apos nova autorizacao do usuario.
