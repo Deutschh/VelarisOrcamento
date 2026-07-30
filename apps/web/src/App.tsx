@@ -825,6 +825,19 @@ function QuoteRequestPage() {
     }
 
     setFormError(null);
+    const validationMessage = validateQuoteSubmissionDraft(draftData);
+
+    if (validationMessage) {
+      setFormError(validationMessage);
+      setDraftData({
+        ...draftData,
+        currentStep:
+          validationMessage === "Informe o endereco do atendimento."
+            ? "details"
+            : "contact",
+      });
+      return;
+    }
 
     try {
       await submitMutation.mutateAsync(draftData);
@@ -1525,6 +1538,29 @@ function parseIntegerInput(value: string) {
 function parseNumberInput(value: string) {
   const parsed = Number(value.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function validateQuoteSubmissionDraft(data: QuoteDraftData) {
+  if (!data.contact.name.trim()) {
+    return "Informe o nome para contato.";
+  }
+
+  if (data.contact.whatsapp.trim().length < 8) {
+    return "Informe o WhatsApp para contato.";
+  }
+
+  if (!hasQuoteSubmissionAddress(data)) {
+    return "Informe o endereco do atendimento.";
+  }
+
+  return null;
+}
+
+function hasQuoteSubmissionAddress(data: QuoteDraftData) {
+  return (
+    Boolean(data.address.fullAddress.trim()) ||
+    (Boolean(data.address.street.trim()) && Boolean(data.address.city.trim()))
+  );
 }
 
 function quoteDraftStorageKey(slug: string) {
