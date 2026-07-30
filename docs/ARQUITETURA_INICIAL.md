@@ -151,7 +151,15 @@ Requisito implementado: horarios persistem data, fim calculado, duracao, timezon
 
 Requisito implementado: o painel `/app` consome somente a API para propor horario, cancelar, reagendar quando o cliente pedir outro horario e marcar como concluido quando confirmado. O frontend continua sem acesso direto ao Neon.
 
-Limitacao registrada: visualizacao publica da proposta, solicitacao publica de alteracao, aceite/rejeicao do cliente, confirmacao publica de horario, PDF e documentos legais versionados seguem nas sprints posteriores da especificacao.
+Requisito implementado: acompanhamento publico fica no backend por token bruto no link e hash em `public_access_tokens`. A rota `GET /api/public/tracking/:token` retorna estado da solicitacao, estimativa, proposta resumida, agendamentos, dados do servico e link `wa.me` quando o perfil publico possui WhatsApp.
+
+Requisito implementado: recuperacao publica usa `recovery_codes` com token de recuperacao hasheado, OTP hasheado, validade curta, uso unico, tentativas limitadas e metadados de auditoria. A validacao aceita codigo + e-mail ou codigo + WhatsApp informado na solicitacao, mas o OTP automatico e enviado exclusivamente por e-mail.
+
+Requisito implementado: a confirmacao publica de horario e o pedido de outro horario usam `POST /api/public/tracking/:token/appointment`, mas ainda passam pelo mesmo `CompanyAppointmentService` e pelas transicoes de `packages/domain`.
+
+Requisito implementado: notificacoes internas iniciais ficam em `notifications` para nova solicitacao e acoes publicas de horario. A leitura/central de notificacoes ainda nao foi exposta na interface.
+
+Limitacao registrada: visualizacao publica completa da proposta, aceite/rejeicao formal do cliente, PDF e documentos legais versionados seguem nas sprints posteriores da especificacao.
 
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 

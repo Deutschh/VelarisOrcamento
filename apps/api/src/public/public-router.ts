@@ -1,7 +1,10 @@
 import { Router } from "express";
 import {
   HTTP_HEADERS,
+  customerAppointmentActionRequestSchema,
   createQuoteDraftRequestSchema,
+  publicTrackingRecoveryRequestSchema,
+  publicTrackingRecoveryVerifyRequestSchema,
   publicCompanySearchQuerySchema,
   quoteDraftFileMetadataRequestSchema,
   submitQuoteDraftRequestSchema,
@@ -51,6 +54,52 @@ export function createPublicRouter(
         String(request.params.slug),
       );
       response.json({ services });
+    }),
+  );
+
+  router.get(
+    "/tracking/:token",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      response.json(await service.getTracking(String(request.params.token)));
+    }),
+  );
+
+  router.post(
+    "/tracking/:token/appointment",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = customerAppointmentActionRequestSchema.parse(request.body);
+      response.json(
+        await service.recordPublicAppointmentAction(
+          String(request.params.token),
+          payload,
+        ),
+      );
+    }),
+  );
+
+  router.post(
+    "/recovery/request",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = publicTrackingRecoveryRequestSchema.parse(request.body);
+      const userAgent = request.get("user-agent");
+      response.status(201).json(
+        await service.requestRecovery(payload, {
+          ...(request.ip ? { ipAddress: request.ip } : {}),
+          ...(userAgent ? { userAgent } : {}),
+        }),
+      );
+    }),
+  );
+
+  router.post(
+    "/recovery/verify",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const payload = publicTrackingRecoveryVerifyRequestSchema.parse(request.body);
+      response.json(await service.verifyRecovery(payload));
     }),
   );
 

@@ -32,6 +32,18 @@ export const appEnvSchema = z.object({
     .int()
     .positive()
     .default(APP_DEFAULTS.quoteValidityDays),
+  PUBLIC_RECOVERY_OTP_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(60)
+    .default(APP_DEFAULTS.publicRecoveryOtpTtlMinutes),
+  PUBLIC_RECOVERY_MAX_ATTEMPTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(20)
+    .default(APP_DEFAULTS.publicRecoveryMaxAttempts),
   EMAIL_PROVIDER: z.enum(["stub"]).default("stub"),
   FILE_STORAGE_PROVIDER: z.enum(["stub"]).default("stub"),
 });

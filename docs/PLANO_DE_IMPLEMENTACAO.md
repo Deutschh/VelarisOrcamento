@@ -16,7 +16,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente e migration.
 - Sprint 13 concluida tecnicamente: agendamento assistido, tabelas de agendamento/historico, modos configuraveis, timezone da empresa, aviso de conflito sem bloqueio, painel da empresa e testes.
 - Pendencia operacional: validacao comercial com empresa real.
-- Proxima etapa recomendada para o MVP piloto: Sprint 14, acompanhamento, recuperacao e comunicacao.
+- Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por OTP de e-mail, `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
+- Proxima etapa recomendada para o MVP piloto: Sprint 15, PDF, aceite e documentos legais.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -144,6 +145,11 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: token e codigo gerados na submissao, tela de acompanhamento, recuperacao, OTP exclusivamente por e-mail, validacao por codigo + e-mail ou codigo + WhatsApp, e-mails transacionais, links `wa.me`, notificacoes internas, vinculacao a conta nova, revogacao/substituicao de token e limites de tentativa.
 - Decisao confirmada: nao conectar provedor definitivo de e-mail nesta etapa; planejar interface/adapters futuramente.
+- Padrao inicial configuravel: OTP de recuperacao publica expira em 10 minutos e permite 5 tentativas.
+- Implementado Sprint 14: contratos compartilhados de acompanhamento/recuperacao; rotas `GET /api/public/tracking/:token`, `POST /api/public/recovery/request`, `POST /api/public/recovery/verify` e `POST /api/public/tracking/:token/appointment`; telas `/acompanhar/:token` e `/recuperar`; tabela `recovery_codes` com hash de token/OTP, validade, uso unico, tentativas e revogacao; tabela `notifications`; substituicao do token publico apos recuperacao; link `wa.me` com mensagem preenchida; testes de token, recuperacao por e-mail, identificacao por WhatsApp e expiracao de OTP.
+- Limitacao registrada: entrega local usa `EMAIL_PROVIDER=stub`; o contrato de e-mail transacional existe, mas chegada real de e-mail depende da decisao futura do provedor.
+- Limitacao registrada: aceite/rejeicao formal de proposta, PDF, documentos legais versionados e registro juridico do aceite ficam na Sprint 15.
+- Limitacao registrada: vinculacao automatica de solicitacoes antigas a uma conta nova depende da area do cliente e deve ser concluida junto da Sprint 17, pois ainda nao ha cadastro/login de cliente exposto no fluxo publico do MVP piloto.
 - Estimativa da especificacao: 16 a 22 horas.
 
 ## Sprint 15 - PDF, aceite e documentos legais

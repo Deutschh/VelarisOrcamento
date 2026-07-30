@@ -1,22 +1,40 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lt, ne, or } from "drizzle-orm";
 
 import {
+  appointmentHistory,
+  appointments,
   idempotencyKeys,
+  notifications,
   publicAccessTokens,
+  quotes,
   quoteRequestAnswers,
   quoteRequestCalculations,
   quoteRequestFiles,
   quoteRequests,
+  quoteVersions,
+  recoveryCodes,
 } from "@velaris/database-schema";
-import { quoteDraftDataSchema, type QuoteDraftFileSummary } from "@velaris/shared";
+import {
+  quoteDraftDataSchema,
+  type AppointmentStatus,
+  type CompanyAppointment,
+  type CompanyAppointmentConflict,
+  type CompanyAppointmentHistory,
+  type CompanyProposalSummary,
+  type QuoteDraftFileSummary,
+} from "@velaris/shared";
 import type { createDatabaseClient } from "../db/client.js";
 import type {
   AddDraftFileInput,
+  CreateNotificationInput,
   CreateDraftRecordInput,
+  CreateRecoveryCodeInput,
   IdempotencyRecord,
   PersistedQuoteRequest,
   PublicQuoteRequestRepository,
   QuoteRequestAnswerInput,
+  RecoveryCodeRecord,
+  ReplacePublicTokenAfterRecoveryInput,
   SaveCalculationInput,
   SubmitDraftInput,
   UpdateDraftRecordInput,
@@ -26,6 +44,15 @@ type Database = ReturnType<typeof createDatabaseClient>["db"];
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type QuoteRequestRow = typeof quoteRequests.$inferSelect;
 type QuoteRequestFileRow = typeof quoteRequestFiles.$inferSelect;
+type RecoveryCodeRow = typeof recoveryCodes.$inferSelect;
+type AppointmentRow = typeof appointments.$inferSelect;
+type AppointmentHistoryRow = typeof appointmentHistory.$inferSelect;
+type QuoteRow = typeof quotes.$inferSelect;
+type QuoteVersionRow = typeof quoteVersions.$inferSelect;
+type ProposalRow = {
+  quote: QuoteRow;
+  version: QuoteVersionRow | null;
+};
 
 export class DrizzleQuoteRequestRepository implements PublicQuoteRequestRepository {
   constructor(private readonly db: Database) {}
@@ -58,6 +85,50 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
       .select()
       .from(quoteRequests)
       .where(eq(quoteRequests.draftTokenHash, draftTokenHash))
+      .limit(1);
+
+    return row ? this.mapQuoteRequest(row) : null;
+  }
+
+  async findByPublicTokenHash(input: {
+    publicTokenHash: string;
+    now: Date;
+  }): Promise<PersistedQuoteRequest | null> {
+    const [row] = await this.db
+      .select({
+        request: quoteRequests,
+      })
+      .from(publicAccessTokens)
+      .innerJoin(quoteRequests, eq(quoteRequests.id, publicAccessTokens.entityId))
+      .where(
+        and(
+          eq(publicAccessTokens.tokenHash, input.publicTokenHash),
+          eq(publicAccessTokens.entityType, "quote_request"),
+          isNull(publicAccessTokens.revokedAt),
+          or(
+            isNull(publicAccessTokens.expiresAt),
+            gt(publicAccessTokens.expiresAt, input.now),
+          ),
+          ne(quoteRequests.status, "draft"),
+        ),
+      )
+      .limit(1);
+
+    return row ? this.mapQuoteRequest(row.request) : null;
+  }
+
+  async findSubmittedByRequestCode(
+    requestCode: string,
+  ): Promise<PersistedQuoteRequest | null> {
+    const [row] = await this.db
+      .select()
+      .from(quoteRequests)
+      .where(
+        and(
+          eq(quoteRequests.requestCode, requestCode),
+          ne(quoteRequests.status, "draft"),
+        ),
+      )
       .limit(1);
 
     return row ? this.mapQuoteRequest(row) : null;
@@ -136,6 +207,50 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
     });
 
     return this.findByIdOrThrow(input.quoteRequestId);
+  }
+
+  async listProposalSummaries(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyProposalSummary[]> {
+    const rows = await this.db
+      .select({
+        quote: quotes,
+        version: quoteVersions,
+      })
+      .from(quotes)
+      .leftJoin(quoteVersions, eq(quoteVersions.quoteId, quotes.id))
+      .where(
+        and(
+          eq(quotes.companyId, input.companyId),
+          eq(quotes.quoteRequestId, input.quoteRequestId),
+        ),
+      )
+      .orderBy(desc(quoteVersions.versionNumber));
+
+    return mapProposalSummaries(rows);
+  }
+
+  async listAppointments(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyAppointment[]> {
+    const rows = await this.db
+      .select({
+        appointment: appointments,
+        version: quoteVersions,
+      })
+      .from(appointments)
+      .innerJoin(quoteVersions, eq(quoteVersions.id, appointments.quoteVersionId))
+      .where(
+        and(
+          eq(appointments.companyId, input.companyId),
+          eq(appointments.quoteRequestId, input.quoteRequestId),
+        ),
+      )
+      .orderBy(desc(appointments.updatedAt));
+
+    return Promise.all(rows.map((row) => this.mapAppointment(row)));
   }
 
   async findIdempotencyRecord(input: {
@@ -224,6 +339,128 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
     return this.findByIdOrThrow(input.quoteRequestId);
   }
 
+  async createRecoveryCode(input: CreateRecoveryCodeInput): Promise<RecoveryCodeRecord> {
+    const [row] = await this.db
+      .insert(recoveryCodes)
+      .values({
+        id: input.id,
+        quoteRequestId: input.quoteRequestId,
+        requestCode: input.requestCode,
+        contactType: input.contactType,
+        contactHash: input.contactHash,
+        tokenHash: input.tokenHash,
+        otpHash: input.otpHash,
+        maxAttempts: input.maxAttempts,
+        expiresAt: input.expiresAt,
+        metadata: input.metadata,
+        createdAt: input.now,
+        updatedAt: input.now,
+      })
+      .returning();
+
+    if (!row) {
+      throw new Error("Recovery code could not be persisted.");
+    }
+
+    return mapRecoveryCode(row);
+  }
+
+  async findRecoveryCodeByTokenHash(
+    tokenHash: string,
+  ): Promise<RecoveryCodeRecord | null> {
+    const [row] = await this.db
+      .select()
+      .from(recoveryCodes)
+      .where(eq(recoveryCodes.tokenHash, tokenHash))
+      .limit(1);
+
+    return row ? mapRecoveryCode(row) : null;
+  }
+
+  async recordRecoveryAttempt(input: {
+    recoveryCodeId: string;
+    attempts: number;
+    revokedAt: Date | null;
+    now: Date;
+  }): Promise<void> {
+    const changes: Partial<typeof recoveryCodes.$inferInsert> = {
+      attempts: input.attempts,
+      updatedAt: input.now,
+    };
+
+    if (input.revokedAt) {
+      changes.revokedAt = input.revokedAt;
+    }
+
+    await this.db
+      .update(recoveryCodes)
+      .set(changes)
+      .where(eq(recoveryCodes.id, input.recoveryCodeId));
+  }
+
+  async replacePublicTokenAfterRecovery(
+    input: ReplacePublicTokenAfterRecoveryInput,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      if (input.previousPublicTokenId) {
+        await tx
+          .update(publicAccessTokens)
+          .set({
+            revokedAt: input.now,
+            updatedAt: input.now,
+          })
+          .where(eq(publicAccessTokens.id, input.previousPublicTokenId));
+      }
+
+      await tx.insert(publicAccessTokens).values({
+        id: input.newPublicTokenId,
+        tokenHash: input.newPublicTokenHash,
+        entityType: "quote_request",
+        entityId: input.quoteRequestId,
+        expiresAt: input.newPublicTokenExpiresAt,
+        metadata: {
+          requestCode: input.requestCode,
+          recoveryCodeId: input.recoveryCodeId,
+          replacesTokenId: input.previousPublicTokenId,
+        },
+        createdAt: input.now,
+        updatedAt: input.now,
+      });
+
+      await tx
+        .update(quoteRequests)
+        .set({
+          publicTokenId: input.newPublicTokenId,
+          updatedAt: input.now,
+        })
+        .where(eq(quoteRequests.id, input.quoteRequestId));
+
+      await tx
+        .update(recoveryCodes)
+        .set({
+          usedAt: input.now,
+          updatedAt: input.now,
+        })
+        .where(eq(recoveryCodes.id, input.recoveryCodeId));
+    });
+  }
+
+  async createNotification(input: CreateNotificationInput): Promise<void> {
+    await this.db.insert(notifications).values({
+      id: input.id,
+      companyId: input.companyId,
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      metadata: input.metadata,
+      createdAt: input.now,
+      updatedAt: input.now,
+    });
+  }
+
   async deleteExpiredDrafts(now: Date): Promise<number> {
     const rows = await this.db
       .delete(quoteRequests)
@@ -278,6 +515,130 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
       files: fileRows.map(mapFile),
     };
   }
+
+  private async mapAppointment(row: {
+    appointment: AppointmentRow;
+    version: QuoteVersionRow;
+  }): Promise<CompanyAppointment> {
+    const historyRows = await this.db
+      .select()
+      .from(appointmentHistory)
+      .where(eq(appointmentHistory.appointmentId, row.appointment.id))
+      .orderBy(desc(appointmentHistory.createdAt));
+
+    return {
+      id: row.appointment.id,
+      quoteId: row.appointment.quoteId,
+      quoteVersionId: row.appointment.quoteVersionId,
+      quoteRequestId: row.appointment.quoteRequestId,
+      companyId: row.appointment.companyId,
+      status: row.appointment.status as CompanyAppointment["status"],
+      schedulingMode: row.appointment.schedulingMode,
+      proposalVersionStatus: row.version.status,
+      startsAt: row.appointment.startsAt.toISOString(),
+      endsAt: row.appointment.endsAt?.toISOString() ?? null,
+      durationMinutes: row.appointment.durationMinutes,
+      timezone: row.appointment.timezone,
+      address: row.appointment.address,
+      addressSnapshot: row.appointment.addressSnapshot,
+      notes: row.appointment.notes,
+      conflictWarning: row.appointment
+        .conflictWarning as unknown as CompanyAppointmentConflict[],
+      proposedByUserId: row.appointment.proposedByUserId,
+      confirmedAt: row.appointment.confirmedAt?.toISOString() ?? null,
+      completedAt: row.appointment.completedAt?.toISOString() ?? null,
+      cancelledAt: row.appointment.cancelledAt?.toISOString() ?? null,
+      history: historyRows.map(mapHistory),
+      createdAt: row.appointment.createdAt.toISOString(),
+      updatedAt: row.appointment.updatedAt.toISOString(),
+    };
+  }
+}
+
+function mapRecoveryCode(row: RecoveryCodeRow): RecoveryCodeRecord {
+  return {
+    id: row.id,
+    quoteRequestId: row.quoteRequestId,
+    requestCode: row.requestCode,
+    contactType: row.contactType as RecoveryCodeRecord["contactType"],
+    contactHash: row.contactHash,
+    tokenHash: row.tokenHash,
+    otpHash: row.otpHash,
+    attempts: row.attempts,
+    maxAttempts: row.maxAttempts,
+    expiresAt: row.expiresAt.toISOString(),
+    usedAt: row.usedAt?.toISOString() ?? null,
+    revokedAt: row.revokedAt?.toISOString() ?? null,
+    metadata: row.metadata,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function mapHistory(row: AppointmentHistoryRow): CompanyAppointmentHistory {
+  return {
+    id: row.id,
+    appointmentId: row.appointmentId,
+    actorUserId: row.actorUserId,
+    actorType: row.actorType as CompanyAppointmentHistory["actorType"],
+    eventType: row.eventType,
+    fromStatus: row.fromStatus as AppointmentStatus | null,
+    toStatus: row.toStatus as AppointmentStatus | null,
+    metadata: row.metadata,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function mapProposalSummaries(rows: ProposalRow[]): CompanyProposalSummary[] {
+  const grouped = new Map<
+    string,
+    {
+      quote: QuoteRow;
+      versions: QuoteVersionRow[];
+    }
+  >();
+
+  for (const row of rows) {
+    const existing = grouped.get(row.quote.id);
+
+    if (existing) {
+      if (row.version) {
+        existing.versions.push(row.version);
+      }
+
+      continue;
+    }
+
+    grouped.set(row.quote.id, {
+      quote: row.quote,
+      versions: row.version ? [row.version] : [],
+    });
+  }
+
+  return Array.from(grouped.values()).map(({ quote, versions }) => {
+    const latestVersion = versions
+      .slice()
+      .sort((left, right) => right.versionNumber - left.versionNumber)[0];
+
+    return {
+      id: quote.id,
+      quoteRequestId: quote.quoteRequestId,
+      companyId: quote.companyId,
+      status: quote.status,
+      latestVersionId: latestVersion?.id ?? null,
+      latestVersionNumber: latestVersion?.versionNumber ?? null,
+      latestProposalCode: latestVersion?.proposalCode ?? null,
+      latestVersionStatus: latestVersion?.status ?? null,
+      finalTotalCents: latestVersion
+        ? decimalMoneyToCents(latestVersion.finalTotal)
+        : null,
+      validUntil: latestVersion?.validUntil.toISOString() ?? null,
+      sentAt: latestVersion?.sentAt?.toISOString() ?? null,
+      acceptedQuoteVersionId: quote.acceptedQuoteVersionId,
+      createdAt: quote.createdAt.toISOString(),
+      updatedAt: quote.updatedAt.toISOString(),
+    };
+  });
 }
 
 async function replaceAnswers(

@@ -5,6 +5,8 @@ export const APP_DEFAULTS = {
   currency: "BRL",
   draftExpirationDays: 10,
   quoteValidityDays: 7,
+  publicRecoveryOtpTtlMinutes: 10,
+  publicRecoveryMaxAttempts: 5,
 } as const;
 
 export const HTTP_HEADERS = {

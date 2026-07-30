@@ -19,10 +19,19 @@ export interface QuoteRequestConfirmationMessage {
   trackingPath: string;
 }
 
+export interface RecoveryOtpMessage {
+  to: string;
+  name: string;
+  requestCode: string;
+  otp: string;
+  expiresAt: string;
+}
+
 export interface EmailAdapter {
   sendEmailVerification(message: EmailVerificationMessage): Promise<void>;
   sendCompanyActivation(message: CompanyActivationMessage): Promise<void>;
   sendQuoteRequestConfirmation?(message: QuoteRequestConfirmationMessage): Promise<void>;
+  sendRecoveryOtp?(message: RecoveryOtpMessage): Promise<void>;
 }
 
 export const stubEmailAdapter: EmailAdapter = {
@@ -56,6 +65,19 @@ export const stubEmailAdapter: EmailAdapter = {
         requestCode: message.requestCode,
       },
       "Quote request confirmation email skipped because no email provider is configured.",
+    );
+  },
+
+  async sendRecoveryOtp(message) {
+    logger.info(
+      {
+        provider: "stub",
+        recipientProvided: Boolean(message.to),
+        requestCode: message.requestCode,
+        expiresAt: message.expiresAt,
+        otpGenerated: Boolean(message.otp),
+      },
+      "Recovery OTP email skipped because no email provider is configured.",
     );
   },
 };

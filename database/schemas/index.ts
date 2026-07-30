@@ -805,6 +805,34 @@ export const quoteRequestCalculations = pgTable(
   }),
 );
 
+export const recoveryCodes = pgTable(
+  "recovery_codes",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    requestCode: text("request_code").notNull(),
+    contactType: text("contact_type").notNull(),
+    contactHash: text("contact_hash").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    otpHash: text("otp_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("recovery_codes_token_hash_unique").on(table.tokenHash),
+    requestIdx: index("recovery_codes_request_idx").on(table.quoteRequestId),
+    requestCodeIdx: index("recovery_codes_request_code_idx").on(table.requestCode),
+    expiresAtIdx: index("recovery_codes_expires_at_idx").on(table.expiresAt),
+  }),
+);
+
 export const quotes = pgTable(
   "quotes",
   {
@@ -995,6 +1023,32 @@ export const appointmentHistory = pgTable(
   },
   (table) => ({
     appointmentIdx: index("appointment_history_appointment_idx").on(table.appointmentId),
+  }),
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    companyReadIdx: index("notifications_company_read_idx").on(
+      table.companyId,
+      table.readAt,
+    ),
+    entityIdx: index("notifications_entity_idx").on(table.entityType, table.entityId),
   }),
 );
 

@@ -10,10 +10,13 @@ import {
   companyUpdateAppointmentRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestReviewRequestSchema,
+  customerAppointmentActionRequestSchema,
   createQuoteDraftRequestSchema,
   internalNoteRequestSchema,
   loginRequestSchema,
   PUBLIC_COMPANY_CATEGORIES,
+  publicTrackingRecoveryRequestSchema,
+  publicTrackingRecoveryVerifyRequestSchema,
   publicCompanySearchQuerySchema,
   quoteDraftFileMetadataRequestSchema,
   registerCompanyRequestSchema,
@@ -51,6 +54,10 @@ import type {
   PublicCompanyCategoryCode,
   PublicCompanyDetail,
   PublicCompanySummary,
+  PublicTrackingAppointmentActionResponse,
+  PublicTrackingRecoveryRequestResponse,
+  PublicTrackingRecoveryVerifyResponse,
+  PublicTrackingResponse,
   QuoteDraftData,
   QuoteDraftDetail,
   QuoteDraftItem,
@@ -78,12 +85,15 @@ import {
   ExternalLink,
   FileText,
   Globe2,
+  KeyRound,
   LockKeyhole,
   LocateFixed,
   LogIn,
   MapPin,
+  MessageCircle,
   PlusCircle,
   Play,
+  RefreshCcw,
   Save,
   Search,
   Send,
@@ -263,6 +273,9 @@ function AppShell({ children }: { children: ReactNode }) {
           <nav className="flex items-center gap-2 text-sm text-white/70">
             <Link className="rounded-md px-3 py-2 hover:bg-white/10" to="/empresas">
               Buscar
+            </Link>
+            <Link className="rounded-md px-3 py-2 hover:bg-white/10" to="/recuperar">
+              Recuperar
             </Link>
             <Link
               className="rounded-md px-3 py-2 hover:bg-white/10"
@@ -882,6 +895,9 @@ function QuoteRequestPage() {
               />
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
+              <PrimaryLink icon={ClipboardList} to={submitResult.trackingPath}>
+                Acompanhar
+              </PrimaryLink>
               <SecondaryLink icon={ArrowRight} to={`/empresa/${String(slug)}`}>
                 Voltar ao perfil
               </SecondaryLink>
@@ -1447,6 +1463,396 @@ function CheckboxField({
       />
       {label}
     </label>
+  );
+}
+
+function PublicTrackingPage() {
+  const { token } = useParams();
+  const queryClient = useQueryClient();
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const trackingQuery = useQuery({
+    enabled: Boolean(token),
+    queryKey: ["public-tracking", token],
+    queryFn: () =>
+      apiRequest<PublicTrackingResponse>(
+        `/api/public/tracking/${encodeURIComponent(String(token))}`,
+      ),
+  });
+  const appointmentMutation = useMutation({
+    mutationFn: (
+      body: Parameters<typeof customerAppointmentActionRequestSchema.parse>[0],
+    ) =>
+      apiRequest<PublicTrackingAppointmentActionResponse>(
+        `/api/public/tracking/${encodeURIComponent(String(token))}/appointment`,
+        {
+          method: "POST",
+          body: JSON.stringify(customerAppointmentActionRequestSchema.parse(body)),
+        },
+      ),
+    onSuccess(response) {
+      setRescheduleReason("");
+      queryClient.setQueryData(["public-tracking", token], response.tracking);
+    },
+  });
+  const tracking = trackingQuery.data;
+  const latestAppointment = tracking ? getLatestAppointment(tracking.appointments) : null;
+
+  return (
+    <AppShell>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionTitle eyebrow="Acompanhamento" title="Sua solicitacao" />
+          <SecondaryLink icon={KeyRound} to="/recuperar">
+            Recuperar acesso
+          </SecondaryLink>
+        </div>
+        {trackingQuery.isLoading ? <LoadingLine /> : null}
+        {trackingQuery.error ? (
+          <ErrorPanel
+            error={trackingQuery.error}
+            fallback="Nao foi possivel abrir o acompanhamento."
+          />
+        ) : null}
+        {tracking ? (
+          <div className="mt-6 space-y-6">
+            <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm text-emerald-200">{tracking.company.name}</p>
+                  <h2 className="mt-2 text-2xl font-semibold">{tracking.service.name}</h2>
+                  <p className="mt-2 text-sm text-white/55">
+                    Codigo {tracking.quoteRequest.requestCode}
+                  </p>
+                </div>
+                <QuoteRequestStatusBadge status={tracking.quoteRequest.status} />
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <InfoBlock
+                  label="Enviada em"
+                  value={formatDate(tracking.quoteRequest.submittedAt)}
+                />
+                <InfoBlock
+                  label="Ultima atualizacao"
+                  value={formatDate(tracking.quoteRequest.updatedAt)}
+                />
+                <InfoBlock
+                  label="Estimativa"
+                  value={
+                    tracking.quoteRequest.estimate
+                      ? `${formatMoneyCents(
+                          tracking.quoteRequest.estimate.estimateMinCents,
+                        )} a ${formatMoneyCents(
+                          tracking.quoteRequest.estimate.estimateMaxCents,
+                        )}`
+                      : "Pendente"
+                  }
+                />
+              </div>
+            </section>
+
+            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+              <section className="space-y-6">
+                <PublicProposalPanel proposal={tracking.latestProposal} />
+                <PublicAppointmentPanel
+                  appointment={latestAppointment}
+                  error={
+                    appointmentMutation.error
+                      ? errorMessage(
+                          appointmentMutation.error,
+                          "Nao foi possivel atualizar o horario.",
+                        )
+                      : null
+                  }
+                  isLoading={appointmentMutation.isPending}
+                  reason={rescheduleReason}
+                  onReasonChange={setRescheduleReason}
+                  onConfirm={() => appointmentMutation.mutate({ action: "confirm" })}
+                  onRequestReschedule={() =>
+                    appointmentMutation.mutate({
+                      action: "request_reschedule",
+                      reason: rescheduleReason,
+                    })
+                  }
+                />
+              </section>
+              <aside className="space-y-6">
+                <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
+                  <h2 className="text-lg font-semibold">Contato da empresa</h2>
+                  <p className="mt-3 text-sm leading-6 text-white/60">
+                    Use o WhatsApp assistido para falar com a empresa sobre esta
+                    solicitacao.
+                  </p>
+                  {tracking.whatsappUrl ? (
+                    <a
+                      className="mt-4 inline-flex items-center gap-2 rounded-md bg-emerald-300 px-4 py-3 text-sm font-medium text-[#111216]"
+                      href={tracking.whatsappUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <MessageCircle size={18} />
+                      Abrir WhatsApp
+                    </a>
+                  ) : (
+                    <p className="mt-4 text-sm text-white/50">
+                      WhatsApp nao informado no perfil publico.
+                    </p>
+                  )}
+                </section>
+                <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
+                  <h2 className="text-lg font-semibold">Resumo do pedido</h2>
+                  <div className="mt-4 space-y-3 text-sm text-white/65">
+                    <p>{tracking.quoteRequest.data.items.length} item(ns)</p>
+                    <p>{formatQuoteAddress(tracking.quoteRequest.data.address)}</p>
+                    <p>{tracking.quoteRequest.data.notes || "Sem observacoes gerais."}</p>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+        ) : null}
+      </main>
+    </AppShell>
+  );
+}
+
+function PublicProposalPanel({
+  proposal,
+}: {
+  proposal: PublicTrackingResponse["latestProposal"];
+}) {
+  return (
+    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
+      <h2 className="text-xl font-semibold">Proposta</h2>
+      {proposal ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <InfoBlock label="Codigo" value={proposal.latestProposalCode ?? "Pendente"} />
+          <InfoBlock
+            label="Valor"
+            value={
+              proposal.finalTotalCents !== null
+                ? formatMoneyCents(proposal.finalTotalCents)
+                : "Pendente"
+            }
+          />
+          <InfoBlock
+            label="Validade"
+            value={proposal.validUntil ? formatDate(proposal.validUntil) : "Pendente"}
+          />
+          <InfoBlock
+            label="Status"
+            value={
+              proposal.latestVersionStatus
+                ? proposalVersionStatusLabels[proposal.latestVersionStatus]
+                : "Pendente"
+            }
+          />
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-white/55">
+          A empresa ainda nao enviou uma proposta.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function PublicAppointmentPanel({
+  appointment,
+  error,
+  isLoading,
+  onConfirm,
+  onRequestReschedule,
+  onReasonChange,
+  reason,
+}: {
+  appointment: CompanyAppointment | null | undefined;
+  error: string | null;
+  isLoading: boolean;
+  onConfirm: () => void;
+  onRequestReschedule: () => void;
+  onReasonChange: (value: string) => void;
+  reason: string;
+}) {
+  const canCustomerAct =
+    appointment && ["proposed", "rescheduled"].includes(appointment.status);
+
+  return (
+    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Horario</h2>
+        {appointment ? <AppointmentStatusBadge status={appointment.status} /> : null}
+      </div>
+      {appointment ? (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBlock label="Quando" value={formatAppointmentWindow(appointment)} />
+            <InfoBlock
+              label="Duracao"
+              value={formatDurationMinutes(appointment.durationMinutes)}
+            />
+          </div>
+          {appointment.address ? (
+            <p className="text-sm text-white/60">{appointment.address}</p>
+          ) : null}
+          {canCustomerAct ? (
+            <div className="space-y-3">
+              <TextAreaField
+                label="Motivo para outro horario"
+                rows={3}
+                value={reason}
+                onChange={(event) => onReasonChange(event.target.value)}
+              />
+              <div className="flex flex-wrap gap-3">
+                <ActionButton
+                  icon={CheckCircle2}
+                  isLoading={isLoading}
+                  onClick={onConfirm}
+                >
+                  Confirmar horario
+                </ActionButton>
+                <ActionButton
+                  icon={RefreshCcw}
+                  isLoading={isLoading}
+                  variant="secondary"
+                  onClick={onRequestReschedule}
+                >
+                  Pedir outro horario
+                </ActionButton>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-white/55">
+              Nenhuma acao de horario esta disponivel agora.
+            </p>
+          )}
+          <FormError message={error} />
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-white/55">
+          A empresa ainda nao propoe um horario pela plataforma.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function PublicRecoveryPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [requestCode, setRequestCode] = useState(searchParams.get("codigo") ?? "");
+  const [contact, setContact] = useState("");
+  const [otp, setOtp] = useState("");
+  const [recovery, setRecovery] = useState<PublicTrackingRecoveryRequestResponse | null>(
+    null,
+  );
+  const requestMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<PublicTrackingRecoveryRequestResponse>("/api/public/recovery/request", {
+        method: "POST",
+        body: JSON.stringify(
+          publicTrackingRecoveryRequestSchema.parse({
+            requestCode,
+            contact,
+          }),
+        ),
+      }),
+    onSuccess(response) {
+      setRecovery(response);
+      setOtp("");
+    },
+  });
+  const verifyMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<PublicTrackingRecoveryVerifyResponse>("/api/public/recovery/verify", {
+        method: "POST",
+        body: JSON.stringify(
+          publicTrackingRecoveryVerifyRequestSchema.parse({
+            requestCode,
+            recoveryToken: recovery?.recoveryToken ?? "",
+            otp,
+          }),
+        ),
+      }),
+    onSuccess(response) {
+      navigate(response.trackingPath);
+    },
+  });
+
+  function submitRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    requestMutation.mutate();
+  }
+
+  function submitVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    verifyMutation.mutate();
+  }
+
+  return (
+    <AppShell>
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <SectionTitle eyebrow="Recuperacao" title="Recuperar acompanhamento" />
+        <section className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-6">
+          <form className="space-y-4" onSubmit={submitRequest}>
+            <TextField
+              label="Codigo da solicitacao"
+              value={requestCode}
+              onChange={(event) => setRequestCode(event.target.value)}
+            />
+            <TextField
+              label="E-mail ou WhatsApp informado"
+              value={contact}
+              onChange={(event) => setContact(event.target.value)}
+            />
+            <SubmitButton icon={KeyRound} isLoading={requestMutation.isPending}>
+              Enviar codigo
+            </SubmitButton>
+            <FormError
+              message={
+                requestMutation.error
+                  ? errorMessage(
+                      requestMutation.error,
+                      "Nao foi possivel iniciar a recuperacao.",
+                    )
+                  : null
+              }
+            />
+          </form>
+
+          {recovery ? (
+            <form
+              className="mt-8 space-y-4 border-t border-white/10 pt-6"
+              onSubmit={submitVerify}
+            >
+              <div className="rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                Enviamos um OTP por e-mail para {recovery.maskedEmail}. WhatsApp e usado
+                apenas como identificacao complementar.
+              </div>
+              <TextField
+                label="OTP recebido por e-mail"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+              />
+              <SubmitButton icon={CheckCircle2} isLoading={verifyMutation.isPending}>
+                Abrir acompanhamento
+              </SubmitButton>
+              <FormError
+                message={
+                  verifyMutation.error
+                    ? errorMessage(
+                        verifyMutation.error,
+                        "Nao foi possivel validar o codigo.",
+                      )
+                    : null
+                }
+              />
+            </form>
+          ) : null}
+        </section>
+      </main>
+    </AppShell>
   );
 }
 
@@ -5451,6 +5857,8 @@ export function App() {
       <Route element={<CompaniesSearchPage />} path="/empresas" />
       <Route element={<PublicCompanyProfilePage />} path="/empresa/:slug" />
       <Route element={<QuoteRequestPage />} path="/empresa/:slug/orcamento" />
+      <Route element={<PublicTrackingPage />} path="/acompanhar/:token" />
+      <Route element={<PublicRecoveryPage />} path="/recuperar" />
       <Route element={<LoginPage />} path="/login" />
       <Route element={<RegisterCompanyPage />} path="/cadastro/empresa" />
       <Route element={<CompanyAreaPage />} path="/app" />

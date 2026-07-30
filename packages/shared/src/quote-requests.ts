@@ -348,3 +348,80 @@ export interface CompanyQuoteRequestsListResponse {
 export interface CompanyQuoteRequestDetailResponse {
   quoteRequest: CompanyQuoteRequestDetail;
 }
+
+export const publicTrackingRecoveryRequestSchema = z.object({
+  requestCode: z.string().trim().min(3).max(80),
+  contact: z.string().trim().min(3).max(200),
+});
+
+export type PublicTrackingRecoveryRequest = z.infer<
+  typeof publicTrackingRecoveryRequestSchema
+>;
+
+export const publicTrackingRecoveryVerifyRequestSchema = z.object({
+  requestCode: z.string().trim().min(3).max(80),
+  recoveryToken: z.string().trim().min(32).max(256),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+});
+
+export type PublicTrackingRecoveryVerifyRequest = z.infer<
+  typeof publicTrackingRecoveryVerifyRequestSchema
+>;
+
+export interface PublicTrackingCompanySummary {
+  id: string;
+  name: string;
+  slug: string;
+  whatsapp: string | null;
+  email: string | null;
+}
+
+export interface PublicTrackingServiceSummary {
+  id: string;
+  code: string;
+  name: string;
+  schedulingMode: SchedulingMode;
+  estimatedDurationMinutes: number | null;
+}
+
+export interface PublicTrackingQuoteRequest {
+  id: string;
+  requestCode: string;
+  status: QuoteRequestStatus;
+  submittedAt: string;
+  updatedAt: string;
+  data: QuoteDraftData;
+  files: QuoteDraftFileSummary[];
+  estimate: QuoteEstimateSummary | null;
+}
+
+export interface PublicTrackingResponse {
+  quoteRequest: PublicTrackingQuoteRequest;
+  company: PublicTrackingCompanySummary;
+  service: PublicTrackingServiceSummary;
+  latestProposal: CompanyProposalSummary | null;
+  appointments: CompanyAppointment[];
+  whatsappUrl: string | null;
+}
+
+export interface PublicTrackingAppointmentActionResponse {
+  tracking: PublicTrackingResponse;
+  appointment: CompanyAppointment;
+}
+
+export interface PublicTrackingRecoveryRequestResponse {
+  recoveryToken: string;
+  maskedEmail: string;
+  expiresAt: string;
+  deliveryChannel: "email";
+  contactMatchedBy: "email" | "whatsapp";
+}
+
+export interface PublicTrackingRecoveryVerifyResponse {
+  requestCode: string;
+  publicToken: string;
+  trackingPath: string;
+}

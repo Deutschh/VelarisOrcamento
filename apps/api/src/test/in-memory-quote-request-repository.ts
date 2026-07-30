@@ -1,10 +1,19 @@
-import type { QuoteDraftFileSummary, QuoteSubmitResponse } from "@velaris/shared";
+import type {
+  CompanyAppointment,
+  CompanyProposalSummary,
+  QuoteDraftFileSummary,
+  QuoteSubmitResponse,
+} from "@velaris/shared";
 import type {
   AddDraftFileInput,
+  CreateNotificationInput,
   CreateDraftRecordInput,
+  CreateRecoveryCodeInput,
   IdempotencyRecord,
   PersistedQuoteRequest,
   PublicQuoteRequestRepository,
+  RecoveryCodeRecord,
+  ReplacePublicTokenAfterRecoveryInput,
   SaveCalculationInput,
   SubmitDraftInput,
   UpdateDraftRecordInput,
@@ -13,6 +22,20 @@ import type {
 export class InMemoryQuoteRequestRepository implements PublicQuoteRequestRepository {
   readonly requests = new Map<string, PersistedQuoteRequest>();
   readonly idempotencyRecords = new Map<string, IdempotencyRecord>();
+  readonly publicTokens = new Map<
+    string,
+    {
+      id: string;
+      tokenHash: string;
+      quoteRequestId: string;
+      expiresAt: string | null;
+      revokedAt: string | null;
+    }
+  >();
+  readonly recoveryCodes = new Map<string, RecoveryCodeRecord>();
+  readonly notifications = new Map<string, CreateNotificationInput>();
+  readonly proposals = new Map<string, CompanyProposalSummary[]>();
+  readonly appointments = new Map<string, CompanyAppointment[]>();
 
   async createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest> {
     const request: PersistedQuoteRequest = {
@@ -50,6 +73,34 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     return (
       Array.from(this.requests.values()).find(
         (request) => request.draftTokenHash === draftTokenHash,
+      ) ?? null
+    );
+  }
+
+  async findByPublicTokenHash(input: {
+    publicTokenHash: string;
+    now: Date;
+  }): Promise<PersistedQuoteRequest | null> {
+    const token = this.publicTokens.get(input.publicTokenHash);
+
+    if (
+      !token ||
+      token.revokedAt ||
+      (token.expiresAt && new Date(token.expiresAt).getTime() <= input.now.getTime())
+    ) {
+      return null;
+    }
+
+    const request = this.requests.get(token.quoteRequestId);
+    return request && request.status !== "draft" ? request : null;
+  }
+
+  async findSubmittedByRequestCode(
+    requestCode: string,
+  ): Promise<PersistedQuoteRequest | null> {
+    return (
+      Array.from(this.requests.values()).find(
+        (request) => request.requestCode === requestCode && request.status !== "draft",
       ) ?? null
     );
   }
@@ -117,6 +168,24 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     return request;
   }
 
+  async listProposalSummaries(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyProposalSummary[]> {
+    return (this.proposals.get(input.quoteRequestId) ?? []).filter(
+      (proposal) => proposal.companyId === input.companyId,
+    );
+  }
+
+  async listAppointments(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyAppointment[]> {
+    return (this.appointments.get(input.quoteRequestId) ?? []).filter(
+      (appointment) => appointment.companyId === input.companyId,
+    );
+  }
+
   async findIdempotencyRecord(input: {
     scope: string;
     key: string;
@@ -147,6 +216,13 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     };
 
     this.requests.set(request.id, request);
+    this.publicTokens.set(input.publicTokenHash, {
+      id: input.publicTokenId,
+      tokenHash: input.publicTokenHash,
+      quoteRequestId: request.id,
+      expiresAt: input.publicTokenExpiresAt?.toISOString() ?? null,
+      revokedAt: null,
+    });
     this.idempotencyRecords.set(
       idempotencyKey(input.idempotency.scope, input.idempotency.key),
       {
@@ -161,6 +237,102 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     );
 
     return request;
+  }
+
+  async createRecoveryCode(input: CreateRecoveryCodeInput): Promise<RecoveryCodeRecord> {
+    const recoveryCode: RecoveryCodeRecord = {
+      id: input.id,
+      quoteRequestId: input.quoteRequestId,
+      requestCode: input.requestCode,
+      contactType: input.contactType,
+      contactHash: input.contactHash,
+      tokenHash: input.tokenHash,
+      otpHash: input.otpHash,
+      attempts: 0,
+      maxAttempts: input.maxAttempts,
+      expiresAt: input.expiresAt.toISOString(),
+      usedAt: null,
+      revokedAt: null,
+      metadata: input.metadata,
+      createdAt: input.now.toISOString(),
+      updatedAt: input.now.toISOString(),
+    };
+
+    this.recoveryCodes.set(recoveryCode.tokenHash, recoveryCode);
+    return recoveryCode;
+  }
+
+  async findRecoveryCodeByTokenHash(
+    tokenHash: string,
+  ): Promise<RecoveryCodeRecord | null> {
+    return this.recoveryCodes.get(tokenHash) ?? null;
+  }
+
+  async recordRecoveryAttempt(input: {
+    recoveryCodeId: string;
+    attempts: number;
+    revokedAt: Date | null;
+    now: Date;
+  }): Promise<void> {
+    const current = Array.from(this.recoveryCodes.values()).find(
+      (recoveryCode) => recoveryCode.id === input.recoveryCodeId,
+    );
+
+    if (!current) {
+      return;
+    }
+
+    this.recoveryCodes.set(current.tokenHash, {
+      ...current,
+      attempts: input.attempts,
+      revokedAt: input.revokedAt?.toISOString() ?? current.revokedAt,
+      updatedAt: input.now.toISOString(),
+    });
+  }
+
+  async replacePublicTokenAfterRecovery(
+    input: ReplacePublicTokenAfterRecoveryInput,
+  ): Promise<void> {
+    const request = this.mustFind(input.quoteRequestId);
+
+    for (const [key, token] of this.publicTokens.entries()) {
+      if (token.id === input.previousPublicTokenId) {
+        this.publicTokens.set(key, {
+          ...token,
+          revokedAt: input.now.toISOString(),
+        });
+      }
+    }
+
+    this.publicTokens.set(input.newPublicTokenHash, {
+      id: input.newPublicTokenId,
+      tokenHash: input.newPublicTokenHash,
+      quoteRequestId: input.quoteRequestId,
+      expiresAt: input.newPublicTokenExpiresAt?.toISOString() ?? null,
+      revokedAt: null,
+    });
+
+    this.requests.set(request.id, {
+      ...request,
+      publicTokenId: input.newPublicTokenId,
+      updatedAt: input.now.toISOString(),
+    });
+
+    const current = Array.from(this.recoveryCodes.values()).find(
+      (recoveryCode) => recoveryCode.id === input.recoveryCodeId,
+    );
+
+    if (current) {
+      this.recoveryCodes.set(current.tokenHash, {
+        ...current,
+        usedAt: input.now.toISOString(),
+        updatedAt: input.now.toISOString(),
+      });
+    }
+  }
+
+  async createNotification(input: CreateNotificationInput): Promise<void> {
+    this.notifications.set(input.id, input);
   }
 
   async deleteExpiredDrafts(now: Date): Promise<number> {

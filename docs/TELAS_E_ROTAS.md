@@ -27,8 +27,8 @@
 | Publica | `/empresas`                | Busca/listagem de empresas                  | Implementado Sprint 4  |
 | Publica | `/empresa/:slug`           | Perfil publico da empresa                   | Implementado Sprint 4  |
 | Publica | `/empresa/:slug/orcamento` | Fluxo de solicitacao de orcamento           | Implementado Sprint 10 |
-| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Requisito confirmado   |
-| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Requisito confirmado   |
+| Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Implementado Sprint 14 |
+| Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Implementado Sprint 14 |
 | Auth    | `/login`                   | Login                                       | Requisito confirmado   |
 | Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado   |
 | Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3  |
@@ -45,8 +45,8 @@
 - Busca de empresas: filtros por nicho/localizacao e listagem considerando regiao atendida, raio, status ativo e perfil publicado. Implementado Sprint 4.
 - Perfil publico da empresa: logotipo, capa, cor principal moderada, descricao, galeria, contatos, endereco, servicos, termos, raio/regioes e CTA de orcamento. Implementado Sprint 4.
 - Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF em metadados `stub`, dados pessoais, endereco, estimativa, revisao, termos e confirmacao. Implementado Sprint 10.
-- Acompanhamento: estado atual da jornada, codigo da solicitacao, proposta quando houver, agendamento quando aplicavel, acoes permitidas e WhatsApp assistido.
-- Recuperacao: entrada de codigo + e-mail ou codigo + WhatsApp, envio de OTP ao e-mail cadastrado e verificacao.
+- Acompanhamento: estado atual da jornada, codigo da solicitacao, proposta quando houver, agendamento quando aplicavel, confirmacao/pedido de outro horario quando permitido e WhatsApp assistido. Implementado Sprint 14.
+- Recuperacao: entrada de codigo + e-mail ou codigo + WhatsApp, envio de OTP ao e-mail cadastrado, verificacao, substituicao de token e revogacao do token anterior. Implementado Sprint 14.
 
 ## Telas do MVP piloto
 
@@ -153,13 +153,14 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 
 ### Publicas - acompanhamento
 
-- `GET /api/public/tracking/:token`
-- `POST /api/public/recovery/request`
-- `POST /api/public/recovery/verify`
-- `POST /api/public/proposals/:token/accept`
-- `POST /api/public/proposals/:token/reject`
-- `POST /api/public/proposals/:token/reschedule`
-- `POST /api/public/reviews`
+- `GET /api/public/tracking/:token`. Implementado Sprint 14.
+- `POST /api/public/tracking/:token/appointment`. Implementado Sprint 14 para confirmar horario ou pedir outro horario.
+- `POST /api/public/recovery/request`. Implementado Sprint 14.
+- `POST /api/public/recovery/verify`. Implementado Sprint 14.
+- `POST /api/public/proposals/:token/accept`. Previsto Sprint 15.
+- `POST /api/public/proposals/:token/reject`. Previsto Sprint 15.
+- `POST /api/public/proposals/:token/reschedule`. Previsto Sprint 15 como acao ligada ao fluxo formal de proposta; o pedido publico de outro horario ja existe via tracking na Sprint 14.
+- `POST /api/public/reviews`. Previsto Sprint 16.
 
 ### Autenticacao
 

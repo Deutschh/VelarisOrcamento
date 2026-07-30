@@ -30,8 +30,8 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: duracao exata dos access tokens.
 - Decisao pendente: duracao e rotacao exata dos refresh tokens.
 - Decisao pendente: politica minima de senha.
-- Decisao pendente: limites numericos de tentativa para login, OTP e recuperacao.
-- Decisao pendente: duracao exata dos OTPs.
+- Decisao pendente: limites numericos definitivos de tentativa para login, OTP e recuperacao em producao; o padrao inicial configuravel do OTP publico e 5 tentativas.
+- Decisao pendente: duracao definitiva dos OTPs em producao; o padrao inicial configuravel do OTP publico e 10 minutos.
 - Decisao pendente: politica de expiracao/revogacao de sessoes em multiplos dispositivos.
 - Decisao pendente: formato final dos papeis e permissoes internas.
 

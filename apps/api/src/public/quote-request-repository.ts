@@ -1,4 +1,6 @@
 import type {
+  CompanyAppointment,
+  CompanyProposalSummary,
   QuoteDraftData,
   QuoteDraftFileSummary,
   QuoteRequestStatus,
@@ -93,6 +95,24 @@ export interface IdempotencyRecord {
   expiresAt: string;
 }
 
+export interface RecoveryCodeRecord {
+  id: string;
+  quoteRequestId: string;
+  requestCode: string;
+  contactType: "email" | "whatsapp";
+  contactHash: string;
+  tokenHash: string;
+  otpHash: string;
+  attempts: number;
+  maxAttempts: number;
+  expiresAt: string;
+  usedAt: string | null;
+  revokedAt: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SubmitDraftInput extends SaveCalculationInput {
   requestCode: string;
   submittedAt: Date;
@@ -112,17 +132,80 @@ export interface SubmitDraftInput extends SaveCalculationInput {
   };
 }
 
+export interface CreateRecoveryCodeInput {
+  id: string;
+  quoteRequestId: string;
+  requestCode: string;
+  contactType: "email" | "whatsapp";
+  contactHash: string;
+  tokenHash: string;
+  otpHash: string;
+  maxAttempts: number;
+  expiresAt: Date;
+  metadata: Record<string, unknown>;
+  now: Date;
+}
+
+export interface ReplacePublicTokenAfterRecoveryInput {
+  quoteRequestId: string;
+  requestCode: string;
+  previousPublicTokenId: string | null;
+  recoveryCodeId: string;
+  newPublicTokenId: string;
+  newPublicTokenHash: string;
+  newPublicTokenExpiresAt: Date | null;
+  now: Date;
+}
+
+export interface CreateNotificationInput {
+  id: string;
+  companyId: string;
+  userId: string | null;
+  type: string;
+  title: string;
+  message: string;
+  entityType: string;
+  entityId: string | null;
+  metadata: Record<string, unknown>;
+  now: Date;
+}
+
 export interface PublicQuoteRequestRepository {
   createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest>;
   findByDraftTokenHash(draftTokenHash: string): Promise<PersistedQuoteRequest | null>;
+  findByPublicTokenHash(input: {
+    publicTokenHash: string;
+    now: Date;
+  }): Promise<PersistedQuoteRequest | null>;
+  findSubmittedByRequestCode(requestCode: string): Promise<PersistedQuoteRequest | null>;
   updateDraft(input: UpdateDraftRecordInput): Promise<PersistedQuoteRequest>;
   addDraftFile(input: AddDraftFileInput): Promise<QuoteDraftFileSummary>;
   deleteDraftFile(input: { quoteRequestId: string; fileId: string }): Promise<boolean>;
   saveCalculation(input: SaveCalculationInput): Promise<PersistedQuoteRequest>;
+  listProposalSummaries(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyProposalSummary[]>;
+  listAppointments(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<CompanyAppointment[]>;
   findIdempotencyRecord(input: {
     scope: string;
     key: string;
   }): Promise<IdempotencyRecord | null>;
   submitDraft(input: SubmitDraftInput): Promise<PersistedQuoteRequest>;
+  createRecoveryCode(input: CreateRecoveryCodeInput): Promise<RecoveryCodeRecord>;
+  findRecoveryCodeByTokenHash(tokenHash: string): Promise<RecoveryCodeRecord | null>;
+  recordRecoveryAttempt(input: {
+    recoveryCodeId: string;
+    attempts: number;
+    revokedAt: Date | null;
+    now: Date;
+  }): Promise<void>;
+  replacePublicTokenAfterRecovery(
+    input: ReplacePublicTokenAfterRecoveryInput,
+  ): Promise<void>;
+  createNotification(input: CreateNotificationInput): Promise<void>;
   deleteExpiredDrafts(now: Date): Promise<number>;
 }

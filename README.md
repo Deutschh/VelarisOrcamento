@@ -14,7 +14,7 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto concluiu tecnicamente a Sprint 13. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu tecnicamente a Sprint 14. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
 status de conta pendente, painel Admin, descoberta publica, perfil publico,
 templates fixos, configuracao por empresa com preview/publicacao imutavel e
@@ -34,10 +34,17 @@ modos `required_with_proposal`, `optional_with_proposal`,
 duracao, timezone da empresa, aviso de conflito sem bloqueio e conclusao de
 horario confirmado.
 
-Ainda nao ha acompanhamento publico da proposta, recuperacao de acesso, aceite
-publico, PDF, armazenamento binario definitivo ou deploy. Vidracaria e
-marmoraria seguem adiadas ate a validacao do MVP piloto; a proxima etapa
-recomendada para o MVP e a Sprint 14, acompanhamento, recuperacao e comunicacao.
+O acompanhamento publico esta disponivel em `/acompanhar/:token`, usando o token
+gerado na submissao. A recuperacao esta em `/recuperar`, validando codigo da
+solicitacao + e-mail ou WhatsApp informado, enviando OTP exclusivamente pelo
+adapter de e-mail e substituindo o token publico apos sucesso. A tela publica
+tambem permite confirmar horario ou pedir outro horario quando houver agendamento
+ativo e exibe link assistido `wa.me`.
+
+Ainda nao ha aceite/rejeicao publico formal da proposta, PDF, documentos legais
+versionados, armazenamento binario definitivo ou deploy. Vidracaria e marmoraria
+seguem adiadas ate a validacao do MVP piloto; a proxima etapa recomendada para o
+MVP e a Sprint 15, PDF, aceite e documentos legais.
 
 ## Stack planejada
 

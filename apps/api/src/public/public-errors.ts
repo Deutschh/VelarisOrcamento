@@ -75,3 +75,61 @@ export class PublicQuoteRequestsUnavailableError extends AppError {
     );
   }
 }
+
+export class PublicTrackingTokenInvalidError extends AppError {
+  constructor() {
+    super("Public tracking link is invalid or expired.", 404, "PUBLIC_TRACKING_INVALID");
+  }
+}
+
+export class PublicTrackingAppointmentUnavailableError extends AppError {
+  constructor() {
+    super(
+      "No customer appointment action is available for this request.",
+      409,
+      "PUBLIC_TRACKING_APPOINTMENT_UNAVAILABLE",
+    );
+  }
+}
+
+export class PublicRecoveryInvalidError extends AppError {
+  constructor() {
+    super(
+      "Recovery data does not match a public request.",
+      404,
+      "PUBLIC_RECOVERY_INVALID",
+    );
+  }
+}
+
+export class PublicRecoveryEmailRequiredError extends AppError {
+  constructor() {
+    super(
+      "This request needs an email address to receive the recovery code.",
+      409,
+      "PUBLIC_RECOVERY_EMAIL_REQUIRED",
+    );
+  }
+}
+
+export class PublicRecoveryOtpInvalidError extends AppError {
+  constructor() {
+    super("Recovery code is invalid.", 400, "PUBLIC_RECOVERY_OTP_INVALID");
+  }
+}
+
+export class PublicRecoveryOtpExpiredError extends AppError {
+  constructor() {
+    super("Recovery code has expired.", 410, "PUBLIC_RECOVERY_OTP_EXPIRED");
+  }
+}
+
+export class PublicRecoveryAttemptsExceededError extends AppError {
+  constructor() {
+    super(
+      "Recovery attempt limit was reached.",
+      429,
+      "PUBLIC_RECOVERY_ATTEMPTS_EXCEEDED",
+    );
+  }
+}

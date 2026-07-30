@@ -20,7 +20,8 @@
 - Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, detalhe, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente, migration e bloqueio de versao aceita.
 - Sprint 13 concluida tecnicamente: agendamento assistido, `appointments`, historico, modos de agendamento, aviso de conflito sem bloqueio, painel da empresa e bloqueio de envio quando o horario e obrigatorio.
-- Proxima etapa recomendada para o MVP piloto: Sprint 14, acompanhamento, recuperacao e comunicacao.
+- Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por codigo + contato + OTP por e-mail, substituicao/revogacao de token, link `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
+- Proxima etapa recomendada para o MVP piloto: Sprint 15, PDF, aceite e documentos legais.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -75,6 +76,10 @@
 - Configuracoes publicadas devem ser imutaveis.
 - Regras de preco publicadas devem ser versionadas e preservadas em snapshot.
 - Rascunhos publicos usam token bruto somente no cliente; persistencia guarda hash.
+- Acompanhamento publico usa token bruto somente no link do cliente; persistencia guarda hash em `public_access_tokens`.
+- Recuperacao publica exige codigo da solicitacao e e-mail ou WhatsApp ja informado na solicitacao; WhatsApp serve apenas como identificacao complementar.
+- OTP automatico de recuperacao deve ser enviado exclusivamente por e-mail, com hash persistido em `recovery_codes`, uso unico, validade curta, limite de tentativas e revogacao/substituicao do token publico apos sucesso.
+- Links de WhatsApp devem ser assistidos via `wa.me` com mensagem preenchida; nao prometer envio automatico de WhatsApp.
 - No fluxo publico, quantidade representa itens identicos; itens com caracteristicas diferentes devem ser linhas separadas no rascunho.
 - Submissao publica de solicitacao exige `Idempotency-Key` UUID v4.
 - Revisoes empresariais de solicitacoes devem auditar valor original, valor revisado, responsavel, data, motivo quando houver alteracao tecnica, versao da configuracao e versao de precos.
@@ -106,6 +111,8 @@
 
 - Expiracao de rascunhos: 10 dias.
 - Validade inicial das propostas: 7 dias.
+- Validade inicial do OTP de recuperacao publica: 10 minutos.
+- Tentativas iniciais por OTP de recuperacao publica: 5.
 - Timezone inicial das empresas: `America/Sao_Paulo`.
 - Locale inicial da interface: `pt-BR`.
 - Moeda inicial: real brasileiro, `BRL`.
@@ -142,4 +149,5 @@
 - Sprint 11 cria o painel da empresa e revisao.
 - Sprint 12 cria propostas, versoes e valor final.
 - Sprint 13 cria agendamento assistido.
-- Sprint 14 deve iniciar acompanhamento, recuperacao e comunicacao somente apos nova autorizacao do usuario.
+- Sprint 14 cria acompanhamento publico, recuperacao e comunicacao inicial.
+- Sprint 15 deve iniciar PDF, aceite e documentos legais somente apos nova autorizacao do usuario.

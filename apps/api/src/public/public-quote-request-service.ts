@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import {
   CalculationError,
   QuoteRequestLifecycleError,
@@ -12,6 +12,9 @@ import {
   quoteDraftDataSchema,
   type CreateQuoteDraftRequest,
   type CreateQuoteDraftResponse,
+  type CompanyAppointment,
+  type CompanyProposalSummary,
+  type CustomerAppointmentActionRequest,
   type QuoteDraftData,
   type QuoteDraftDetail,
   type QuoteDraftFileMetadataRequest,
@@ -25,8 +28,15 @@ import {
   type CompanyConfigurationDetail,
   type CompanyServiceConfiguration,
   type PricingRuleConfiguration,
+  type PublicTrackingAppointmentActionResponse,
+  type PublicTrackingRecoveryRequest,
+  type PublicTrackingRecoveryRequestResponse,
+  type PublicTrackingRecoveryVerifyRequest,
+  type PublicTrackingRecoveryVerifyResponse,
+  type PublicTrackingResponse,
 } from "@velaris/shared";
 import { hashToken } from "../auth/token-service.js";
+import type { CompanyAppointmentService } from "../company/company-appointment-service.js";
 import { env } from "../config/env.js";
 import type { EmailAdapter } from "../notifications/email-adapter.js";
 import type { TemplateRepository } from "../templates/template-repository.js";
@@ -40,6 +50,13 @@ import {
   PublicQuoteIdempotencyConflictError,
   PublicQuoteIdempotencyRequiredError,
   PublicQuoteSubmissionValidationError,
+  PublicRecoveryAttemptsExceededError,
+  PublicRecoveryEmailRequiredError,
+  PublicRecoveryInvalidError,
+  PublicRecoveryOtpExpiredError,
+  PublicRecoveryOtpInvalidError,
+  PublicTrackingAppointmentUnavailableError,
+  PublicTrackingTokenInvalidError,
 } from "./public-errors.js";
 import type {
   PersistedPublicCompany,
@@ -55,12 +72,22 @@ interface PublicQuoteRequestServiceDependencies {
   publicCompanyRepository: PublicCompanyRepository;
   templateRepository: TemplateRepository;
   quoteRequestRepository: PublicQuoteRequestRepository;
+  companyAppointmentService?: CompanyAppointmentService;
   emailAdapter?: EmailAdapter;
   draftExpirationDays?: number;
+  recoveryOtpTtlMinutes?: number;
+  recoveryMaxAttempts?: number;
   now?: () => Date;
 }
 
 interface DraftContext {
+  company: PersistedPublicCompany;
+  configuration: CompanyConfigurationDetail;
+  request: PersistedQuoteRequest;
+  service: CompanyServiceConfiguration;
+}
+
+interface TrackingContext {
   company: PersistedPublicCompany;
   configuration: CompanyConfigurationDetail;
   request: PersistedQuoteRequest;
@@ -310,6 +337,20 @@ export class PublicQuoteRequestService {
       },
     });
 
+    await this.createNotification({
+      companyId: context.company.id,
+      type: "new_quote_request",
+      title: "Nova solicitacao",
+      message: `Solicitacao ${requestCode} recebida pelo perfil publico.`,
+      entityType: "quote_request",
+      entityId: context.request.id,
+      metadata: {
+        requestCode,
+        customerName: context.request.data.contact.name,
+      },
+      now,
+    });
+
     await this.dependencies.emailAdapter?.sendQuoteRequestConfirmation?.({
       to: context.request.data.contact.email,
       name: context.request.data.contact.name,
@@ -319,6 +360,197 @@ export class PublicQuoteRequestService {
     });
 
     return responseBody;
+  }
+
+  async getTracking(publicToken: string): Promise<PublicTrackingResponse> {
+    const context = await this.loadTrackingContext(publicToken);
+    return this.toTrackingResponse(context);
+  }
+
+  async requestRecovery(
+    input: PublicTrackingRecoveryRequest,
+    metadata: RequestMetadata,
+  ): Promise<PublicTrackingRecoveryRequestResponse> {
+    const requestCode = normalizeRequestCode(input.requestCode);
+    const request =
+      await this.dependencies.quoteRequestRepository.findSubmittedByRequestCode(
+        requestCode,
+      );
+
+    if (!request?.requestCode) {
+      throw new PublicRecoveryInvalidError();
+    }
+
+    const match = matchRecoveryContact(request, input.contact);
+
+    if (!match) {
+      throw new PublicRecoveryInvalidError();
+    }
+
+    const email = request.data.contact.email.trim().toLowerCase();
+
+    if (!email) {
+      throw new PublicRecoveryEmailRequiredError();
+    }
+
+    const now = this.now();
+    const recoveryToken = randomBytes(48).toString("base64url");
+    const otp = createOtp();
+    const expiresAt = addMinutes(now, this.recoveryOtpTtlMinutes());
+
+    await this.dependencies.quoteRequestRepository.createRecoveryCode({
+      id: randomUUID(),
+      quoteRequestId: request.id,
+      requestCode,
+      contactType: match.contactType,
+      contactHash: hashToken(match.normalizedContact),
+      tokenHash: hashToken(recoveryToken),
+      otpHash: hashToken(otp),
+      maxAttempts: this.recoveryMaxAttempts(),
+      expiresAt,
+      metadata: {
+        ipAddress: metadata.ipAddress ?? null,
+        userAgent: metadata.userAgent ?? null,
+      },
+      now,
+    });
+
+    await this.dependencies.emailAdapter?.sendRecoveryOtp?.({
+      to: email,
+      name: request.data.contact.name,
+      requestCode,
+      otp,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return {
+      recoveryToken,
+      maskedEmail: maskEmail(email),
+      expiresAt: expiresAt.toISOString(),
+      deliveryChannel: "email",
+      contactMatchedBy: match.contactType,
+    };
+  }
+
+  async verifyRecovery(
+    input: PublicTrackingRecoveryVerifyRequest,
+  ): Promise<PublicTrackingRecoveryVerifyResponse> {
+    const requestCode = normalizeRequestCode(input.requestCode);
+    const recoveryCode =
+      await this.dependencies.quoteRequestRepository.findRecoveryCodeByTokenHash(
+        hashToken(input.recoveryToken),
+      );
+
+    if (!recoveryCode || recoveryCode.requestCode !== requestCode) {
+      throw new PublicRecoveryInvalidError();
+    }
+
+    const now = this.now();
+
+    if (recoveryCode.usedAt || recoveryCode.revokedAt) {
+      throw new PublicRecoveryInvalidError();
+    }
+
+    if (new Date(recoveryCode.expiresAt).getTime() <= now.getTime()) {
+      throw new PublicRecoveryOtpExpiredError();
+    }
+
+    if (recoveryCode.attempts >= recoveryCode.maxAttempts) {
+      throw new PublicRecoveryAttemptsExceededError();
+    }
+
+    if (recoveryCode.otpHash !== hashToken(input.otp.trim())) {
+      const attempts = recoveryCode.attempts + 1;
+      await this.dependencies.quoteRequestRepository.recordRecoveryAttempt({
+        recoveryCodeId: recoveryCode.id,
+        attempts,
+        revokedAt: attempts >= recoveryCode.maxAttempts ? now : null,
+        now,
+      });
+      throw new PublicRecoveryOtpInvalidError();
+    }
+
+    const request =
+      await this.dependencies.quoteRequestRepository.findSubmittedByRequestCode(
+        requestCode,
+      );
+
+    if (!request || request.id !== recoveryCode.quoteRequestId || !request.requestCode) {
+      throw new PublicRecoveryInvalidError();
+    }
+
+    const publicToken = randomBytes(48).toString("base64url");
+    await this.dependencies.quoteRequestRepository.replacePublicTokenAfterRecovery({
+      quoteRequestId: request.id,
+      requestCode,
+      previousPublicTokenId: request.publicTokenId,
+      recoveryCodeId: recoveryCode.id,
+      newPublicTokenId: randomUUID(),
+      newPublicTokenHash: hashToken(publicToken),
+      newPublicTokenExpiresAt: null,
+      now,
+    });
+
+    return {
+      requestCode,
+      publicToken,
+      trackingPath: `/acompanhar/${publicToken}`,
+    };
+  }
+
+  async recordPublicAppointmentAction(
+    publicToken: string,
+    input: CustomerAppointmentActionRequest,
+  ): Promise<PublicTrackingAppointmentActionResponse> {
+    const appointmentService = this.dependencies.companyAppointmentService;
+
+    if (!appointmentService) {
+      throw new PublicTrackingAppointmentUnavailableError();
+    }
+
+    const context = await this.loadTrackingContext(publicToken);
+    const appointments = await this.dependencies.quoteRequestRepository.listAppointments({
+      companyId: context.request.companyId,
+      quoteRequestId: context.request.id,
+    });
+    const appointment = latestActionableAppointment(appointments);
+
+    if (!appointment) {
+      throw new PublicTrackingAppointmentUnavailableError();
+    }
+
+    const response = await appointmentService.recordCustomerAppointmentAction({
+      companyId: context.request.companyId,
+      appointmentId: appointment.id,
+      body: input,
+    });
+    const now = this.now();
+
+    await this.createNotification({
+      companyId: context.request.companyId,
+      type:
+        input.action === "confirm"
+          ? "appointment_confirmed_by_customer"
+          : "appointment_reschedule_requested",
+      title:
+        input.action === "confirm" ? "Horario confirmado" : "Cliente pediu outro horario",
+      message:
+        input.action === "confirm"
+          ? `O cliente confirmou o horario da solicitacao ${context.request.requestCode}.`
+          : `O cliente pediu outro horario para a solicitacao ${context.request.requestCode}.`,
+      entityType: "appointment",
+      entityId: response.appointment.id,
+      metadata:
+        input.action === "request_reschedule"
+          ? { reason: input.reason?.trim() || null }
+          : {},
+      now,
+    });
+
+    return {
+      appointment: response.appointment,
+      tracking: await this.getTracking(publicToken),
+    };
   }
 
   private async loadDraftContext(draftToken: string): Promise<DraftContext> {
@@ -379,6 +611,50 @@ export class PublicQuoteRequestService {
     }
 
     return context;
+  }
+
+  private async loadTrackingContext(publicToken: string): Promise<TrackingContext> {
+    const request = await this.dependencies.quoteRequestRepository.findByPublicTokenHash({
+      publicTokenHash: hashToken(publicToken),
+      now: this.now(),
+    });
+
+    if (!request || !request.requestCode || !request.submittedAt) {
+      throw new PublicTrackingTokenInvalidError();
+    }
+
+    const company =
+      await this.dependencies.publicCompanyRepository.findPublishedCompanyById(
+        request.companyId,
+      );
+
+    if (!company) {
+      throw new PublicCompanyNotFoundError();
+    }
+
+    const configuration =
+      await this.dependencies.templateRepository.findCompanyConfigurationById(
+        request.companyConfigurationId,
+      );
+
+    if (!configuration) {
+      throw new PublicQuoteConfigurationUnavailableError();
+    }
+
+    const service = configuration.services.find(
+      (candidate) => candidate.id === request.companyServiceId,
+    );
+
+    if (!service) {
+      throw new PublicQuoteConfigurationUnavailableError();
+    }
+
+    return {
+      company,
+      configuration,
+      request,
+      service,
+    };
   }
 
   private assertNotExpired(request: PersistedQuoteRequest) {
@@ -491,12 +767,97 @@ export class PublicQuoteRequestService {
     };
   }
 
+  private async toTrackingResponse(
+    context: TrackingContext,
+  ): Promise<PublicTrackingResponse> {
+    if (!context.request.requestCode || !context.request.submittedAt) {
+      throw new PublicTrackingTokenInvalidError();
+    }
+
+    const [proposals, appointments] = await Promise.all([
+      this.dependencies.quoteRequestRepository.listProposalSummaries({
+        companyId: context.request.companyId,
+        quoteRequestId: context.request.id,
+      }),
+      this.dependencies.quoteRequestRepository.listAppointments({
+        companyId: context.request.companyId,
+        quoteRequestId: context.request.id,
+      }),
+    ]);
+
+    return {
+      quoteRequest: {
+        id: context.request.id,
+        requestCode: context.request.requestCode,
+        status: context.request.status,
+        submittedAt: context.request.submittedAt,
+        updatedAt: context.request.updatedAt,
+        data: context.request.data,
+        files: context.request.files,
+        estimate: estimateFromSnapshot(context.request.calculationSnapshot),
+      },
+      company: {
+        id: context.company.id,
+        name: context.company.tradingName,
+        slug: context.company.slug,
+        whatsapp: context.company.profile.contactWhatsapp ?? null,
+        email: context.company.profile.contactEmail ?? null,
+      },
+      service: {
+        id: context.service.id,
+        code: context.service.code,
+        name: context.service.name,
+        schedulingMode: context.service.schedulingMode,
+        estimatedDurationMinutes: context.service.estimatedDurationMinutes,
+      },
+      latestProposal: getLatestProposal(proposals),
+      appointments,
+      whatsappUrl: createWhatsappUrl({
+        phone: context.company.profile.contactWhatsapp,
+        requestCode: context.request.requestCode,
+        customerName: context.request.data.contact.name,
+      }),
+    };
+  }
+
+  private async createNotification(input: {
+    companyId: string;
+    type: string;
+    title: string;
+    message: string;
+    entityType: string;
+    entityId: string | null;
+    metadata: Record<string, unknown>;
+    now: Date;
+  }) {
+    await this.dependencies.quoteRequestRepository.createNotification({
+      id: randomUUID(),
+      companyId: input.companyId,
+      userId: null,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      metadata: input.metadata,
+      now: input.now,
+    });
+  }
+
   private now() {
     return this.dependencies.now?.() ?? new Date();
   }
 
   private draftExpirationDays() {
     return this.dependencies.draftExpirationDays ?? env.DRAFT_EXPIRATION_DAYS;
+  }
+
+  private recoveryOtpTtlMinutes() {
+    return this.dependencies.recoveryOtpTtlMinutes ?? env.PUBLIC_RECOVERY_OTP_TTL_MINUTES;
+  }
+
+  private recoveryMaxAttempts() {
+    return this.dependencies.recoveryMaxAttempts ?? env.PUBLIC_RECOVERY_MAX_ATTEMPTS;
   }
 }
 
@@ -805,6 +1166,89 @@ function createRequestCode(now: Date) {
   return `VEL-${date}-${suffix}`;
 }
 
+function normalizeRequestCode(value: string) {
+  return value.trim().toUpperCase();
+}
+
+function matchRecoveryContact(request: PersistedQuoteRequest, contact: string) {
+  const normalizedEmail = request.data.contact.email.trim().toLowerCase();
+  const normalizedWhatsapp = onlyDigits(request.data.contact.whatsapp);
+  const candidateEmail = contact.trim().toLowerCase();
+  const candidateWhatsapp = onlyDigits(contact);
+
+  if (normalizedEmail && candidateEmail === normalizedEmail) {
+    return {
+      contactType: "email" as const,
+      normalizedContact: normalizedEmail,
+    };
+  }
+
+  if (normalizedWhatsapp && candidateWhatsapp === normalizedWhatsapp) {
+    return {
+      contactType: "whatsapp" as const,
+      normalizedContact: normalizedWhatsapp,
+    };
+  }
+
+  return null;
+}
+
+function createOtp() {
+  return String(randomInt(100000, 1000000));
+}
+
+function maskEmail(email: string) {
+  const [local = "", domain = ""] = email.split("@");
+
+  if (!local || !domain) {
+    return "e-mail cadastrado";
+  }
+
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(local.length - visible.length, 3))}@${domain}`;
+}
+
+function getLatestProposal(proposals: CompanyProposalSummary[]) {
+  return (
+    proposals
+      .slice()
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      )[0] ?? null
+  );
+}
+
+function latestActionableAppointment(appointments: CompanyAppointment[]) {
+  return (
+    appointments
+      .filter((appointment) => ["proposed", "rescheduled"].includes(appointment.status))
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      )[0] ?? null
+  );
+}
+
+function createWhatsappUrl(input: {
+  phone: string | null | undefined;
+  requestCode: string;
+  customerName: string;
+}) {
+  const phone = onlyDigits(input.phone ?? "");
+
+  if (!phone) {
+    return null;
+  }
+
+  const message = `Ola, sou ${input.customerName || "cliente"} e quero falar sobre a solicitacao ${input.requestCode}.`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 function hashJson(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
@@ -813,4 +1257,8 @@ function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
+}
+
+function addMinutes(date: Date, minutes: number) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
 }

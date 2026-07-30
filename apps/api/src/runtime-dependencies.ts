@@ -51,6 +51,12 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   const companyQuoteRequestRepository = new DrizzleCompanyQuoteRequestRepository(db);
   const companyProposalRepository = new DrizzleCompanyProposalRepository(db);
   const companyAppointmentRepository = new DrizzleCompanyAppointmentRepository(db);
+  const companyAppointmentService = new CompanyAppointmentService({
+    accountRepository: companyAccountRepository,
+    quoteRequestRepository: companyQuoteRequestRepository,
+    proposalRepository: companyProposalRepository,
+    appointmentRepository: companyAppointmentRepository,
+  });
 
   return {
     authService: createAuthService({
@@ -75,17 +81,13 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
       proposalRepository: companyProposalRepository,
       appointmentRepository: companyAppointmentRepository,
     }),
-    companyAppointmentService: new CompanyAppointmentService({
-      accountRepository: companyAccountRepository,
-      quoteRequestRepository: companyQuoteRequestRepository,
-      proposalRepository: companyProposalRepository,
-      appointmentRepository: companyAppointmentRepository,
-    }),
+    companyAppointmentService,
     publicCompanyService: new PublicCompanyService(publicCompanyRepository),
     publicQuoteRequestService: new PublicQuoteRequestService({
       publicCompanyRepository,
       templateRepository,
       quoteRequestRepository: new DrizzleQuoteRequestRepository(db),
+      companyAppointmentService,
       emailAdapter: stubEmailAdapter,
     }),
     templateAdminService: new TemplateAdminService(templateRepository),
