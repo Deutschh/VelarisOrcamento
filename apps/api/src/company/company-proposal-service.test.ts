@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { quoteDraftDataSchema, type QuoteDraftData } from "@velaris/shared";
 import { calculateQuoteDraftData } from "../quote-requests/quote-request-calculation.js";
 import { InMemoryCompanyAccountRepository } from "../test/in-memory-company-account-repository.js";
+import { InMemoryCompanyAppointmentRepository } from "../test/in-memory-company-appointment-repository.js";
 import { InMemoryCompanyProposalRepository } from "../test/in-memory-company-proposal-repository.js";
 import { InMemoryCompanyQuoteRequestRepository } from "../test/in-memory-company-quote-request-repository.js";
 import {
@@ -61,16 +62,20 @@ async function createService() {
     id: "30000000-0000-4000-8000-000000000001",
     requestCode: "VEL-260729-TESTE001",
     companyId,
+    companyTimezone: "America/Sao_Paulo",
     companyConfigurationId: configuration.id,
     companyServiceId: companyService.id,
     companyPricingVersionId: configuration.pricingVersion?.id ?? null,
     status: "accepted_for_proposal",
     serviceName: companyService.name,
+    serviceSchedulingMode: companyService.schedulingMode,
+    serviceEstimatedDurationMinutes: companyService.estimatedDurationMinutes,
     data,
     files: [],
     revisions: [],
     events: [],
     proposals: [],
+    appointments: [],
     calculationSnapshot: {
       ...calculation.snapshot,
       summary,
@@ -85,8 +90,10 @@ async function createService() {
   quoteRequestRepository.requests.set(quoteRequest.id, quoteRequest);
 
   const proposalRepository = new InMemoryCompanyProposalRepository();
+  const appointmentRepository = new InMemoryCompanyAppointmentRepository();
 
   return {
+    appointmentRepository,
     proposalRepository,
     quoteRequest,
     quoteRequestRepository,
@@ -94,6 +101,7 @@ async function createService() {
       accountRepository,
       quoteRequestRepository,
       proposalRepository,
+      appointmentRepository,
       now: () => now,
     }),
   };
@@ -142,12 +150,33 @@ describe("CompanyProposalService", () => {
   });
 
   it("sends the latest draft version idempotently", async () => {
-    const { quoteRequest, proposalRepository, service } = await createService();
+    const { appointmentRepository, quoteRequest, proposalRepository, service } =
+      await createService();
     const created = await service.createProposalVersion(
       companyUserId,
       quoteRequest.id,
       {},
     );
+    const version = created.proposal.versions[0]!;
+    await appointmentRepository.createAppointment({
+      id: "50000000-0000-4000-8000-000000000001",
+      quoteId: created.proposal.id,
+      quoteVersionId: version.id,
+      quoteRequestId: quoteRequest.id,
+      companyId,
+      actorUserId: companyUserId,
+      schedulingMode: "required_with_proposal",
+      proposalVersionStatus: version.status,
+      startsAt: new Date("2026-07-30T13:00:00.000Z"),
+      endsAt: new Date("2026-07-30T15:00:00.000Z"),
+      durationMinutes: 120,
+      timezone: "America/Sao_Paulo",
+      address: "Rua Teste, 123, Sao Paulo",
+      addressSnapshot: quoteRequest.data.address,
+      notes: null,
+      conflictWarning: [],
+      now,
+    });
     const idempotencyKey = "40000000-0000-4000-8000-000000000001";
 
     const first = await service.sendProposal(
@@ -165,6 +194,25 @@ describe("CompanyProposalService", () => {
     expect(second.proposal.latestVersionId).toBe(first.proposal.latestVersionId);
     expect(proposalRepository.idempotencyRecords.size).toBe(1);
     expect(first.proposal.versions[0]?.events[0]?.eventType).toBe("proposal.sent");
+  });
+
+  it("blocks sending when scheduling is required and no appointment was proposed", async () => {
+    const { quoteRequest, service } = await createService();
+    const created = await service.createProposalVersion(
+      companyUserId,
+      quoteRequest.id,
+      {},
+    );
+
+    await expect(
+      service.sendProposal(
+        companyUserId,
+        created.proposal.id,
+        "40000000-0000-4000-8000-000000000002",
+      ),
+    ).rejects.toMatchObject({
+      code: "COMPANY_PROPOSAL_APPOINTMENT_REQUIRED",
+    });
   });
 
   it("blocks proposal creation when the quote request is not ready", async () => {

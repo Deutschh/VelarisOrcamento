@@ -56,6 +56,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: hospedagem da API.
 - Decisao pendente: dominio de producao.
 - Decisao pendente: estrategia de SSL.
+- Decisao pendente: politica explicita de SSL na string do Neon, incluindo avaliar `sslmode=verify-full` para evitar ambiguidades futuras do driver `pg`.
 - Decisao pendente: monitoramento e alertas.
 - Decisao pendente: backups e retencao.
 - Decisao pendente: analytics.

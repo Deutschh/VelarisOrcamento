@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CompanyAppointment } from "./appointments.js";
 import type { CalculationLine, CalculationResult } from "./pricing.js";
 import type { CompanyProposalSummary } from "./proposals.js";
 import type { CompanyFieldConfiguration, SchedulingMode } from "./templates.js";
@@ -203,6 +204,7 @@ export interface QuoteDraftServiceSummary {
   code: string;
   name: string;
   schedulingMode: SchedulingMode;
+  estimatedDurationMinutes: number | null;
   estimateMarginLowerBps: number;
   estimateMarginUpperBps: number;
   fields: CompanyFieldConfiguration[];
@@ -335,6 +337,7 @@ export interface CompanyQuoteRequestDetail extends CompanyQuoteRequestSummary {
   revisions: CompanyQuoteRequestRevision[];
   events: CompanyQuoteRequestEvent[];
   proposals: CompanyProposalSummary[];
+  appointments: CompanyAppointment[];
 }
 
 export interface CompanyQuoteRequestsListResponse {

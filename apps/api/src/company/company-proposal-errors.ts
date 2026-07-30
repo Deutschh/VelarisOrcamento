@@ -26,6 +26,16 @@ export class CompanyProposalQuoteRequestNotReadyError extends AppError {
   }
 }
 
+export class CompanyProposalAppointmentRequiredError extends AppError {
+  constructor() {
+    super(
+      "This service requires an appointment proposal before sending the proposal.",
+      409,
+      "COMPANY_PROPOSAL_APPOINTMENT_REQUIRED",
+    );
+  }
+}
+
 export class CompanyProposalValidationError extends AppError {
   constructor(message: string, code = "COMPANY_PROPOSAL_VALIDATION_ERROR") {
     super(message, 400, code);

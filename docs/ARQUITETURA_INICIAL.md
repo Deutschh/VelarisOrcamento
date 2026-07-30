@@ -143,7 +143,15 @@ Requisito implementado: envio de proposta ocorre pelo backend em `POST /api/comp
 
 Requisito implementado: o painel `/app` permite criar preview/versao de proposta no detalhe da solicitacao aceita para proposta e enviar a ultima versao em rascunho. O frontend continua sem acesso direto ao Neon.
 
-Limitacao registrada: visualizacao publica da proposta, solicitacao publica de alteracao, aceite/rejeicao do cliente, PDF, documentos legais versionados e agendamento assistido seguem nas sprints posteriores da especificacao.
+Requisito implementado: agendamento assistido fica separado de propostas em `appointments` e `appointment_history`. A Sprint 13 adiciona contratos compartilhados em `packages/shared`, transicoes puras em `packages/domain`, servico de aplicacao em `apps/api/src/company` e persistencia Drizzle no backend.
+
+Requisito implementado: modos `required_with_proposal`, `optional_with_proposal`, `after_proposal_acceptance` e `external_only` sao validados no backend. Quando o servico e `required_with_proposal`, o envio da proposta exige horario ativo antes de chamar a transicao de envio.
+
+Requisito implementado: horarios persistem data, fim calculado, duracao, timezone da empresa, endereco/snapshot, observacoes, responsavel, conflitos avisados e historico. Conflitos basicos sao detectados por sobreposicao de horario da mesma empresa e retornam aviso sem bloqueio.
+
+Requisito implementado: o painel `/app` consome somente a API para propor horario, cancelar, reagendar quando o cliente pedir outro horario e marcar como concluido quando confirmado. O frontend continua sem acesso direto ao Neon.
+
+Limitacao registrada: visualizacao publica da proposta, solicitacao publica de alteracao, aceite/rejeicao do cliente, confirmacao publica de horario, PDF e documentos legais versionados seguem nas sprints posteriores da especificacao.
 
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
@@ -221,6 +229,8 @@ ImagesExemplos/
 - Persistencia monetaria deve usar `NUMERIC(12, 2)`.
 - Medidas devem guardar valor e unidade originais, alem do valor e unidade normalizados.
 - Acoes criticas devem prever idempotencia.
+- Conflitos de horario da V1 devem avisar e nao bloquear.
+- Agendamentos devem preservar timezone da empresa, endereco/snapshot, duracao e historico de transicoes.
 - Configuracoes publicadas devem ser imutaveis.
 - Configuracoes publicadas devem gerar snapshot com template, campos, opcoes, condicoes, regras, precos, margens, modo de agendamento e dados de calculo usados naquela versao.
 - Propostas aceitas devem ser imutaveis.

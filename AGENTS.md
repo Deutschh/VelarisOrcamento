@@ -19,7 +19,8 @@
 - Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho no servidor, token de rascunho, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
 - Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, detalhe, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente, migration e bloqueio de versao aceita.
-- Proxima etapa recomendada para o MVP piloto: Sprint 13, agendamento assistido.
+- Sprint 13 concluida tecnicamente: agendamento assistido, `appointments`, historico, modos de agendamento, aviso de conflito sem bloqueio, painel da empresa e bloqueio de envio quando o horario e obrigatorio.
+- Proxima etapa recomendada para o MVP piloto: Sprint 14, acompanhamento, recuperacao e comunicacao.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -89,6 +90,13 @@
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
 - Snapshots devem preservar regras, precos, configuracoes, itens, termos e totais usados em cada solicitacao/proposta.
+- Modos de agendamento devem respeitar a especificacao: `required_with_proposal`, `optional_with_proposal`, `after_proposal_acceptance` e `external_only`.
+- Estados de agendamento devem seguir a matriz da especificacao: `none`, `proposed`, `confirmed`, `reschedule_requested`, `rescheduled`, `completed` e `cancelled`.
+- Alteracoes de agendamento devem passar por `packages/domain` e por servicos de aplicacao; controllers nao podem atualizar status livremente.
+- Conflitos de horario na V1 geram aviso, mas nao bloqueiam a empresa.
+- Servicos `external_only` nao devem criar agendamento pela plataforma.
+- Servicos `after_proposal_acceptance` so podem criar horario pela plataforma apos aceite da proposta.
+- Servicos `required_with_proposal` exigem horario ativo (`proposed`, `rescheduled` ou `confirmed`) antes do envio da proposta.
 - Variaveis sensiveis devem permanecer fora do codigo.
 - Nenhuma credencial real deve ser criada, solicitada ou escrita em arquivos versionados.
 - Toda migration deve ser revisavel e reversivel quando tecnicamente possivel.
@@ -133,4 +141,5 @@
 - Sprint 10 cria o fluxo publico de orcamento com rascunho e solicitacao.
 - Sprint 11 cria o painel da empresa e revisao.
 - Sprint 12 cria propostas, versoes e valor final.
-- Sprint 13 deve iniciar agendamento assistido somente apos nova autorizacao do usuario.
+- Sprint 13 cria agendamento assistido.
+- Sprint 14 deve iniciar acompanhamento, recuperacao e comunicacao somente apos nova autorizacao do usuario.

@@ -106,7 +106,7 @@
 - Recalculo e memoria de calculo. Implementado Sprint 11.
 - Recusa com motivo. Implementado Sprint 11.
 - Criacao/preview/envio de proposta. Implementado Sprint 12 no detalhe da solicitacao aceita para proposta.
-- Agendamento assistido.
+- Agendamento assistido. Implementado Sprint 13 no detalhe da solicitacao aceita para proposta.
 - Clientes.
 - Historico.
 - Metricas.
@@ -185,9 +185,9 @@ Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implement
 
 - `POST /api/company/quote-requests/:id/proposals`. Implementado Sprint 12.
 - `POST /api/company/proposals/:id/send`. Implementado Sprint 12 com `Idempotency-Key`.
-- `POST /api/company/proposals/:id/appointment`
-- `PATCH /api/company/appointments/:id`
-- `POST /api/company/appointments/:id/complete`
+- `POST /api/company/proposals/:id/appointment`. Implementado Sprint 13.
+- `PATCH /api/company/appointments/:id`. Implementado Sprint 13.
+- `POST /api/company/appointments/:id/complete`. Implementado Sprint 13.
 - `GET /api/company/customers`
 - `GET /api/company/metrics`
 - `POST /api/company/price-change-requests`

@@ -5,7 +5,9 @@ import {
   adminSimulateCompanyConfigurationRequestSchema,
   adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
+  companyProposeAppointmentRequestSchema,
   companyCreateProposalRequestSchema,
+  companyUpdateAppointmentRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestReviewRequestSchema,
   createQuoteDraftRequestSchema,
@@ -22,8 +24,12 @@ import type {
   AdminCompanyPublicProfileRequest,
   AdminCompanyDetail,
   AdminCompanySummary,
+  AppointmentStatus,
   AuthUser,
   CalculationResult,
+  CompanyAppointment,
+  CompanyAppointmentConflict,
+  CompanyAppointmentResponse,
   CompanyConfigurationDetail,
   CompanyConfigurationPreview,
   CompanyFieldConfiguration,
@@ -59,10 +65,12 @@ import type {
 } from "@velaris/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   Ban,
   ArrowRight,
   Building2,
   Calculator,
+  CalendarClock,
   CheckCircle2,
   CircleSlash2,
   ClipboardList,
@@ -2136,6 +2144,9 @@ function CompanyQuoteRequestsPanel() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<CompanyQuoteStatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [appointmentConflictWarning, setAppointmentConflictWarning] = useState<
+    CompanyAppointmentConflict[]
+  >([]);
   const requestsQuery = useQuery({
     queryKey: ["company-quote-requests", statusFilter],
     queryFn: () => {
@@ -2163,6 +2174,10 @@ function CompanyQuoteRequestsPanel() {
       setSelectedId(quoteRequests[0]!.id);
     }
   }, [quoteRequests, selectedId]);
+
+  useEffect(() => {
+    setAppointmentConflictWarning([]);
+  }, [selectedId]);
 
   const detailQuery = useQuery({
     enabled: Boolean(selectedId),
@@ -2250,6 +2265,67 @@ function CompanyQuoteRequestsPanel() {
     },
   });
 
+  const proposeAppointmentMutation = useMutation({
+    mutationFn: (input: {
+      quoteRequestId: string;
+      proposalId: string;
+      body: Parameters<typeof companyProposeAppointmentRequestSchema.parse>[0];
+    }) =>
+      apiRequest<CompanyAppointmentResponse>(
+        `/api/company/proposals/${input.proposalId}/appointment`,
+        {
+          method: "POST",
+          body: JSON.stringify(companyProposeAppointmentRequestSchema.parse(input.body)),
+        },
+      ),
+    onSuccess: (response, variables) => {
+      setAppointmentConflictWarning(response.conflictWarning);
+      void queryClient.invalidateQueries({
+        queryKey: ["company-quote-request", variables.quoteRequestId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["company-quote-requests"] });
+    },
+  });
+
+  const updateAppointmentMutation = useMutation({
+    mutationFn: (input: {
+      quoteRequestId: string;
+      appointmentId: string;
+      body: Parameters<typeof companyUpdateAppointmentRequestSchema.parse>[0];
+    }) =>
+      apiRequest<CompanyAppointmentResponse>(
+        `/api/company/appointments/${input.appointmentId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(companyUpdateAppointmentRequestSchema.parse(input.body)),
+        },
+      ),
+    onSuccess: (response, variables) => {
+      setAppointmentConflictWarning(response.conflictWarning);
+      void queryClient.invalidateQueries({
+        queryKey: ["company-quote-request", variables.quoteRequestId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["company-quote-requests"] });
+    },
+  });
+
+  const completeAppointmentMutation = useMutation({
+    mutationFn: (input: { quoteRequestId: string; appointmentId: string }) =>
+      apiRequest<CompanyAppointmentResponse>(
+        `/api/company/appointments/${input.appointmentId}/complete`,
+        {
+          method: "POST",
+        },
+      ),
+    onSuccess: (_response, variables) => {
+      setAppointmentConflictWarning([]);
+      void queryClient.invalidateQueries({
+        queryKey: ["company-quote-request", variables.quoteRequestId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["company-quote-requests"] });
+    },
+  });
+
   return (
     <section className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
       <div className="space-y-6">
@@ -2291,13 +2367,35 @@ function CompanyQuoteRequestsPanel() {
         </section>
       </div>
       <CompanyQuoteRequestDetailPanel
+        appointmentConflictWarning={appointmentConflictWarning}
+        appointmentError={
+          proposeAppointmentMutation.error
+            ? errorMessage(
+                proposeAppointmentMutation.error,
+                "Nao foi possivel propor o horario.",
+              )
+            : updateAppointmentMutation.error
+              ? errorMessage(
+                  updateAppointmentMutation.error,
+                  "Nao foi possivel atualizar o horario.",
+                )
+              : completeAppointmentMutation.error
+                ? errorMessage(
+                    completeAppointmentMutation.error,
+                    "Nao foi possivel concluir o horario.",
+                  )
+                : null
+        }
         createProposalError={createProposalMutation.error}
         declineError={declineMutation.error}
         detail={detailQuery.data?.quoteRequest ?? null}
+        isCompletingAppointment={completeAppointmentMutation.isPending}
         isCreatingProposal={createProposalMutation.isPending}
         isDeclining={declineMutation.isPending}
         isLoading={detailQuery.isLoading}
+        isProposingAppointment={proposeAppointmentMutation.isPending}
         isSendingProposal={sendProposalMutation.isPending}
+        isUpdatingAppointment={updateAppointmentMutation.isPending}
         isReviewing={reviewMutation.isPending}
         reviewError={reviewMutation.error}
         sendProposalError={sendProposalMutation.error}
@@ -2305,9 +2403,18 @@ function CompanyQuoteRequestsPanel() {
           createProposalMutation.mutate({ quoteRequestId, body })
         }
         onDecline={(id, body) => declineMutation.mutate({ id, body })}
+        onCompleteAppointment={(quoteRequestId, appointmentId) =>
+          completeAppointmentMutation.mutate({ quoteRequestId, appointmentId })
+        }
+        onProposeAppointment={(quoteRequestId, proposalId, body) =>
+          proposeAppointmentMutation.mutate({ quoteRequestId, proposalId, body })
+        }
         onReview={(id, body) => reviewMutation.mutate({ id, body })}
         onSendProposal={(quoteRequestId, proposalId) =>
           sendProposalMutation.mutate({ quoteRequestId, proposalId })
+        }
+        onUpdateAppointment={(quoteRequestId, appointmentId, body) =>
+          updateAppointmentMutation.mutate({ quoteRequestId, appointmentId, body })
         }
       />
     </section>
@@ -2389,31 +2496,45 @@ function CompanyQuoteRequestList({
 }
 
 function CompanyQuoteRequestDetailPanel({
+  appointmentConflictWarning,
+  appointmentError,
   createProposalError,
   declineError,
   detail,
+  isCompletingAppointment,
   isCreatingProposal,
   isDeclining,
   isLoading,
+  isProposingAppointment,
   isSendingProposal,
+  isUpdatingAppointment,
   isReviewing,
   reviewError,
   sendProposalError,
+  onCompleteAppointment,
   onCreateProposal,
   onDecline,
+  onProposeAppointment,
   onReview,
   onSendProposal,
+  onUpdateAppointment,
 }: {
+  appointmentConflictWarning: CompanyAppointmentConflict[];
+  appointmentError: string | null;
   createProposalError: unknown;
   declineError: unknown;
   detail: CompanyQuoteRequestDetail | null;
+  isCompletingAppointment: boolean;
   isCreatingProposal: boolean;
   isDeclining: boolean;
   isLoading: boolean;
+  isProposingAppointment: boolean;
   isSendingProposal: boolean;
+  isUpdatingAppointment: boolean;
   isReviewing: boolean;
   reviewError: unknown;
   sendProposalError: unknown;
+  onCompleteAppointment: (quoteRequestId: string, appointmentId: string) => void;
   onCreateProposal: (
     quoteRequestId: string,
     body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0],
@@ -2426,7 +2547,17 @@ function CompanyQuoteRequestDetailPanel({
     id: string,
     body: Parameters<typeof companyQuoteRequestReviewRequestSchema.parse>[0],
   ) => void;
+  onProposeAppointment: (
+    quoteRequestId: string,
+    proposalId: string,
+    body: Parameters<typeof companyProposeAppointmentRequestSchema.parse>[0],
+  ) => void;
   onSendProposal: (quoteRequestId: string, proposalId: string) => void;
+  onUpdateAppointment: (
+    quoteRequestId: string,
+    appointmentId: string,
+    body: Parameters<typeof companyUpdateAppointmentRequestSchema.parse>[0],
+  ) => void;
 }) {
   if (isLoading) {
     return (
@@ -2446,47 +2577,69 @@ function CompanyQuoteRequestDetailPanel({
 
   return (
     <CompanyQuoteRequestDetailView
+      appointmentConflictWarning={appointmentConflictWarning}
+      appointmentError={appointmentError}
       createProposalError={createProposalError}
       declineError={declineError}
+      isCompletingAppointment={isCompletingAppointment}
       isCreatingProposal={isCreatingProposal}
       isDeclining={isDeclining}
+      isProposingAppointment={isProposingAppointment}
       isSendingProposal={isSendingProposal}
+      isUpdatingAppointment={isUpdatingAppointment}
       isReviewing={isReviewing}
       quoteRequest={detail}
       reviewError={reviewError}
       sendProposalError={sendProposalError}
+      onCompleteAppointment={onCompleteAppointment}
       onCreateProposal={onCreateProposal}
       onDecline={onDecline}
+      onProposeAppointment={onProposeAppointment}
       onReview={onReview}
       onSendProposal={onSendProposal}
+      onUpdateAppointment={onUpdateAppointment}
     />
   );
 }
 
 function CompanyQuoteRequestDetailView({
+  appointmentConflictWarning,
+  appointmentError,
   createProposalError,
   declineError,
+  isCompletingAppointment,
   isCreatingProposal,
   isDeclining,
+  isProposingAppointment,
   isSendingProposal,
+  isUpdatingAppointment,
   isReviewing,
   quoteRequest,
   reviewError,
   sendProposalError,
+  onCompleteAppointment,
   onCreateProposal,
   onDecline,
+  onProposeAppointment,
   onReview,
   onSendProposal,
+  onUpdateAppointment,
 }: {
+  appointmentConflictWarning: CompanyAppointmentConflict[];
+  appointmentError: string | null;
   createProposalError: unknown;
   declineError: unknown;
+  isCompletingAppointment: boolean;
   isCreatingProposal: boolean;
   isDeclining: boolean;
+  isProposingAppointment: boolean;
   isSendingProposal: boolean;
+  isUpdatingAppointment: boolean;
   isReviewing: boolean;
   quoteRequest: CompanyQuoteRequestDetail;
   reviewError: unknown;
   sendProposalError: unknown;
+  onCompleteAppointment: (quoteRequestId: string, appointmentId: string) => void;
   onCreateProposal: (
     quoteRequestId: string,
     body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0],
@@ -2499,7 +2652,17 @@ function CompanyQuoteRequestDetailView({
     id: string,
     body: Parameters<typeof companyQuoteRequestReviewRequestSchema.parse>[0],
   ) => void;
+  onProposeAppointment: (
+    quoteRequestId: string,
+    proposalId: string,
+    body: Parameters<typeof companyProposeAppointmentRequestSchema.parse>[0],
+  ) => void;
   onSendProposal: (quoteRequestId: string, proposalId: string) => void;
+  onUpdateAppointment: (
+    quoteRequestId: string,
+    appointmentId: string,
+    body: Parameters<typeof companyUpdateAppointmentRequestSchema.parse>[0],
+  ) => void;
 }) {
   const [reviewData, setReviewData] = useState<QuoteDraftData>(quoteRequest.data);
   const [reviewReason, setReviewReason] = useState("");
@@ -2686,6 +2849,17 @@ function CompanyQuoteRequestDetailView({
             quoteRequest={quoteRequest}
             onCreateProposal={onCreateProposal}
             onSendProposal={onSendProposal}
+          />
+          <CompanyAppointmentPanel
+            conflictWarning={appointmentConflictWarning}
+            error={appointmentError}
+            isCompleting={isCompletingAppointment}
+            isProposing={isProposingAppointment}
+            isUpdating={isUpdatingAppointment}
+            quoteRequest={quoteRequest}
+            onCompleteAppointment={onCompleteAppointment}
+            onProposeAppointment={onProposeAppointment}
+            onUpdateAppointment={onUpdateAppointment}
           />
           <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
             <h3 className="text-lg font-semibold">Revisao</h3>
@@ -3048,7 +3222,10 @@ function CompanyProposalPanel({
   const latestDraftCanSend =
     quoteRequest.status === "accepted_for_proposal" &&
     latestProposal?.latestVersionStatus === "draft" &&
-    !hasAcceptedVersion;
+    !hasAcceptedVersion &&
+    hasRequiredAppointmentForProposal(quoteRequest);
+  const requiresAppointmentBeforeSend =
+    quoteRequest.service.schedulingMode === "required_with_proposal";
 
   function createProposal() {
     if (!canCreate || finalTotalCents === null || !validUntilIso) {
@@ -3152,6 +3329,12 @@ function CompanyProposalPanel({
               Enviar proposta
             </ActionButton>
           </div>
+          {requiresAppointmentBeforeSend &&
+          !hasRequiredAppointmentForProposal(quoteRequest) ? (
+            <p className="text-xs text-amber-100">
+              Este servico exige horario proposto antes do envio da proposta.
+            </p>
+          ) : null}
           <FormError message={error} />
         </div>
       ) : (
@@ -3186,6 +3369,271 @@ function CompanyProposalPanel({
           ))}
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function CompanyAppointmentPanel({
+  conflictWarning,
+  error,
+  isCompleting,
+  isProposing,
+  isUpdating,
+  quoteRequest,
+  onCompleteAppointment,
+  onProposeAppointment,
+  onUpdateAppointment,
+}: {
+  conflictWarning: CompanyAppointmentConflict[];
+  error: string | null;
+  isCompleting: boolean;
+  isProposing: boolean;
+  isUpdating: boolean;
+  quoteRequest: CompanyQuoteRequestDetail;
+  onCompleteAppointment: (quoteRequestId: string, appointmentId: string) => void;
+  onProposeAppointment: (
+    quoteRequestId: string,
+    proposalId: string,
+    body: Parameters<typeof companyProposeAppointmentRequestSchema.parse>[0],
+  ) => void;
+  onUpdateAppointment: (
+    quoteRequestId: string,
+    appointmentId: string,
+    body: Parameters<typeof companyUpdateAppointmentRequestSchema.parse>[0],
+  ) => void;
+}) {
+  const latestProposal = getLatestProposalSummary(quoteRequest.proposals);
+  const latestAppointment = getLatestAppointment(quoteRequest.appointments);
+  const activeAppointment =
+    latestAppointment && !["completed", "cancelled"].includes(latestAppointment.status)
+      ? latestAppointment
+      : null;
+  const defaultDuration = quoteRequest.service.estimatedDurationMinutes ?? 120;
+  const [startsAt, setStartsAt] = useState(
+    formatDateTimeLocalInput(addDaysToDate(new Date(), 1)),
+  );
+  const [durationMinutes, setDurationMinutes] = useState(String(defaultDuration));
+  const [address, setAddress] = useState(formatQuoteAddress(quoteRequest.data.address));
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    setStartsAt(formatDateTimeLocalInput(addDaysToDate(new Date(), 1)));
+    setDurationMinutes(String(defaultDuration));
+    setAddress(formatQuoteAddress(quoteRequest.data.address));
+    setNotes("");
+  }, [
+    defaultDuration,
+    quoteRequest.id,
+    quoteRequest.updatedAt,
+    quoteRequest.data.address,
+  ]);
+
+  const schedulingMode = quoteRequest.service.schedulingMode;
+  const canUsePlatformScheduling = schedulingMode !== "external_only";
+  const hasAcceptedVersion = quoteRequest.proposals.some(
+    (proposal) =>
+      proposal.acceptedQuoteVersionId || proposal.latestVersionStatus === "accepted",
+  );
+  const waitsForAcceptedProposal =
+    schedulingMode === "after_proposal_acceptance" && !hasAcceptedVersion;
+  const canCreateInitial =
+    quoteRequest.status === "accepted_for_proposal" &&
+    canUsePlatformScheduling &&
+    Boolean(latestProposal) &&
+    !activeAppointment &&
+    !waitsForAcceptedProposal;
+  const canProposeNewTime =
+    quoteRequest.status === "accepted_for_proposal" &&
+    canUsePlatformScheduling &&
+    Boolean(latestProposal) &&
+    activeAppointment?.status === "reschedule_requested" &&
+    !waitsForAcceptedProposal;
+  const canSubmitSchedule =
+    Boolean(parseDateTimeLocalInputToIso(startsAt)) &&
+    Math.max(15, parseIntegerInput(durationMinutes)) <= 1440 &&
+    (canCreateInitial || canProposeNewTime);
+  const warnings =
+    conflictWarning.length > 0
+      ? conflictWarning
+      : (latestAppointment?.conflictWarning ?? []);
+
+  function submitSchedule() {
+    const startsAtIso = parseDateTimeLocalInputToIso(startsAt);
+    const duration = Math.max(15, parseIntegerInput(durationMinutes));
+
+    if (!startsAtIso || !latestProposal || !canSubmitSchedule) {
+      return;
+    }
+
+    if (canProposeNewTime && activeAppointment) {
+      onUpdateAppointment(quoteRequest.id, activeAppointment.id, {
+        action: "propose_new_time",
+        startsAt: startsAtIso,
+        durationMinutes: duration,
+        address,
+        notes,
+      });
+      return;
+    }
+
+    onProposeAppointment(quoteRequest.id, latestProposal.id, {
+      startsAt: startsAtIso,
+      durationMinutes: duration,
+      address,
+      notes,
+    });
+  }
+
+  return (
+    <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <CalendarClock size={18} />
+        Agendamento
+      </h3>
+
+      <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-white/70">
+        {schedulingModeLabels[schedulingMode]}
+      </div>
+
+      {latestAppointment ? (
+        <div className="mt-4 space-y-3 rounded-md border border-white/10 px-3 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium text-white/85">
+              {formatAppointmentWindow(latestAppointment)}
+            </span>
+            <AppointmentStatusBadge status={latestAppointment.status} />
+          </div>
+          <div className="grid gap-2 text-xs text-white/45">
+            <span>
+              Duracao {formatDurationMinutes(latestAppointment.durationMinutes)}
+            </span>
+            <span>{latestAppointment.address ?? "Endereco nao informado"}</span>
+            {latestAppointment.notes ? <span>{latestAppointment.notes}</span> : null}
+          </div>
+          {latestAppointment.history.length > 0 ? (
+            <Timeline
+              empty="Nenhum evento de agendamento."
+              items={latestAppointment.history.slice(0, 4).map((event) => ({
+                id: event.id,
+                title: event.eventType,
+                detail:
+                  event.fromStatus && event.toStatus
+                    ? `${appointmentStatusLabels[event.fromStatus]} -> ${
+                        appointmentStatusLabels[event.toStatus]
+                      }`
+                    : "Evento",
+                date: event.createdAt,
+              }))}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <div className="mt-4 rounded-md border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle size={16} />
+            Conflito de horario
+          </div>
+          <div className="mt-2 space-y-1 text-xs">
+            {warnings.map((warning) => (
+              <div key={warning.appointmentId}>
+                {formatDate(warning.startsAt)}
+                {warning.proposalCode ? ` - ${warning.proposalCode}` : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {!latestProposal ? (
+        <p className="mt-4 text-sm text-white/50">
+          Crie uma proposta antes de propor horario.
+        </p>
+      ) : null}
+
+      {!canUsePlatformScheduling ? (
+        <p className="mt-4 text-sm text-white/50">
+          Este servico usa agendamento externo.
+        </p>
+      ) : waitsForAcceptedProposal ? (
+        <p className="mt-4 text-sm text-white/50">
+          O horario sera proposto depois do aceite da proposta.
+        </p>
+      ) : null}
+
+      {canUsePlatformScheduling && latestProposal && !waitsForAcceptedProposal ? (
+        <div className="mt-5 space-y-4">
+          <TextField
+            disabled={!canCreateInitial && !canProposeNewTime}
+            label="Data e horario"
+            type="datetime-local"
+            value={startsAt}
+            onChange={(event) => setStartsAt(event.target.value)}
+          />
+          <TextField
+            disabled={!canCreateInitial && !canProposeNewTime}
+            inputMode="numeric"
+            label="Duracao em minutos"
+            value={durationMinutes}
+            onChange={(event) => setDurationMinutes(event.target.value)}
+          />
+          <TextField
+            disabled={!canCreateInitial && !canProposeNewTime}
+            label="Endereco"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+          />
+          <TextAreaField
+            disabled={!canCreateInitial && !canProposeNewTime}
+            label="Observacoes do horario"
+            rows={3}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+          <div className="grid gap-2">
+            <ActionButton
+              disabled={!canSubmitSchedule}
+              icon={CalendarClock}
+              isLoading={isProposing || isUpdating}
+              onClick={submitSchedule}
+            >
+              {canProposeNewTime ? "Propor novo horario" : "Propor horario"}
+            </ActionButton>
+            <ActionButton
+              disabled={!activeAppointment || activeAppointment.status === "completed"}
+              icon={Ban}
+              isLoading={isUpdating}
+              variant="warning"
+              onClick={() => {
+                if (activeAppointment) {
+                  onUpdateAppointment(quoteRequest.id, activeAppointment.id, {
+                    action: "cancel",
+                    reason: "Cancelado pela empresa.",
+                  });
+                }
+              }}
+            >
+              Cancelar horario
+            </ActionButton>
+            <ActionButton
+              disabled={activeAppointment?.status !== "confirmed"}
+              icon={CheckCircle2}
+              isLoading={isCompleting}
+              variant="secondary"
+              onClick={() => {
+                if (activeAppointment) {
+                  onCompleteAppointment(quoteRequest.id, activeAppointment.id);
+                }
+              }}
+            >
+              Marcar concluido
+            </ActionButton>
+          </div>
+        </div>
+      ) : null}
+
+      <FormError message={error} />
     </section>
   );
 }
@@ -3315,6 +3763,16 @@ const proposalVersionStatusLabels: Record<QuoteVersionStatus, string> = {
   superseded: "Substituida",
 };
 
+const appointmentStatusLabels: Record<AppointmentStatus, string> = {
+  none: "Sem horario",
+  proposed: "Proposto",
+  confirmed: "Confirmado",
+  reschedule_requested: "Alteracao solicitada",
+  rescheduled: "Reagendado",
+  completed: "Concluido",
+  cancelled: "Cancelado",
+};
+
 function ProposalVersionStatusBadge({ status }: { status: QuoteVersionStatus }) {
   const classByStatus: Record<QuoteVersionStatus, string> = {
     draft: "border-white/15 bg-white/[0.04] text-white/65",
@@ -3331,6 +3789,29 @@ function ProposalVersionStatusBadge({ status }: { status: QuoteVersionStatus }) 
       className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
     >
       {proposalVersionStatusLabels[status]}
+    </span>
+  );
+}
+
+function AppointmentStatusBadge({
+  status,
+}: {
+  status: Exclude<AppointmentStatus, "none">;
+}) {
+  const classByStatus: Record<Exclude<AppointmentStatus, "none">, string> = {
+    proposed: "border-sky-300/30 bg-sky-300/10 text-sky-100",
+    confirmed: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
+    reschedule_requested: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+    rescheduled: "border-violet-300/30 bg-violet-300/10 text-violet-100",
+    completed: "border-white/15 bg-white/[0.04] text-white/60",
+    cancelled: "border-rose-300/30 bg-rose-300/10 text-rose-100",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
+    >
+      {appointmentStatusLabels[status]}
     </span>
   );
 }
@@ -4787,6 +5268,40 @@ function getLatestProposalSummary(proposals: CompanyProposalSummary[]) {
     .sort(
       (left, right) => (right.latestVersionNumber ?? 0) - (left.latestVersionNumber ?? 0),
     )[0];
+}
+
+function getLatestAppointment(appointments: CompanyAppointment[]) {
+  return appointments
+    .slice()
+    .sort(
+      (left, right) =>
+        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+    )[0];
+}
+
+function hasRequiredAppointmentForProposal(quoteRequest: CompanyQuoteRequestDetail) {
+  if (quoteRequest.service.schedulingMode !== "required_with_proposal") {
+    return true;
+  }
+
+  return quoteRequest.appointments.some((appointment) =>
+    ["proposed", "rescheduled", "confirmed"].includes(appointment.status),
+  );
+}
+
+function formatQuoteAddress(address: QuoteDraftData["address"]) {
+  return (
+    address.fullAddress ||
+    [address.street, address.number, address.neighborhood, address.city, address.state]
+      .filter(Boolean)
+      .join(", ")
+  );
+}
+
+function formatAppointmentWindow(appointment: CompanyAppointment) {
+  const start = formatDate(appointment.startsAt);
+
+  return appointment.endsAt ? `${start} ate ${formatDate(appointment.endsAt)}` : start;
 }
 
 function mutationErrorMessage(error: unknown) {

@@ -474,6 +474,7 @@ export class PublicQuoteRequestService {
         code: context.service.code,
         name: context.service.name,
         schedulingMode: context.service.schedulingMode,
+        estimatedDurationMinutes: context.service.estimatedDurationMinutes,
         estimateMarginLowerBps: context.service.estimateMarginLowerBps,
         estimateMarginUpperBps: context.service.estimateMarginUpperBps,
         fields: context.service.fields.filter(

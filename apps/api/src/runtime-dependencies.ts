@@ -8,9 +8,11 @@ import { AuthConfigurationError } from "./auth/auth-errors.js";
 import { DrizzleAuthRepository } from "./auth/drizzle-auth-repository.js";
 import type { TokenService } from "./auth/token-service.js";
 import { CompanyAccountService } from "./company/company-account-service.js";
+import { CompanyAppointmentService } from "./company/company-appointment-service.js";
 import { CompanyProposalService } from "./company/company-proposal-service.js";
 import { CompanyQuoteRequestService } from "./company/company-quote-request-service.js";
 import { DrizzleCompanyAccountRepository } from "./company/drizzle-company-account-repository.js";
+import { DrizzleCompanyAppointmentRepository } from "./company/drizzle-company-appointment-repository.js";
 import { DrizzleCompanyProposalRepository } from "./company/drizzle-company-proposal-repository.js";
 import { DrizzleCompanyQuoteRequestRepository } from "./company/drizzle-company-quote-request-repository.js";
 import { env } from "./config/env.js";
@@ -30,6 +32,7 @@ export interface RuntimeDependencies {
   companyAccountService: CompanyAccountService;
   companyQuoteRequestService: CompanyQuoteRequestService;
   companyProposalService: CompanyProposalService;
+  companyAppointmentService: CompanyAppointmentService;
   publicCompanyService: PublicCompanyService;
   publicQuoteRequestService: PublicQuoteRequestService;
   templateAdminService: TemplateAdminService;
@@ -47,6 +50,7 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   const companyAccountRepository = new DrizzleCompanyAccountRepository(db);
   const companyQuoteRequestRepository = new DrizzleCompanyQuoteRequestRepository(db);
   const companyProposalRepository = new DrizzleCompanyProposalRepository(db);
+  const companyAppointmentRepository = new DrizzleCompanyAppointmentRepository(db);
 
   return {
     authService: createAuthService({
@@ -69,6 +73,13 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
       accountRepository: companyAccountRepository,
       quoteRequestRepository: companyQuoteRequestRepository,
       proposalRepository: companyProposalRepository,
+      appointmentRepository: companyAppointmentRepository,
+    }),
+    companyAppointmentService: new CompanyAppointmentService({
+      accountRepository: companyAccountRepository,
+      quoteRequestRepository: companyQuoteRequestRepository,
+      proposalRepository: companyProposalRepository,
+      appointmentRepository: companyAppointmentRepository,
     }),
     publicCompanyService: new PublicCompanyService(publicCompanyRepository),
     publicQuoteRequestService: new PublicQuoteRequestService({

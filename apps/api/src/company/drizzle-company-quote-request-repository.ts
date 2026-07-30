@@ -3,7 +3,10 @@ import { and, desc, eq, ne } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import {
+  appointmentHistory,
+  appointments,
   companyServices,
+  companies,
   quotes,
   quoteRequestAnswerRevisions,
   quoteRequestAnswers,
@@ -16,6 +19,10 @@ import {
 } from "@velaris/database-schema";
 import {
   quoteDraftDataSchema,
+  type AppointmentStatus,
+  type CompanyAppointment,
+  type CompanyAppointmentConflict,
+  type CompanyAppointmentHistory,
   type CompanyProposalSummary,
   type QuoteDraftFileSummary,
 } from "@velaris/shared";
@@ -31,12 +38,18 @@ type Database = ReturnType<typeof createDatabaseClient>["db"];
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type RequestRow = {
   request: typeof quoteRequests.$inferSelect;
+  company: typeof companies.$inferSelect;
+  companyService: typeof companyServices.$inferSelect;
   templateService: typeof templateServices.$inferSelect;
 };
 type FileRow = typeof quoteRequestFiles.$inferSelect;
 type ProposalRow = {
   quote: typeof quotes.$inferSelect;
   version: typeof quoteVersions.$inferSelect | null;
+};
+type AppointmentRow = {
+  appointment: typeof appointments.$inferSelect;
+  version: typeof quoteVersions.$inferSelect;
 };
 
 export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequestRepository {
@@ -207,9 +220,12 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
     return this.db
       .select({
         request: quoteRequests,
+        company: companies,
+        companyService: companyServices,
         templateService: templateServices,
       })
       .from(quoteRequests)
+      .innerJoin(companies, eq(companies.id, quoteRequests.companyId))
       .innerJoin(companyServices, eq(companyServices.id, quoteRequests.companyServiceId))
       .innerJoin(
         templateServices,
@@ -233,41 +249,54 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
   }
 
   private async mapRequest(row: RequestRow): Promise<PersistedCompanyQuoteRequest> {
-    const [fileRows, revisionRows, eventRows, proposalRows] = await Promise.all([
-      this.db
-        .select()
-        .from(quoteRequestFiles)
-        .where(eq(quoteRequestFiles.quoteRequestId, row.request.id)),
-      this.db
-        .select()
-        .from(quoteRequestAnswerRevisions)
-        .where(eq(quoteRequestAnswerRevisions.quoteRequestId, row.request.id))
-        .orderBy(desc(quoteRequestAnswerRevisions.createdAt)),
-      this.db
-        .select()
-        .from(quoteRequestEvents)
-        .where(eq(quoteRequestEvents.quoteRequestId, row.request.id))
-        .orderBy(desc(quoteRequestEvents.createdAt)),
-      this.db
-        .select({
-          quote: quotes,
-          version: quoteVersions,
-        })
-        .from(quotes)
-        .leftJoin(quoteVersions, eq(quoteVersions.quoteId, quotes.id))
-        .where(eq(quotes.quoteRequestId, row.request.id))
-        .orderBy(desc(quoteVersions.versionNumber)),
-    ]);
+    const [fileRows, revisionRows, eventRows, proposalRows, appointmentRows] =
+      await Promise.all([
+        this.db
+          .select()
+          .from(quoteRequestFiles)
+          .where(eq(quoteRequestFiles.quoteRequestId, row.request.id)),
+        this.db
+          .select()
+          .from(quoteRequestAnswerRevisions)
+          .where(eq(quoteRequestAnswerRevisions.quoteRequestId, row.request.id))
+          .orderBy(desc(quoteRequestAnswerRevisions.createdAt)),
+        this.db
+          .select()
+          .from(quoteRequestEvents)
+          .where(eq(quoteRequestEvents.quoteRequestId, row.request.id))
+          .orderBy(desc(quoteRequestEvents.createdAt)),
+        this.db
+          .select({
+            quote: quotes,
+            version: quoteVersions,
+          })
+          .from(quotes)
+          .leftJoin(quoteVersions, eq(quoteVersions.quoteId, quotes.id))
+          .where(eq(quotes.quoteRequestId, row.request.id))
+          .orderBy(desc(quoteVersions.versionNumber)),
+        this.db
+          .select({
+            appointment: appointments,
+            version: quoteVersions,
+          })
+          .from(appointments)
+          .innerJoin(quoteVersions, eq(quoteVersions.id, appointments.quoteVersionId))
+          .where(eq(appointments.quoteRequestId, row.request.id))
+          .orderBy(desc(appointments.updatedAt)),
+      ]);
 
     return {
       id: row.request.id,
       requestCode: row.request.requestCode,
       companyId: row.request.companyId,
+      companyTimezone: row.company.timezone,
       companyConfigurationId: row.request.companyConfigurationId,
       companyServiceId: row.request.companyServiceId,
       companyPricingVersionId: row.request.companyPricingVersionId,
       status: row.request.status,
       serviceName: row.templateService.name,
+      serviceSchedulingMode: row.companyService.schedulingMode,
+      serviceEstimatedDurationMinutes: row.companyService.estimatedDurationMinutes,
       data: quoteDraftDataSchema.parse(row.request.requestData),
       files: fileRows.map(mapFile),
       revisions: revisionRows.map((revision) => ({
@@ -293,6 +322,9 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
         createdAt: event.createdAt.toISOString(),
       })),
       proposals: mapProposalSummaries(proposalRows),
+      appointments: await Promise.all(
+        appointmentRows.map((appointment) => this.mapAppointment(appointment)),
+      ),
       calculationSnapshot: row.request.calculationSnapshot,
       internalTotalCents: decimalMoneyToCents(row.request.internalTotal),
       estimateMinCents: decimalMoneyToCents(row.request.estimateMin),
@@ -300,6 +332,51 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
       submittedAt: row.request.submittedAt?.toISOString() ?? null,
       createdAt: row.request.createdAt.toISOString(),
       updatedAt: row.request.updatedAt.toISOString(),
+    };
+  }
+
+  private async mapAppointment(row: AppointmentRow): Promise<CompanyAppointment> {
+    const historyRows = await this.db
+      .select()
+      .from(appointmentHistory)
+      .where(eq(appointmentHistory.appointmentId, row.appointment.id))
+      .orderBy(desc(appointmentHistory.createdAt));
+
+    return {
+      id: row.appointment.id,
+      quoteId: row.appointment.quoteId,
+      quoteVersionId: row.appointment.quoteVersionId,
+      quoteRequestId: row.appointment.quoteRequestId,
+      companyId: row.appointment.companyId,
+      status: row.appointment.status as CompanyAppointment["status"],
+      schedulingMode: row.appointment.schedulingMode,
+      proposalVersionStatus: row.version.status,
+      startsAt: row.appointment.startsAt.toISOString(),
+      endsAt: row.appointment.endsAt?.toISOString() ?? null,
+      durationMinutes: row.appointment.durationMinutes,
+      timezone: row.appointment.timezone,
+      address: row.appointment.address,
+      addressSnapshot: row.appointment.addressSnapshot,
+      notes: row.appointment.notes,
+      conflictWarning: row.appointment
+        .conflictWarning as unknown as CompanyAppointmentConflict[],
+      proposedByUserId: row.appointment.proposedByUserId,
+      confirmedAt: row.appointment.confirmedAt?.toISOString() ?? null,
+      completedAt: row.appointment.completedAt?.toISOString() ?? null,
+      cancelledAt: row.appointment.cancelledAt?.toISOString() ?? null,
+      history: historyRows.map((history): CompanyAppointmentHistory => ({
+        id: history.id,
+        appointmentId: history.appointmentId,
+        actorUserId: history.actorUserId,
+        actorType: history.actorType as CompanyAppointmentHistory["actorType"],
+        eventType: history.eventType,
+        fromStatus: history.fromStatus as AppointmentStatus | null,
+        toStatus: history.toStatus as AppointmentStatus | null,
+        metadata: history.metadata,
+        createdAt: history.createdAt.toISOString(),
+      })),
+      createdAt: row.appointment.createdAt.toISOString(),
+      updatedAt: row.appointment.updatedAt.toISOString(),
     };
   }
 }

@@ -283,6 +283,7 @@ export class CompanyQuoteRequestService {
         code: service.code,
         name: service.name,
         schedulingMode: service.schedulingMode,
+        estimatedDurationMinutes: service.estimatedDurationMinutes,
         estimateMarginLowerBps: service.estimateMarginLowerBps,
         estimateMarginUpperBps: service.estimateMarginUpperBps,
         fields: service.fields.filter((field) => field.isActive),
@@ -296,6 +297,7 @@ export class CompanyQuoteRequestService {
       revisions: quoteRequest.revisions,
       events: quoteRequest.events,
       proposals: quoteRequest.proposals,
+      appointments: quoteRequest.appointments,
     };
   }
 

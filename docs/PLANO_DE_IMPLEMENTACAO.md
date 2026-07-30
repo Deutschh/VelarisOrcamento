@@ -14,8 +14,9 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho seguro no servidor, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
 - Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, filtros, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente e migration.
+- Sprint 13 concluida tecnicamente: agendamento assistido, tabelas de agendamento/historico, modos configuraveis, timezone da empresa, aviso de conflito sem bloqueio, painel da empresa e testes.
 - Pendencia operacional: validacao comercial com empresa real.
-- Proxima etapa recomendada para o MVP piloto: Sprint 13, agendamento assistido.
+- Proxima etapa recomendada para o MVP piloto: Sprint 14, acompanhamento, recuperacao e comunicacao.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -134,6 +135,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: `appointments`, `scheduling_mode`, data, horario, duracao, timezone, conflito basico com aviso sem bloqueio, confirmacao, solicitacao de outro horario, nova proposta, historico, cancelamento, conclusao e testes.
 - Padrao inicial configuravel: timezone inicial das empresas e `America/Sao_Paulo`.
+- Implementado Sprint 13: enum `appointment_status`; tabelas `appointments` e `appointment_history`; contratos compartilhados de agendamento; dominio puro para transicoes, validade do horario e restricoes por modo; API `POST /api/company/proposals/:id/appointment`, `PATCH /api/company/appointments/:id` e `POST /api/company/appointments/:id/complete`; painel `/app` com proposta de horario, duracao, endereco, observacoes, aviso de conflito, cancelamento e conclusao; envio de proposta bloqueado quando `required_with_proposal` nao possui horario ativo; migration aplicada no Neon; testes de conflito, modo externo, depois do aceite, reagendamento e conclusao.
+- Limitacao registrada: confirmacao publica pelo cliente, acompanhamento por token, aceite/rejeicao de proposta e PDF permanecem para as Sprints 14 e 15.
 - Fora da V1: agenda automatica completa.
 - Estimativa da especificacao: 14 a 20 horas.
 

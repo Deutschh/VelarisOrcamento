@@ -1,26 +1,32 @@
 import type {
   CompanyProposalSummary,
+  CompanyAppointment,
   CompanyQuoteRequestEvent,
   CompanyQuoteRequestRevision,
   QuoteDraftData,
   QuoteDraftFileSummary,
   QuoteRequestStatus,
+  SchedulingMode,
 } from "@velaris/shared";
 
 export interface PersistedCompanyQuoteRequest {
   id: string;
   requestCode: string | null;
   companyId: string;
+  companyTimezone: string;
   companyConfigurationId: string;
   companyServiceId: string;
   companyPricingVersionId: string | null;
   status: QuoteRequestStatus;
   serviceName: string;
+  serviceSchedulingMode: SchedulingMode;
+  serviceEstimatedDurationMinutes: number | null;
   data: QuoteDraftData;
   files: QuoteDraftFileSummary[];
   revisions: CompanyQuoteRequestRevision[];
   events: CompanyQuoteRequestEvent[];
   proposals: CompanyProposalSummary[];
+  appointments: CompanyAppointment[];
   calculationSnapshot: Record<string, unknown> | null;
   internalTotalCents: number | null;
   estimateMinCents: number | null;

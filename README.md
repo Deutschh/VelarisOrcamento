@@ -14,7 +14,7 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto concluiu tecnicamente a Sprint 12. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu tecnicamente a Sprint 13. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
 status de conta pendente, painel Admin, descoberta publica, perfil publico,
 templates fixos, configuracao por empresa com preview/publicacao imutavel e
@@ -28,12 +28,16 @@ solicitacao com codigo publico e idempotencia. O painel da empresa em `/app`
 lista solicitacoes, mostra dashboard, detalhe, arquivos, memoria de calculo,
 revisao tecnica com motivo, recalculo, aceite para proposta, recusa, historico,
 criacao de proposta versionada, preview de valor final, validade, termos e envio
-idempotente.
+idempotente. Tambem existe agendamento assistido no painel da empresa, com
+modos `required_with_proposal`, `optional_with_proposal`,
+`after_proposal_acceptance` e `external_only`, tabela de agendamentos, historico,
+duracao, timezone da empresa, aviso de conflito sem bloqueio e conclusao de
+horario confirmado.
 
-Ainda nao ha agendamento assistido completo, acompanhamento publico da proposta,
-PDF, armazenamento binario definitivo ou deploy. Vidracaria e marmoraria seguem
-adiadas ate a validacao do MVP piloto; a proxima etapa recomendada para o MVP e
-a Sprint 13, agendamento assistido.
+Ainda nao ha acompanhamento publico da proposta, recuperacao de acesso, aceite
+publico, PDF, armazenamento binario definitivo ou deploy. Vidracaria e
+marmoraria seguem adiadas ate a validacao do MVP piloto; a proxima etapa
+recomendada para o MVP e a Sprint 14, acompanhamento, recuperacao e comunicacao.
 
 ## Stack planejada
 

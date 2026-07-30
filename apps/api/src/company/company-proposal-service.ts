@@ -9,8 +9,10 @@ import {
   ProposalLifecycleError,
   assertCanCreateProposalVersion,
   assertProposalValidityDate,
+  isActiveAppointmentStatus,
   parseIdempotencyKey,
   prepareProposalFinalTotal,
+  requiresAppointmentBeforeProposalSend,
   transitionProposalVersionStatus,
 } from "@velaris/domain";
 import { estimateFromCalculationSnapshot } from "../quote-requests/quote-request-calculation.js";
@@ -20,6 +22,7 @@ import type {
 } from "./company-account-repository.js";
 import {
   CompanyProposalAccessDeniedError,
+  CompanyProposalAppointmentRequiredError,
   CompanyProposalIdempotencyConflictError,
   CompanyProposalIdempotencyRequiredError,
   CompanyProposalLifecycleApiError,
@@ -27,6 +30,10 @@ import {
   CompanyProposalQuoteRequestNotReadyError,
   CompanyProposalValidationError,
 } from "./company-proposal-errors.js";
+import type {
+  CompanyAppointmentRepository,
+  PersistedCompanyAppointment,
+} from "./company-appointment-repository.js";
 import type {
   CompanyProposalRepository,
   PersistedCompanyProposal,
@@ -40,6 +47,7 @@ interface CompanyProposalServiceDependencies {
   accountRepository: CompanyAccountRepository;
   quoteRequestRepository: CompanyQuoteRequestRepository;
   proposalRepository: CompanyProposalRepository;
+  appointmentRepository: CompanyAppointmentRepository;
   now?: () => Date;
 }
 
@@ -227,6 +235,11 @@ export class CompanyProposalService {
       };
     }
 
+    await this.assertAppointmentRequirementSatisfied({
+      companyId: account.companyId,
+      proposal,
+    });
+
     if (version.status !== "draft") {
       throw new CompanyProposalLifecycleApiError(
         "Only the latest draft proposal version can be sent.",
@@ -315,6 +328,30 @@ export class CompanyProposalService {
     return proposal;
   }
 
+  private async assertAppointmentRequirementSatisfied(input: {
+    companyId: string;
+    proposal: PersistedCompanyProposal;
+  }) {
+    const quoteRequest = await this.findQuoteRequest(
+      input.companyId,
+      input.proposal.quoteRequestId,
+    );
+
+    if (!requiresAppointmentBeforeProposalSend(quoteRequest.serviceSchedulingMode)) {
+      return;
+    }
+
+    const appointment =
+      await this.dependencies.appointmentRepository.findLatestAppointmentByQuote({
+        companyId: input.companyId,
+        quoteId: input.proposal.id,
+      });
+
+    if (!isProposalSendableAppointment(appointment)) {
+      throw new CompanyProposalAppointmentRequiredError();
+    }
+  }
+
   private assertNoAcceptedVersion(proposal: PersistedCompanyProposal | null) {
     try {
       assertCanCreateProposalVersion({
@@ -357,6 +394,10 @@ export class CompanyProposalService {
   private now() {
     return this.dependencies.now?.() ?? new Date();
   }
+}
+
+function isProposalSendableAppointment(appointment: PersistedCompanyAppointment | null) {
+  return Boolean(appointment && isActiveAppointmentStatus(appointment.status));
 }
 
 function getNextVersionNumber(proposal: PersistedCompanyProposal | null) {

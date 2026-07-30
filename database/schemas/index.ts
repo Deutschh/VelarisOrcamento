@@ -122,6 +122,15 @@ export const quoteVersionStatusEnum = pgEnum("quote_version_status", [
   "expired",
   "superseded",
 ]);
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "none",
+  "proposed",
+  "confirmed",
+  "reschedule_requested",
+  "rescheduled",
+  "completed",
+  "cancelled",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -913,6 +922,79 @@ export const quoteVersionEvents = pgTable(
   },
   (table) => ({
     versionIdx: index("quote_version_events_version_idx").on(table.quoteVersionId),
+  }),
+);
+
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid("id").primaryKey(),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id, { onDelete: "cascade" }),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "cascade" }),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    status: appointmentStatusEnum("status").notNull().default("proposed"),
+    schedulingMode: schedulingModeEnum("scheduling_mode").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    durationMinutes: integer("duration_minutes").notNull(),
+    timezone: text("timezone").notNull(),
+    address: text("address"),
+    addressSnapshot: jsonb("address_snapshot").$type<Record<string, unknown> | null>(),
+    notes: text("notes"),
+    conflictWarning: jsonb("conflict_warning")
+      .$type<Array<Record<string, unknown>>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    proposedByUserId: uuid("proposed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => ({
+    quoteIdx: index("appointments_quote_idx").on(table.quoteId),
+    requestIdx: index("appointments_request_idx").on(table.quoteRequestId),
+    companyTimeIdx: index("appointments_company_time_idx").on(
+      table.companyId,
+      table.startsAt,
+    ),
+    companyStatusIdx: index("appointments_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+  }),
+);
+
+export const appointmentHistory = pgTable(
+  "appointment_history",
+  {
+    id: uuid("id").primaryKey(),
+    appointmentId: uuid("appointment_id")
+      .notNull()
+      .references(() => appointments.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    actorType: text("actor_type").notNull().default("company"),
+    eventType: text("event_type").notNull(),
+    fromStatus: appointmentStatusEnum("from_status"),
+    toStatus: appointmentStatusEnum("to_status"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    appointmentIdx: index("appointment_history_appointment_idx").on(table.appointmentId),
   }),
 );
 

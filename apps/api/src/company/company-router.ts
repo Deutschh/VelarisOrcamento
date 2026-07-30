@@ -2,7 +2,9 @@ import { Router } from "express";
 import type { Request } from "express";
 import {
   HTTP_HEADERS,
+  companyProposeAppointmentRequestSchema,
   companyCreateProposalRequestSchema,
+  companyUpdateAppointmentRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestListQuerySchema,
   companyQuoteRequestReviewRequestSchema,
@@ -11,6 +13,7 @@ import {
 import { asyncHandler } from "../lib/async-handler.js";
 import { AppError } from "../lib/app-error.js";
 import type { CompanyAccountService } from "./company-account-service.js";
+import type { CompanyAppointmentService } from "./company-appointment-service.js";
 import type { CompanyProposalService } from "./company-proposal-service.js";
 import type { CompanyQuoteRequestService } from "./company-quote-request-service.js";
 
@@ -18,6 +21,7 @@ export function createCompanyRouter(
   companyAccountService: CompanyAccountService,
   companyQuoteRequestService?: CompanyQuoteRequestService,
   companyProposalService?: CompanyProposalService,
+  companyAppointmentService?: CompanyAppointmentService,
 ) {
   const router = Router();
 
@@ -110,6 +114,45 @@ export function createCompanyRouter(
   );
 
   router.post(
+    "/proposals/:quoteId/appointment",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyAppointmentService(companyAppointmentService);
+      const body = companyProposeAppointmentRequestSchema.parse(request.body);
+      response.json(
+        await service.proposeAppointment(actor.userId, getQuoteId(request.params), body),
+      );
+    }),
+  );
+
+  router.patch(
+    "/appointments/:appointmentId",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyAppointmentService(companyAppointmentService);
+      const body = companyUpdateAppointmentRequestSchema.parse(request.body);
+      response.json(
+        await service.updateAppointment(
+          actor.userId,
+          getAppointmentId(request.params),
+          body,
+        ),
+      );
+    }),
+  );
+
+  router.post(
+    "/appointments/:appointmentId/complete",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyAppointmentService(companyAppointmentService);
+      response.json(
+        await service.completeAppointment(actor.userId, getAppointmentId(request.params)),
+      );
+    }),
+  );
+
+  router.post(
     "/proposals/:quoteId/send",
     asyncHandler(async (request, response) => {
       const actor = requireCompanyActor(request);
@@ -167,6 +210,20 @@ function requireCompanyProposalService(
   return service;
 }
 
+function requireCompanyAppointmentService(
+  service: CompanyAppointmentService | undefined,
+): CompanyAppointmentService {
+  if (!service) {
+    throw new AppError(
+      "Company appointment operations are not configured for this environment.",
+      503,
+      "COMPANY_APPOINTMENTS_NOT_CONFIGURED",
+    );
+  }
+
+  return service;
+}
+
 function getQuoteRequestId(params: Record<string, string | string[] | undefined>) {
   const rawQuoteRequestId = params.quoteRequestId;
   const quoteRequestId = Array.isArray(rawQuoteRequestId)
@@ -189,4 +246,17 @@ function getQuoteId(params: Record<string, string | string[] | undefined>) {
   }
 
   return quoteId;
+}
+
+function getAppointmentId(params: Record<string, string | string[] | undefined>) {
+  const rawAppointmentId = params.appointmentId;
+  const appointmentId = Array.isArray(rawAppointmentId)
+    ? rawAppointmentId[0]
+    : rawAppointmentId;
+
+  if (!appointmentId) {
+    throw new AppError("Appointment id is required.", 400, "APPOINTMENT_ID_REQUIRED");
+  }
+
+  return appointmentId;
 }

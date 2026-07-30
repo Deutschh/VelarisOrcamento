@@ -1,4 +1,5 @@
 export * from "./admin.js";
+export * from "./appointments.js";
 export * from "./auth.js";
 export * from "./company.js";
 export * from "./constants.js";

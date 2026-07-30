@@ -62,11 +62,14 @@ async function createService() {
     id: "30000000-0000-4000-8000-000000000001",
     requestCode: "VEL-260729-TESTE001",
     companyId,
+    companyTimezone: "America/Sao_Paulo",
     companyConfigurationId: configuration.id,
     companyServiceId: companyService.id,
     companyPricingVersionId: configuration.pricingVersion?.id ?? null,
     status: "submitted",
     serviceName: companyService.name,
+    serviceSchedulingMode: companyService.schedulingMode,
+    serviceEstimatedDurationMinutes: companyService.estimatedDurationMinutes,
     data,
     files: [
       {
@@ -83,6 +86,7 @@ async function createService() {
     revisions: [],
     events: [],
     proposals: [],
+    appointments: [],
     calculationSnapshot: {
       ...calculation.snapshot,
       summary,
@@ -97,6 +101,7 @@ async function createService() {
   quoteRequestRepository.requests.set(quoteRequest.id, quoteRequest);
 
   return {
+    companyService,
     quoteRequest,
     quoteRequestRepository,
     service: new CompanyQuoteRequestService({
@@ -110,7 +115,7 @@ async function createService() {
 
 describe("CompanyQuoteRequestService", () => {
   it("lists submitted quote requests with dashboard counts", async () => {
-    const { quoteRequest, service } = await createService();
+    const { companyService, quoteRequest, service } = await createService();
 
     const response = await service.listQuoteRequests(companyUserId, {});
     const detail = await service.getQuoteRequest(companyUserId, quoteRequest.id);
@@ -120,6 +125,10 @@ describe("CompanyQuoteRequestService", () => {
     expect(response.quoteRequests[0]?.requestCode).toBe("VEL-260729-TESTE001");
     expect(detail.quoteRequest.files[0]?.fileName).toBe("sofa-sala.jpg");
     expect(detail.quoteRequest.estimate?.internalTotalCents).toBeGreaterThan(0);
+    expect(detail.quoteRequest.service.estimatedDurationMinutes).toBe(
+      companyService.estimatedDurationMinutes,
+    );
+    expect(detail.quoteRequest.appointments).toEqual([]);
   });
 
   it("opens review and accepts a reviewed request for proposal", async () => {
