@@ -249,6 +249,10 @@ export class CompanyQuoteRequestService {
       throw new CompanyQuoteAccessDeniedError();
     }
 
+    if (!["owner", "manager", "operator"].includes(account.memberRole)) {
+      throw new CompanyQuoteAccessDeniedError();
+    }
+
     return account;
   }
 
@@ -291,6 +295,7 @@ export class CompanyQuoteRequestService {
       pricingVersion: configuration.pricingVersion?.version ?? 1,
       revisions: quoteRequest.revisions,
       events: quoteRequest.events,
+      proposals: quoteRequest.proposals,
     };
   }
 

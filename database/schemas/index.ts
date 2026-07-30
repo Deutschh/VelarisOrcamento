@@ -104,6 +104,24 @@ export const quoteRequestStatusEnum = pgEnum("quote_request_status", [
   "cancelled",
   "archived",
 ]);
+export const quoteStatusEnum = pgEnum("quote_status", [
+  "draft",
+  "sent",
+  "viewed",
+  "accepted",
+  "rejected",
+  "expired",
+  "cancelled",
+]);
+export const quoteVersionStatusEnum = pgEnum("quote_version_status", [
+  "draft",
+  "sent",
+  "viewed",
+  "accepted",
+  "rejected",
+  "expired",
+  "superseded",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -775,6 +793,126 @@ export const quoteRequestCalculations = pgTable(
   },
   (table) => ({
     requestIdx: index("quote_request_calculations_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const quotes = pgTable(
+  "quotes",
+  {
+    id: uuid("id").primaryKey(),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    status: quoteStatusEnum("status").notNull().default("draft"),
+    acceptedQuoteVersionId: uuid("accepted_quote_version_id"),
+    ...timestamps,
+  },
+  (table) => ({
+    requestUnique: uniqueIndex("quotes_quote_request_unique").on(table.quoteRequestId),
+    companyStatusIdx: index("quotes_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+  }),
+);
+
+export const quoteVersions = pgTable(
+  "quote_versions",
+  {
+    id: uuid("id").primaryKey(),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id, { onDelete: "cascade" }),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    proposalCode: text("proposal_code").notNull(),
+    status: quoteVersionStatusEnum("status").notNull().default("draft"),
+    internalTotal: numeric("internal_total", { precision: 12, scale: 2 }).notNull(),
+    estimateMin: numeric("estimate_min", { precision: 12, scale: 2 }).notNull(),
+    estimateMax: numeric("estimate_max", { precision: 12, scale: 2 }).notNull(),
+    finalTotal: numeric("final_total", { precision: 12, scale: 2 }).notNull(),
+    outOfRangeReason: text("out_of_range_reason"),
+    validUntil: timestamp("valid_until", { withTimezone: true }).notNull(),
+    terms: text("terms"),
+    termsVersion: text("terms_version").notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    sentByUserId: uuid("sent_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    viewedAt: timestamp("viewed_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+    expiredAt: timestamp("expired_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => ({
+    quoteVersionUnique: uniqueIndex("quote_versions_quote_version_unique").on(
+      table.quoteId,
+      table.versionNumber,
+    ),
+    proposalCodeUnique: uniqueIndex("quote_versions_proposal_code_unique").on(
+      table.proposalCode,
+    ),
+    requestIdx: index("quote_versions_request_idx").on(table.quoteRequestId),
+    companyStatusIdx: index("quote_versions_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    validUntilIdx: index("quote_versions_valid_until_idx").on(table.validUntil),
+  }),
+);
+
+export const quoteVersionItems = pgTable(
+  "quote_version_items",
+  {
+    id: uuid("id").primaryKey(),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "cascade" }),
+    itemId: text("item_id"),
+    label: text("label").notNull(),
+    quantity: integer("quantity").notNull(),
+    internalTotal: numeric("internal_total", { precision: 12, scale: 2 }).notNull(),
+    finalTotal: numeric("final_total", { precision: 12, scale: 2 }).notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    displayOrder: integer("display_order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => ({
+    versionIdx: index("quote_version_items_version_idx").on(table.quoteVersionId),
+  }),
+);
+
+export const quoteVersionEvents = pgTable(
+  "quote_version_events",
+  {
+    id: uuid("id").primaryKey(),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    eventType: text("event_type").notNull(),
+    fromStatus: quoteVersionStatusEnum("from_status"),
+    toStatus: quoteVersionStatusEnum("to_status"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    versionIdx: index("quote_version_events_version_idx").on(table.quoteVersionId),
   }),
 );
 

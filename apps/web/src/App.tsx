@@ -5,6 +5,7 @@ import {
   adminSimulateCompanyConfigurationRequestSchema,
   adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
+  companyCreateProposalRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestReviewRequestSchema,
   createQuoteDraftRequestSchema,
@@ -28,6 +29,8 @@ import type {
   CompanyFieldConfiguration,
   CompanyFieldOptionConfiguration,
   CompanyQuoteDashboard,
+  CompanyProposalDetailResponse,
+  CompanyProposalSummary,
   CompanyQuoteRequestDetail,
   CompanyQuoteRequestDetailResponse,
   CompanyQuoteRequestSummary,
@@ -48,6 +51,7 @@ import type {
   QuoteDraftResponse,
   QuoteEstimateResponse,
   QuoteRequestStatus,
+  QuoteVersionStatus,
   QuoteSubmitResponse,
   PricingRuleConfiguration,
   RegisterCompanyRequest,
@@ -2171,6 +2175,45 @@ function CompanyQuoteRequestsPanel() {
     onSuccess: syncQuoteRequest,
   });
 
+  const createProposalMutation = useMutation({
+    mutationFn: (input: {
+      quoteRequestId: string;
+      body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0];
+    }) =>
+      apiRequest<CompanyProposalDetailResponse>(
+        `/api/company/quote-requests/${input.quoteRequestId}/proposals`,
+        {
+          method: "POST",
+          body: JSON.stringify(companyCreateProposalRequestSchema.parse(input.body)),
+        },
+      ),
+    onSuccess: (_response, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["company-quote-request", variables.quoteRequestId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["company-quote-requests"] });
+    },
+  });
+
+  const sendProposalMutation = useMutation({
+    mutationFn: (input: { quoteRequestId: string; proposalId: string }) =>
+      apiRequest<CompanyProposalDetailResponse>(
+        `/api/company/proposals/${input.proposalId}/send`,
+        {
+          method: "POST",
+          headers: {
+            "Idempotency-Key": crypto.randomUUID(),
+          },
+        },
+      ),
+    onSuccess: (_response, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["company-quote-request", variables.quoteRequestId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["company-quote-requests"] });
+    },
+  });
+
   return (
     <section className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
       <div className="space-y-6">
@@ -2212,14 +2255,24 @@ function CompanyQuoteRequestsPanel() {
         </section>
       </div>
       <CompanyQuoteRequestDetailPanel
+        createProposalError={createProposalMutation.error}
         declineError={declineMutation.error}
         detail={detailQuery.data?.quoteRequest ?? null}
+        isCreatingProposal={createProposalMutation.isPending}
         isDeclining={declineMutation.isPending}
         isLoading={detailQuery.isLoading}
+        isSendingProposal={sendProposalMutation.isPending}
         isReviewing={reviewMutation.isPending}
         reviewError={reviewMutation.error}
+        sendProposalError={sendProposalMutation.error}
+        onCreateProposal={(quoteRequestId, body) =>
+          createProposalMutation.mutate({ quoteRequestId, body })
+        }
         onDecline={(id, body) => declineMutation.mutate({ id, body })}
         onReview={(id, body) => reviewMutation.mutate({ id, body })}
+        onSendProposal={(quoteRequestId, proposalId) =>
+          sendProposalMutation.mutate({ quoteRequestId, proposalId })
+        }
       />
     </section>
   );
@@ -2300,21 +2353,35 @@ function CompanyQuoteRequestList({
 }
 
 function CompanyQuoteRequestDetailPanel({
+  createProposalError,
   declineError,
   detail,
+  isCreatingProposal,
   isDeclining,
   isLoading,
+  isSendingProposal,
   isReviewing,
   reviewError,
+  sendProposalError,
+  onCreateProposal,
   onDecline,
   onReview,
+  onSendProposal,
 }: {
+  createProposalError: unknown;
   declineError: unknown;
   detail: CompanyQuoteRequestDetail | null;
+  isCreatingProposal: boolean;
   isDeclining: boolean;
   isLoading: boolean;
+  isSendingProposal: boolean;
   isReviewing: boolean;
   reviewError: unknown;
+  sendProposalError: unknown;
+  onCreateProposal: (
+    quoteRequestId: string,
+    body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0],
+  ) => void;
   onDecline: (
     id: string,
     body: Parameters<typeof companyQuoteRequestDeclineRequestSchema.parse>[0],
@@ -2323,6 +2390,7 @@ function CompanyQuoteRequestDetailPanel({
     id: string,
     body: Parameters<typeof companyQuoteRequestReviewRequestSchema.parse>[0],
   ) => void;
+  onSendProposal: (quoteRequestId: string, proposalId: string) => void;
 }) {
   if (isLoading) {
     return (
@@ -2342,31 +2410,51 @@ function CompanyQuoteRequestDetailPanel({
 
   return (
     <CompanyQuoteRequestDetailView
+      createProposalError={createProposalError}
       declineError={declineError}
+      isCreatingProposal={isCreatingProposal}
       isDeclining={isDeclining}
+      isSendingProposal={isSendingProposal}
       isReviewing={isReviewing}
       quoteRequest={detail}
       reviewError={reviewError}
+      sendProposalError={sendProposalError}
+      onCreateProposal={onCreateProposal}
       onDecline={onDecline}
       onReview={onReview}
+      onSendProposal={onSendProposal}
     />
   );
 }
 
 function CompanyQuoteRequestDetailView({
+  createProposalError,
   declineError,
+  isCreatingProposal,
   isDeclining,
+  isSendingProposal,
   isReviewing,
   quoteRequest,
   reviewError,
+  sendProposalError,
+  onCreateProposal,
   onDecline,
   onReview,
+  onSendProposal,
 }: {
+  createProposalError: unknown;
   declineError: unknown;
+  isCreatingProposal: boolean;
   isDeclining: boolean;
+  isSendingProposal: boolean;
   isReviewing: boolean;
   quoteRequest: CompanyQuoteRequestDetail;
   reviewError: unknown;
+  sendProposalError: unknown;
+  onCreateProposal: (
+    quoteRequestId: string,
+    body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0],
+  ) => void;
   onDecline: (
     id: string,
     body: Parameters<typeof companyQuoteRequestDeclineRequestSchema.parse>[0],
@@ -2375,6 +2463,7 @@ function CompanyQuoteRequestDetailView({
     id: string,
     body: Parameters<typeof companyQuoteRequestReviewRequestSchema.parse>[0],
   ) => void;
+  onSendProposal: (quoteRequestId: string, proposalId: string) => void;
 }) {
   const [reviewData, setReviewData] = useState<QuoteDraftData>(quoteRequest.data);
   const [reviewReason, setReviewReason] = useState("");
@@ -2548,6 +2637,20 @@ function CompanyQuoteRequestDetailView({
 
         <aside className="space-y-5 xl:sticky xl:top-4 xl:self-start">
           <CompanyEstimatePanel quoteRequest={quoteRequest} />
+          <CompanyProposalPanel
+            error={
+              createProposalError
+                ? errorMessage(createProposalError, "Nao foi possivel criar a proposta.")
+                : sendProposalError
+                  ? errorMessage(sendProposalError, "Nao foi possivel enviar a proposta.")
+                  : null
+            }
+            isCreating={isCreatingProposal}
+            isSending={isSendingProposal}
+            quoteRequest={quoteRequest}
+            onCreateProposal={onCreateProposal}
+            onSendProposal={onSendProposal}
+          />
           <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
             <h3 className="text-lg font-semibold">Revisao</h3>
             {canEditReview ? (
@@ -2848,6 +2951,209 @@ function CompanyFilesPanel({ files }: { files: CompanyQuoteRequestDetail["files"
   );
 }
 
+function CompanyProposalPanel({
+  error,
+  isCreating,
+  isSending,
+  quoteRequest,
+  onCreateProposal,
+  onSendProposal,
+}: {
+  error: string | null;
+  isCreating: boolean;
+  isSending: boolean;
+  quoteRequest: CompanyQuoteRequestDetail;
+  onCreateProposal: (
+    quoteRequestId: string,
+    body: Parameters<typeof companyCreateProposalRequestSchema.parse>[0],
+  ) => void;
+  onSendProposal: (quoteRequestId: string, proposalId: string) => void;
+}) {
+  const estimate = quoteRequest.estimate;
+  const suggestedTotalCents =
+    estimate?.internalTotalCents ?? quoteRequest.internalTotalCents ?? 0;
+  const latestProposal = getLatestProposalSummary(quoteRequest.proposals);
+  const hasAcceptedVersion = quoteRequest.proposals.some(
+    (proposal) => proposal.acceptedQuoteVersionId,
+  );
+  const [finalTotal, setFinalTotal] = useState(
+    formatMoneyInputFromCents(suggestedTotalCents),
+  );
+  const [validUntil, setValidUntil] = useState(
+    formatDateTimeLocalInput(addDaysToDate(new Date(), 7)),
+  );
+  const [outOfRangeReason, setOutOfRangeReason] = useState("");
+  const [terms, setTerms] = useState("");
+  const [termsVersion, setTermsVersion] = useState("draft-v1");
+
+  useEffect(() => {
+    setFinalTotal(formatMoneyInputFromCents(suggestedTotalCents));
+    setValidUntil(formatDateTimeLocalInput(addDaysToDate(new Date(), 7)));
+    setOutOfRangeReason("");
+    setTerms("");
+    setTermsVersion("draft-v1");
+  }, [quoteRequest.id, quoteRequest.updatedAt, suggestedTotalCents]);
+
+  const finalTotalCents = parseMoneyInputToCents(finalTotal);
+  const validUntilIso = parseDateTimeLocalInputToIso(validUntil);
+  const isOutsideRange =
+    finalTotalCents !== null &&
+    estimate !== null &&
+    (finalTotalCents < estimate.estimateMinCents ||
+      finalTotalCents > estimate.estimateMaxCents);
+  const canCreate =
+    quoteRequest.status === "accepted_for_proposal" &&
+    estimate !== null &&
+    !hasAcceptedVersion &&
+    finalTotalCents !== null &&
+    finalTotalCents > 0 &&
+    Boolean(validUntilIso) &&
+    (!isOutsideRange || outOfRangeReason.trim().length > 0);
+  const latestDraftCanSend =
+    quoteRequest.status === "accepted_for_proposal" &&
+    latestProposal?.latestVersionStatus === "draft" &&
+    !hasAcceptedVersion;
+
+  function createProposal() {
+    if (!canCreate || finalTotalCents === null || !validUntilIso) {
+      return;
+    }
+
+    onCreateProposal(quoteRequest.id, {
+      finalTotalCents,
+      validUntil: validUntilIso,
+      outOfRangeReason,
+      terms,
+      termsVersion,
+    });
+  }
+
+  return (
+    <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <FileText size={18} />
+        Proposta
+      </h3>
+
+      {quoteRequest.status !== "accepted_for_proposal" ? (
+        <p className="mt-4 text-sm text-white/50">
+          A solicitacao precisa estar aceita para proposta.
+        </p>
+      ) : null}
+
+      {estimate ? (
+        <div className="mt-5 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <InfoBlock
+              label="Sugerido"
+              value={formatMoneyCents(estimate.internalTotalCents)}
+            />
+            <InfoBlock
+              label="Faixa"
+              value={`${formatMoneyCents(estimate.estimateMinCents)} a ${formatMoneyCents(
+                estimate.estimateMaxCents,
+              )}`}
+            />
+          </div>
+
+          <TextField
+            disabled={hasAcceptedVersion}
+            inputMode="decimal"
+            label="Valor final"
+            value={finalTotal}
+            onChange={(event) => setFinalTotal(event.target.value)}
+          />
+          <TextField
+            disabled={hasAcceptedVersion}
+            label="Validade"
+            type="datetime-local"
+            value={validUntil}
+            onChange={(event) => setValidUntil(event.target.value)}
+          />
+          {isOutsideRange ? (
+            <TextAreaField
+              disabled={hasAcceptedVersion}
+              label="Justificativa fora da faixa"
+              rows={3}
+              value={outOfRangeReason}
+              onChange={(event) => setOutOfRangeReason(event.target.value)}
+            />
+          ) : null}
+          <TextAreaField
+            disabled={hasAcceptedVersion}
+            label="Termos comerciais"
+            rows={3}
+            value={terms}
+            onChange={(event) => setTerms(event.target.value)}
+          />
+          <TextField
+            disabled={hasAcceptedVersion}
+            label="Versao dos termos"
+            value={termsVersion}
+            onChange={(event) => setTermsVersion(event.target.value)}
+          />
+
+          <div className="grid gap-2">
+            <ActionButton
+              disabled={!canCreate}
+              icon={PlusCircle}
+              isLoading={isCreating}
+              onClick={createProposal}
+            >
+              {latestProposal ? "Criar nova versao" : "Criar proposta"}
+            </ActionButton>
+            <ActionButton
+              disabled={!latestDraftCanSend || !latestProposal?.latestVersionId}
+              icon={Send}
+              isLoading={isSending}
+              variant="secondary"
+              onClick={() => {
+                if (latestProposal?.latestVersionId) {
+                  onSendProposal(quoteRequest.id, latestProposal.id);
+                }
+              }}
+            >
+              Enviar proposta
+            </ActionButton>
+          </div>
+          <FormError message={error} />
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-white/50">Sem calculo revisado.</p>
+      )}
+
+      {quoteRequest.proposals.length > 0 ? (
+        <div className="mt-5 divide-y divide-white/10 rounded-md border border-white/10">
+          {quoteRequest.proposals.map((proposal) => (
+            <div className="space-y-2 px-3 py-3" key={proposal.id}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium text-white/85">
+                  {proposal.latestProposalCode ?? "Proposta sem codigo"}
+                </span>
+                {proposal.latestVersionStatus ? (
+                  <ProposalVersionStatusBadge status={proposal.latestVersionStatus} />
+                ) : null}
+              </div>
+              <div className="grid gap-2 text-xs text-white/45">
+                <span>
+                  Versao {proposal.latestVersionNumber ?? "-"} -{" "}
+                  {proposal.finalTotalCents === null
+                    ? "Sem valor"
+                    : formatMoneyCents(proposal.finalTotalCents)}
+                </span>
+                <span>
+                  Validade{" "}
+                  {proposal.validUntil ? formatDate(proposal.validUntil) : "sem data"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function CompanyEstimatePanel({
   quoteRequest,
 }: {
@@ -2960,6 +3266,36 @@ function CompanyRevisionTimeline({
         </div>
       ) : null}
     </section>
+  );
+}
+
+const proposalVersionStatusLabels: Record<QuoteVersionStatus, string> = {
+  draft: "Rascunho",
+  sent: "Enviada",
+  viewed: "Visualizada",
+  accepted: "Aceita",
+  rejected: "Rejeitada",
+  expired: "Expirada",
+  superseded: "Substituida",
+};
+
+function ProposalVersionStatusBadge({ status }: { status: QuoteVersionStatus }) {
+  const classByStatus: Record<QuoteVersionStatus, string> = {
+    draft: "border-white/15 bg-white/[0.04] text-white/65",
+    sent: "border-sky-300/30 bg-sky-300/10 text-sky-100",
+    viewed: "border-violet-300/30 bg-violet-300/10 text-violet-100",
+    accepted: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
+    rejected: "border-rose-300/30 bg-rose-300/10 text-rose-100",
+    expired: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+    superseded: "border-white/15 bg-white/[0.04] text-white/50",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
+    >
+      {proposalVersionStatusLabels[status]}
+    </span>
   );
 }
 
@@ -4375,6 +4711,46 @@ function formatMoneyCents(value: number) {
     style: "currency",
     currency: "BRL",
   }).format(value / 100);
+}
+
+function formatMoneyInputFromCents(value: number) {
+  return (value / 100).toFixed(2).replace(".", ",");
+}
+
+function parseMoneyInputToCents(value: string) {
+  const cleaned = value.trim().replace(/[^\d,.-]/g, "");
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+
+  if (!/^\d+(\.\d{0,2})?$/.test(normalized)) {
+    return null;
+  }
+
+  const [whole = "0", decimals = ""] = normalized.split(".");
+  return Number(`${whole}${decimals.padEnd(2, "0").slice(0, 2)}`);
+}
+
+function formatDateTimeLocalInput(date: Date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+function parseDateTimeLocalInputToIso(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function addDaysToDate(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function getLatestProposalSummary(proposals: CompanyProposalSummary[]) {
+  return proposals
+    .slice()
+    .sort(
+      (left, right) => (right.latestVersionNumber ?? 0) - (left.latestVersionNumber ?? 0),
+    )[0];
 }
 
 function mutationErrorMessage(error: unknown) {

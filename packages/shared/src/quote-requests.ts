@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CalculationLine, CalculationResult } from "./pricing.js";
+import type { CompanyProposalSummary } from "./proposals.js";
 import type { CompanyFieldConfiguration, SchedulingMode } from "./templates.js";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
@@ -333,6 +334,7 @@ export interface CompanyQuoteRequestDetail extends CompanyQuoteRequestSummary {
   pricingVersion: number;
   revisions: CompanyQuoteRequestRevision[];
   events: CompanyQuoteRequestEvent[];
+  proposals: CompanyProposalSummary[];
 }
 
 export interface CompanyQuoteRequestsListResponse {

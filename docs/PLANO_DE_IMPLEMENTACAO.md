@@ -13,8 +13,9 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho, testes e simulador Admin completo.
 - Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho seguro no servidor, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
 - Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, filtros, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
+- Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente e migration.
 - Pendencia operacional: validacao comercial com empresa real.
-- Proxima etapa recomendada para o MVP piloto: Sprint 12, propostas, versoes e valor final.
+- Proxima etapa recomendada para o MVP piloto: Sprint 13, agendamento assistido.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -117,7 +118,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Requisito confirmado: dashboard, lista, filtros, detalhes, fotos, memoria de calculo, edicao de campos tecnicos, motivo quando necessario, revisao, recalculo, diferenca, aceite/recusa e historico.
 - Regra confirmada: estados devem passar por dominio/servicos, nunca por atualizacao livre em controller.
 - Implementado Sprint 11: status completos da matriz inicial para solicitacoes; funcao pura de transicao em `packages/domain`; contratos compartilhados para dashboard/lista/detalhe/revisao/recusa; tabelas `quote_request_answer_revisions` e `quote_request_events`; API `GET /api/company/dashboard`, `GET /api/company/quote-requests`, `GET /api/company/quote-requests/:id`, `PATCH /api/company/quote-requests/:id/review` e `POST /api/company/quote-requests/:id/decline`; painel `/app` com dashboard, filtros, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, motivo obrigatorio quando campos mudam, recalculo, aceite para proposta e recusa.
-- Limitacao registrada: criacao/envio de proposta permanece na Sprint 12; `awaiting_information` ainda nao possui fluxo publico de complemento nesta entrega.
+- Limitacao registrada: `awaiting_information` ainda nao possui fluxo publico de complemento nesta entrega.
 - Estimativa da especificacao: 18 a 26 horas.
 
 ## Sprint 12 - Propostas, versoes e valor final
@@ -125,6 +126,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Requisito confirmado: `quotes`, versoes, codigo por versao, itens, valor final com total interno, validacao de faixa, justificativa fora da faixa, validade, termos, preview, envio idempotente, visualizacao, alteracao, nova versao, bloqueio de versao aceita e expiracao.
 - Padrao inicial configuravel: propostas validas por 7 dias.
 - Regra confirmada: proposta aceita e imutavel; alteracao comercial posterior gera nova versao.
+- Implementado Sprint 12: enums `quote_status` e `quote_version_status`; tabelas `quotes`, `quote_versions`, `quote_version_items` e `quote_version_events`; contratos compartilhados de propostas; dominio puro para transicoes e validacao de valor final; API `POST /api/company/quote-requests/:id/proposals` e `POST /api/company/proposals/:id/send`; painel `/app` com criacao/preview/envio de proposta; envio com `Idempotency-Key`; preservacao de versoes anteriores; testes de valor fora da faixa, expiracao, envio duplicado, versao aceita bloqueada e proposta sem agendamento.
+- Limitacao registrada: visualizacao publica, solicitacao publica de alteracao, aceite/rejeicao do cliente, PDF e documentos legais versionados permanecem para as sprints posteriores previstas.
 - Estimativa da especificacao: 20 a 26 horas.
 
 ## Sprint 13 - Agendamento assistido

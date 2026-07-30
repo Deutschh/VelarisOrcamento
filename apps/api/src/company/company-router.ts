@@ -1,6 +1,8 @@
 import { Router } from "express";
 import type { Request } from "express";
 import {
+  HTTP_HEADERS,
+  companyCreateProposalRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestListQuerySchema,
   companyQuoteRequestReviewRequestSchema,
@@ -9,11 +11,13 @@ import {
 import { asyncHandler } from "../lib/async-handler.js";
 import { AppError } from "../lib/app-error.js";
 import type { CompanyAccountService } from "./company-account-service.js";
+import type { CompanyProposalService } from "./company-proposal-service.js";
 import type { CompanyQuoteRequestService } from "./company-quote-request-service.js";
 
 export function createCompanyRouter(
   companyAccountService: CompanyAccountService,
   companyQuoteRequestService?: CompanyQuoteRequestService,
+  companyProposalService?: CompanyProposalService,
 ) {
   const router = Router();
 
@@ -89,6 +93,37 @@ export function createCompanyRouter(
     }),
   );
 
+  router.post(
+    "/quote-requests/:quoteRequestId/proposals",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyProposalService(companyProposalService);
+      const body = companyCreateProposalRequestSchema.parse(request.body);
+      response.json(
+        await service.createProposalVersion(
+          actor.userId,
+          getQuoteRequestId(request.params),
+          body,
+        ),
+      );
+    }),
+  );
+
+  router.post(
+    "/proposals/:quoteId/send",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyProposalService(companyProposalService);
+      response.json(
+        await service.sendProposal(
+          actor.userId,
+          getQuoteId(request.params),
+          request.get(HTTP_HEADERS.idempotencyKey),
+        ),
+      );
+    }),
+  );
+
   return router;
 }
 
@@ -118,6 +153,20 @@ function requireCompanyQuoteRequestService(
   return service;
 }
 
+function requireCompanyProposalService(
+  service: CompanyProposalService | undefined,
+): CompanyProposalService {
+  if (!service) {
+    throw new AppError(
+      "Company proposal operations are not configured for this environment.",
+      503,
+      "COMPANY_PROPOSALS_NOT_CONFIGURED",
+    );
+  }
+
+  return service;
+}
+
 function getQuoteRequestId(params: Record<string, string | string[] | undefined>) {
   const rawQuoteRequestId = params.quoteRequestId;
   const quoteRequestId = Array.isArray(rawQuoteRequestId)
@@ -129,4 +178,15 @@ function getQuoteRequestId(params: Record<string, string | string[] | undefined>
   }
 
   return quoteRequestId;
+}
+
+function getQuoteId(params: Record<string, string | string[] | undefined>) {
+  const rawQuoteId = params.quoteId;
+  const quoteId = Array.isArray(rawQuoteId) ? rawQuoteId[0] : rawQuoteId;
+
+  if (!quoteId) {
+    throw new AppError("Proposal id is required.", 400, "PROPOSAL_ID_REQUIRED");
+  }
+
+  return quoteId;
 }

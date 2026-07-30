@@ -18,7 +18,8 @@
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho e simulador Admin completo.
 - Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho no servidor, token de rascunho, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
 - Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, detalhe, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
-- Proxima etapa recomendada para o MVP piloto: Sprint 12, propostas, versoes e valor final.
+- Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente, migration e bloqueio de versao aceita.
+- Proxima etapa recomendada para o MVP piloto: Sprint 13, agendamento assistido.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -78,9 +79,16 @@
 - Revisoes empresariais de solicitacoes devem auditar valor original, valor revisado, responsavel, data, motivo quando houver alteracao tecnica, versao da configuracao e versao de precos.
 - Transicoes de solicitacao da empresa devem seguir a matriz da especificacao: `submitted -> under_review`, `under_review -> awaiting_information`, `awaiting_information -> under_review`, `under_review -> accepted_for_proposal` e `under_review -> declined_by_company`.
 - A recusa empresarial deve registrar motivo, usuario, data e historico; proposta nao deve ser criada para solicitacao recusada sem reabertura administrativa futura.
+- Propostas empresariais devem ser criadas somente para solicitacoes em `accepted_for_proposal`.
+- `quotes` representa a proposta comercial da solicitacao; `quote_versions` representa cada versao comercial enviada ou preparada.
+- Cada versao de proposta deve gerar `proposal_code` proprio no formato `ORC-...-Vn`.
+- O valor final da proposta deve iniciar pelo total interno recalculado.
+- Valor final fora da faixa estimada exige justificativa; valor negativo e bloqueado; valor zero so deve ser permitido quando o servico estiver explicitamente configurado como gratuito.
+- O envio de proposta exige `Idempotency-Key` UUID v4 e nao deve reenviar/criar duplicidade em clique repetido.
+- Versoes anteriores devem permanecer preservadas; versoes substituidas devem continuar auditaveis.
 - Propostas aceitas devem ser imutaveis.
 - Alteracoes comerciais posteriores devem gerar nova versao.
-- Snapshots devem preservar regras, precos e configuracoes usados em cada solicitacao.
+- Snapshots devem preservar regras, precos, configuracoes, itens, termos e totais usados em cada solicitacao/proposta.
 - Variaveis sensiveis devem permanecer fora do codigo.
 - Nenhuma credencial real deve ser criada, solicitada ou escrita em arquivos versionados.
 - Toda migration deve ser revisavel e reversivel quando tecnicamente possivel.
@@ -124,4 +132,5 @@
 - Sprints 8 e 9, vidracaria e marmoraria, devem aguardar validacao do MVP piloto.
 - Sprint 10 cria o fluxo publico de orcamento com rascunho e solicitacao.
 - Sprint 11 cria o painel da empresa e revisao.
-- Sprint 12 deve iniciar propostas, versoes e valor final somente apos nova autorizacao do usuario.
+- Sprint 12 cria propostas, versoes e valor final.
+- Sprint 13 deve iniciar agendamento assistido somente apos nova autorizacao do usuario.

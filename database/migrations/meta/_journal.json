@@ -57,6 +57,13 @@
       "when": 1785369241521,
       "tag": "0007_abandoned_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785375491875,
+      "tag": "0008_classy_millenium_guard",
+      "breakpoints": true
     }
   ]
 }

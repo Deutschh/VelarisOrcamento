@@ -4,15 +4,21 @@ import type { SQL } from "drizzle-orm";
 
 import {
   companyServices,
+  quotes,
   quoteRequestAnswerRevisions,
   quoteRequestAnswers,
   quoteRequestCalculations,
   quoteRequestEvents,
   quoteRequestFiles,
   quoteRequests,
+  quoteVersions,
   templateServices,
 } from "@velaris/database-schema";
-import { quoteDraftDataSchema, type QuoteDraftFileSummary } from "@velaris/shared";
+import {
+  quoteDraftDataSchema,
+  type CompanyProposalSummary,
+  type QuoteDraftFileSummary,
+} from "@velaris/shared";
 import type { createDatabaseClient } from "../db/client.js";
 import type {
   CompanyQuoteRequestRepository,
@@ -28,6 +34,10 @@ type RequestRow = {
   templateService: typeof templateServices.$inferSelect;
 };
 type FileRow = typeof quoteRequestFiles.$inferSelect;
+type ProposalRow = {
+  quote: typeof quotes.$inferSelect;
+  version: typeof quoteVersions.$inferSelect | null;
+};
 
 export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequestRepository {
   constructor(private readonly db: Database) {}
@@ -223,7 +233,7 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
   }
 
   private async mapRequest(row: RequestRow): Promise<PersistedCompanyQuoteRequest> {
-    const [fileRows, revisionRows, eventRows] = await Promise.all([
+    const [fileRows, revisionRows, eventRows, proposalRows] = await Promise.all([
       this.db
         .select()
         .from(quoteRequestFiles)
@@ -238,6 +248,15 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
         .from(quoteRequestEvents)
         .where(eq(quoteRequestEvents.quoteRequestId, row.request.id))
         .orderBy(desc(quoteRequestEvents.createdAt)),
+      this.db
+        .select({
+          quote: quotes,
+          version: quoteVersions,
+        })
+        .from(quotes)
+        .leftJoin(quoteVersions, eq(quoteVersions.quoteId, quotes.id))
+        .where(eq(quotes.quoteRequestId, row.request.id))
+        .orderBy(desc(quoteVersions.versionNumber)),
     ]);
 
     return {
@@ -273,6 +292,7 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
         metadata: event.metadata,
         createdAt: event.createdAt.toISOString(),
       })),
+      proposals: mapProposalSummaries(proposalRows),
       calculationSnapshot: row.request.calculationSnapshot,
       internalTotalCents: decimalMoneyToCents(row.request.internalTotal),
       estimateMinCents: decimalMoneyToCents(row.request.estimateMin),
@@ -295,6 +315,58 @@ function mapFile(row: FileRow): QuoteDraftFileSummary {
     storageProvider: "stub",
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+function mapProposalSummaries(rows: ProposalRow[]): CompanyProposalSummary[] {
+  const grouped = new Map<
+    string,
+    {
+      quote: typeof quotes.$inferSelect;
+      versions: Array<typeof quoteVersions.$inferSelect>;
+    }
+  >();
+
+  for (const row of rows) {
+    const existing = grouped.get(row.quote.id);
+
+    if (existing) {
+      if (row.version) {
+        existing.versions.push(row.version);
+      }
+
+      continue;
+    }
+
+    grouped.set(row.quote.id, {
+      quote: row.quote,
+      versions: row.version ? [row.version] : [],
+    });
+  }
+
+  return Array.from(grouped.values()).map(({ quote, versions }) => {
+    const latestVersion = versions
+      .slice()
+      .sort((left, right) => right.versionNumber - left.versionNumber)[0];
+
+    return {
+      id: quote.id,
+      quoteRequestId: quote.quoteRequestId,
+      companyId: quote.companyId,
+      status: quote.status,
+      latestVersionId: latestVersion?.id ?? null,
+      latestVersionNumber: latestVersion?.versionNumber ?? null,
+      latestProposalCode: latestVersion?.proposalCode ?? null,
+      latestVersionStatus: latestVersion?.status ?? null,
+      finalTotalCents: latestVersion
+        ? decimalMoneyToCents(latestVersion.finalTotal)
+        : null,
+      validUntil: latestVersion?.validUntil.toISOString() ?? null,
+      sentAt: latestVersion?.sentAt?.toISOString() ?? null,
+      acceptedQuoteVersionId: quote.acceptedQuoteVersionId,
+      createdAt: quote.createdAt.toISOString(),
+      updatedAt: quote.updatedAt.toISOString(),
+    };
+  });
 }
 
 async function insertEvent(

@@ -82,6 +82,7 @@ async function createService() {
     ],
     revisions: [],
     events: [],
+    proposals: [],
     calculationSnapshot: {
       ...calculation.snapshot,
       summary,

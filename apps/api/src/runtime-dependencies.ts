@@ -8,8 +8,10 @@ import { AuthConfigurationError } from "./auth/auth-errors.js";
 import { DrizzleAuthRepository } from "./auth/drizzle-auth-repository.js";
 import type { TokenService } from "./auth/token-service.js";
 import { CompanyAccountService } from "./company/company-account-service.js";
+import { CompanyProposalService } from "./company/company-proposal-service.js";
 import { CompanyQuoteRequestService } from "./company/company-quote-request-service.js";
 import { DrizzleCompanyAccountRepository } from "./company/drizzle-company-account-repository.js";
+import { DrizzleCompanyProposalRepository } from "./company/drizzle-company-proposal-repository.js";
 import { DrizzleCompanyQuoteRequestRepository } from "./company/drizzle-company-quote-request-repository.js";
 import { env } from "./config/env.js";
 import { createDatabaseClient } from "./db/client.js";
@@ -27,6 +29,7 @@ export interface RuntimeDependencies {
   adminService: AdminService;
   companyAccountService: CompanyAccountService;
   companyQuoteRequestService: CompanyQuoteRequestService;
+  companyProposalService: CompanyProposalService;
   publicCompanyService: PublicCompanyService;
   publicQuoteRequestService: PublicQuoteRequestService;
   templateAdminService: TemplateAdminService;
@@ -42,6 +45,8 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   const publicCompanyRepository = new DrizzlePublicCompanyRepository(db);
   const templateRepository = new DrizzleTemplateRepository(db);
   const companyAccountRepository = new DrizzleCompanyAccountRepository(db);
+  const companyQuoteRequestRepository = new DrizzleCompanyQuoteRequestRepository(db);
+  const companyProposalRepository = new DrizzleCompanyProposalRepository(db);
 
   return {
     authService: createAuthService({
@@ -57,8 +62,13 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     companyAccountService: new CompanyAccountService(companyAccountRepository),
     companyQuoteRequestService: new CompanyQuoteRequestService({
       accountRepository: companyAccountRepository,
-      quoteRequestRepository: new DrizzleCompanyQuoteRequestRepository(db),
+      quoteRequestRepository: companyQuoteRequestRepository,
       templateRepository,
+    }),
+    companyProposalService: new CompanyProposalService({
+      accountRepository: companyAccountRepository,
+      quoteRequestRepository: companyQuoteRequestRepository,
+      proposalRepository: companyProposalRepository,
     }),
     publicCompanyService: new PublicCompanyService(publicCompanyRepository),
     publicQuoteRequestService: new PublicQuoteRequestService({

@@ -72,6 +72,7 @@ export class InMemoryCompanyQuoteRequestRepository implements CompanyQuoteReques
       internalTotalCents: input.internalTotalCents,
       estimateMinCents: input.estimateMinCents,
       estimateMaxCents: input.estimateMaxCents,
+      proposals: current.proposals,
       updatedAt: input.now.toISOString(),
     };
 
@@ -103,6 +104,7 @@ export class InMemoryCompanyQuoteRequestRepository implements CompanyQuoteReques
         }),
         ...current.events,
       ],
+      proposals: current.proposals,
       updatedAt: input.now.toISOString(),
     };
 

@@ -105,7 +105,7 @@
 - Revisao de campos tecnicos. Implementado Sprint 11.
 - Recalculo e memoria de calculo. Implementado Sprint 11.
 - Recusa com motivo. Implementado Sprint 11.
-- Criacao/preview/envio de proposta.
+- Criacao/preview/envio de proposta. Implementado Sprint 12 no detalhe da solicitacao aceita para proposta.
 - Agendamento assistido.
 - Clientes.
 - Historico.
@@ -181,10 +181,10 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 - `PATCH /api/company/quote-requests/:id/review`
 - `POST /api/company/quote-requests/:id/decline`
 
-Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implementadas. Criacao de propostas permanece Sprint 12.
+Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implementadas.
 
-- `POST /api/company/quote-requests/:id/proposals`
-- `POST /api/company/proposals/:id/send`
+- `POST /api/company/quote-requests/:id/proposals`. Implementado Sprint 12.
+- `POST /api/company/proposals/:id/send`. Implementado Sprint 12 com `Idempotency-Key`.
 - `POST /api/company/proposals/:id/appointment`
 - `PATCH /api/company/appointments/:id`
 - `POST /api/company/appointments/:id/complete`

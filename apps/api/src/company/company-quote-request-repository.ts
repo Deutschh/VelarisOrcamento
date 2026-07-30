@@ -1,4 +1,5 @@
 import type {
+  CompanyProposalSummary,
   CompanyQuoteRequestEvent,
   CompanyQuoteRequestRevision,
   QuoteDraftData,
@@ -19,6 +20,7 @@ export interface PersistedCompanyQuoteRequest {
   files: QuoteDraftFileSummary[];
   revisions: CompanyQuoteRequestRevision[];
   events: CompanyQuoteRequestEvent[];
+  proposals: CompanyProposalSummary[];
   calculationSnapshot: Record<string, unknown> | null;
   internalTotalCents: number | null;
   estimateMinCents: number | null;

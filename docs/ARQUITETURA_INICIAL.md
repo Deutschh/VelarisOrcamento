@@ -135,6 +135,16 @@ Requisito implementado: revisoes tecnicas persistem auditoria em `quote_request_
 
 Requisito implementado: o painel da empresa em `apps/web` consome somente endpoints da API para dashboard, lista, detalhe, revisao, recalculo, aceite para proposta e recusa; nao acessa o Neon diretamente.
 
+Requisito implementado: propostas comerciais ficam separadas das solicitacoes. A Sprint 12 adiciona `quotes` como container da proposta da solicitacao e `quote_versions` como cada versao comercial imutavel/auditavel, com itens em `quote_version_items` e eventos em `quote_version_events`.
+
+Requisito implementado: a API da empresa cria versoes comerciais apenas para solicitacoes em `accepted_for_proposal`, sugere o valor final a partir do total interno recalculado, valida faixa estimada, exige justificativa fora da faixa, bloqueia valor negativo/zero nao gratuito e preserva snapshots de solicitacao, calculo, itens, termos e totais.
+
+Requisito implementado: envio de proposta ocorre pelo backend em `POST /api/company/proposals/:id/send`, exige `Idempotency-Key` UUID v4, persiste a chave em `idempotency_keys` e retorna o estado atual sem duplicar envio quando a mesma chave e repetida.
+
+Requisito implementado: o painel `/app` permite criar preview/versao de proposta no detalhe da solicitacao aceita para proposta e enviar a ultima versao em rascunho. O frontend continua sem acesso direto ao Neon.
+
+Limitacao registrada: visualizacao publica da proposta, solicitacao publica de alteracao, aceite/rejeicao do cliente, PDF, documentos legais versionados e agendamento assistido seguem nas sprints posteriores da especificacao.
+
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 
 Limitacao registrada: `quote_request_files` registra metadados de fotos/PDF com `storageProvider = stub`; armazenamento binario privado, thumbnails e URLs temporarias aguardam decisao futura.
