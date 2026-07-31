@@ -953,6 +953,53 @@ export const quoteVersionEvents = pgTable(
   }),
 );
 
+export const quoteAcceptances = pgTable(
+  "quote_acceptances",
+  {
+    id: uuid("id").primaryKey(),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id, { onDelete: "cascade" }),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "restrict" }),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    requestCode: text("request_code").notNull(),
+    proposalCode: text("proposal_code").notNull(),
+    customerName: text("customer_name").notNull(),
+    customerWhatsapp: text("customer_whatsapp").notNull(),
+    customerEmail: text("customer_email"),
+    finalTotal: numeric("final_total", { precision: 12, scale: 2 }).notNull(),
+    termsVersion: text("terms_version").notNull(),
+    privacyPolicyVersion: text("privacy_policy_version").notNull(),
+    estimateDisclaimerVersion: text("estimate_disclaimer_version").notNull(),
+    companyTermsVersion: text("company_terms_version"),
+    legalSnapshot: jsonb("legal_snapshot").$type<Record<string, unknown>>().notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    quoteVersionUnique: uniqueIndex("quote_acceptances_quote_version_unique").on(
+      table.quoteVersionId,
+    ),
+    idempotencyKeyUnique: uniqueIndex("quote_acceptances_idempotency_key_unique").on(
+      table.idempotencyKey,
+    ),
+    quoteIdx: index("quote_acceptances_quote_idx").on(table.quoteId),
+    requestIdx: index("quote_acceptances_request_idx").on(table.quoteRequestId),
+    companyIdx: index("quote_acceptances_company_idx").on(table.companyId),
+  }),
+);
+
 export const appointments = pgTable(
   "appointments",
   {

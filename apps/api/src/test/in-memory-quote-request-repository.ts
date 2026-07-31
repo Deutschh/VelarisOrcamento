@@ -1,6 +1,7 @@
 import type {
   CompanyAppointment,
   CompanyProposalSummary,
+  PublicProposalDetail,
   QuoteDraftFileSummary,
   QuoteSubmitResponse,
 } from "@velaris/shared";
@@ -17,6 +18,9 @@ import type {
   SaveCalculationInput,
   SubmitDraftInput,
   UpdateDraftRecordInput,
+  AcceptProposalInput,
+  ProposalActionIdempotencyRecord,
+  RejectProposalInput,
 } from "../public/quote-request-repository.js";
 
 export class InMemoryQuoteRequestRepository implements PublicQuoteRequestRepository {
@@ -36,6 +40,11 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
   readonly notifications = new Map<string, CreateNotificationInput>();
   readonly proposals = new Map<string, CompanyProposalSummary[]>();
   readonly appointments = new Map<string, CompanyAppointment[]>();
+  readonly publicProposals = new Map<string, PublicProposalDetail>();
+  readonly proposalActionIdempotencyRecords = new Map<
+    string,
+    ProposalActionIdempotencyRecord
+  >();
 
   async createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest> {
     const request: PersistedQuoteRequest = {
@@ -175,6 +184,133 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     return (this.proposals.get(input.quoteRequestId) ?? []).filter(
       (proposal) => proposal.companyId === input.companyId,
     );
+  }
+
+  async findLatestPublicProposal(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<PublicProposalDetail | null> {
+    const proposal = this.publicProposals.get(input.quoteRequestId);
+
+    return proposal?.companyId === input.companyId ? proposal : null;
+  }
+
+  async findProposalActionIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ProposalActionIdempotencyRecord | null> {
+    return (
+      this.proposalActionIdempotencyRecords.get(idempotencyKey(input.scope, input.key)) ??
+      null
+    );
+  }
+
+  async acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail> {
+    const current = this.mustFindPublicProposal(input.quoteRequestId, input.companyId);
+    const latestVersion = current.latestVersion;
+
+    if (
+      !latestVersion ||
+      latestVersion.id !== input.quoteVersionId ||
+      latestVersion.status !== input.fromStatus
+    ) {
+      throw new Error("Proposal version could not be accepted.");
+    }
+
+    const nextVersion = {
+      ...latestVersion,
+      status: input.toStatus,
+      acceptedAt: input.now.toISOString(),
+      updatedAt: input.now.toISOString(),
+    };
+
+    const next: PublicProposalDetail = {
+      ...current,
+      status: input.quoteStatus,
+      latestVersionStatus: input.toStatus,
+      acceptedQuoteVersionId: input.quoteVersionId,
+      finalTotalCents: input.finalTotalCents,
+      validUntil: nextVersion.validUntil,
+      latestVersion: nextVersion,
+      acceptance: {
+        id: input.id,
+        quoteId: input.quoteId,
+        quoteVersionId: input.quoteVersionId,
+        quoteRequestId: input.quoteRequestId,
+        companyId: input.companyId,
+        requestCode: input.requestCode,
+        proposalCode: input.proposalCode,
+        finalTotalCents: input.finalTotalCents,
+        termsVersion: input.termsVersion,
+        privacyPolicyVersion: input.privacyPolicyVersion,
+        estimateDisclaimerVersion: input.estimateDisclaimerVersion,
+        companyTermsVersion: input.companyTermsVersion,
+        acceptedAt: input.now.toISOString(),
+      },
+      updatedAt: input.now.toISOString(),
+    };
+
+    this.publicProposals.set(input.quoteRequestId, next);
+    this.proposals.set(input.quoteRequestId, [
+      next,
+      ...(this.proposals.get(input.quoteRequestId) ?? []).filter(
+        (proposal) => proposal.id !== next.id,
+      ),
+    ]);
+    this.proposalActionIdempotencyRecords.set(
+      idempotencyKey(input.idempotency.scope, input.idempotency.key),
+      {
+        ...input.idempotency,
+        expiresAt: input.idempotency.expiresAt.toISOString(),
+      },
+    );
+
+    return next;
+  }
+
+  async rejectProposal(input: RejectProposalInput): Promise<PublicProposalDetail> {
+    const current = this.mustFindPublicProposal(input.quoteRequestId, input.companyId);
+    const latestVersion = current.latestVersion;
+
+    if (
+      !latestVersion ||
+      latestVersion.id !== input.quoteVersionId ||
+      latestVersion.status !== input.fromStatus
+    ) {
+      throw new Error("Proposal version could not be rejected.");
+    }
+
+    const nextVersion = {
+      ...latestVersion,
+      status: input.toStatus,
+      rejectedAt: input.now.toISOString(),
+      updatedAt: input.now.toISOString(),
+    };
+
+    const next: PublicProposalDetail = {
+      ...current,
+      status: input.quoteStatus,
+      latestVersionStatus: input.toStatus,
+      latestVersion: nextVersion,
+      updatedAt: input.now.toISOString(),
+    };
+
+    this.publicProposals.set(input.quoteRequestId, next);
+    this.proposals.set(input.quoteRequestId, [
+      next,
+      ...(this.proposals.get(input.quoteRequestId) ?? []).filter(
+        (proposal) => proposal.id !== next.id,
+      ),
+    ]);
+    this.proposalActionIdempotencyRecords.set(
+      idempotencyKey(input.idempotency.scope, input.idempotency.key),
+      {
+        ...input.idempotency,
+        expiresAt: input.idempotency.expiresAt.toISOString(),
+      },
+    );
+
+    return next;
   }
 
   async listAppointments(input: {
@@ -357,6 +493,19 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     }
 
     return request;
+  }
+
+  private mustFindPublicProposal(
+    quoteRequestId: string,
+    companyId: string,
+  ): PublicProposalDetail {
+    const proposal = this.publicProposals.get(quoteRequestId);
+
+    if (!proposal || proposal.companyId !== companyId) {
+      throw new Error(`Missing public proposal for quote request ${quoteRequestId}.`);
+    }
+
+    return proposal;
   }
 }
 

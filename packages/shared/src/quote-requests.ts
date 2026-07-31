@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { CompanyAppointment } from "./appointments.js";
 import type { CalculationLine, CalculationResult } from "./pricing.js";
-import type { CompanyProposalSummary } from "./proposals.js";
+import type { CompanyProposalSummary, PublicProposalDetail } from "./proposals.js";
 import type { CompanyFieldConfiguration, SchedulingMode } from "./templates.js";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
@@ -410,6 +410,15 @@ export interface PublicTrackingResponse {
 export interface PublicTrackingAppointmentActionResponse {
   tracking: PublicTrackingResponse;
   appointment: CompanyAppointment;
+}
+
+export interface PublicTrackingProposalDetailResponse {
+  proposal: PublicProposalDetail;
+}
+
+export interface PublicTrackingProposalActionResponse {
+  tracking: PublicTrackingResponse;
+  proposal: PublicProposalDetail;
 }
 
 export interface PublicTrackingRecoveryRequestResponse {

@@ -10,6 +10,11 @@ export type ProposalVersionStatus =
 export type ProposalVersionAction =
   "send" | "view" | "accept" | "reject" | "expire" | "supersede";
 
+export type ProposalCustomerDecisionAction = Extract<
+  ProposalVersionAction,
+  "accept" | "reject"
+>;
+
 export class ProposalLifecycleError extends Error {
   constructor(
     message: string,
@@ -121,6 +126,27 @@ export function assertProposalValidityDate(input: { now: Date; validUntil: Date 
 
 export function isProposalExpired(input: { now: Date; validUntil: Date }) {
   return input.validUntil.getTime() <= input.now.getTime();
+}
+
+export function assertCanAcceptProposalVersion(input: {
+  status: ProposalVersionStatus;
+  now: Date;
+  validUntil: Date;
+}): ProposalVersionStatus {
+  if (isProposalExpired({ now: input.now, validUntil: input.validUntil })) {
+    throw new ProposalLifecycleError(
+      "Expired proposal versions cannot be accepted.",
+      "PROPOSAL_VERSION_EXPIRED",
+    );
+  }
+
+  return transitionProposalVersionStatus(input.status, "accept");
+}
+
+export function assertCanRejectProposalVersion(input: {
+  status: ProposalVersionStatus;
+}): ProposalVersionStatus {
+  return transitionProposalVersionStatus(input.status, "reject");
 }
 
 const proposalVersionTransitions: Partial<

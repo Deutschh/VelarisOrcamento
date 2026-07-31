@@ -1,7 +1,10 @@
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import {
   CalculationError,
+  ProposalLifecycleError,
   QuoteRequestLifecycleError,
+  assertCanAcceptProposalVersion,
+  assertCanRejectProposalVersion,
   assertDraftQuoteRequest,
   calculateQuoteRequestEstimate,
   parseIdempotencyKey,
@@ -9,6 +12,7 @@ import {
   type CalculationPricingRule,
 } from "@velaris/domain";
 import {
+  APP_DEFAULTS,
   quoteDraftDataSchema,
   type CreateQuoteDraftRequest,
   type CreateQuoteDraftResponse,
@@ -23,6 +27,7 @@ import {
   type QuoteEstimateSummary,
   type QuoteItemEstimateSummary,
   type QuoteSubmitResponse,
+  type QuoteVersionStatus,
   type SubmitQuoteDraftRequest,
   type UpdateQuoteDraftRequest,
   type CompanyConfigurationDetail,
@@ -34,6 +39,11 @@ import {
   type PublicTrackingRecoveryVerifyRequest,
   type PublicTrackingRecoveryVerifyResponse,
   type PublicTrackingResponse,
+  type PublicProposalAcceptRequest,
+  type PublicProposalDetail,
+  type PublicProposalRejectRequest,
+  type PublicTrackingProposalActionResponse,
+  type PublicTrackingProposalDetailResponse,
 } from "@velaris/shared";
 import { hashToken } from "../auth/token-service.js";
 import type { CompanyAppointmentService } from "../company/company-appointment-service.js";
@@ -57,6 +67,11 @@ import {
   PublicRecoveryOtpInvalidError,
   PublicTrackingAppointmentUnavailableError,
   PublicTrackingTokenInvalidError,
+  PublicProposalAlreadyDecidedError,
+  PublicProposalExpiredError,
+  PublicProposalIdempotencyConflictError,
+  PublicProposalIdempotencyRequiredError,
+  PublicProposalUnavailableError,
 } from "./public-errors.js";
 import type {
   PersistedPublicCompany,
@@ -367,6 +382,296 @@ export class PublicQuoteRequestService {
     return this.toTrackingResponse(context);
   }
 
+  async getPublicProposal(
+    publicToken: string,
+  ): Promise<PublicTrackingProposalDetailResponse> {
+    const context = await this.loadTrackingContext(publicToken);
+    const proposal = await this.findPublicProposal(context);
+
+    return {
+      proposal,
+    };
+  }
+
+  async acceptPublicProposal(
+    publicToken: string,
+    input: PublicProposalAcceptRequest,
+    metadata: RequestMetadata,
+  ): Promise<PublicTrackingProposalActionResponse> {
+    const context = await this.loadTrackingContext(publicToken);
+    const proposal = await this.findPublicProposal(context);
+    const version = proposal.latestVersion;
+    const idempotencyKey = input.idempotencyKey ?? metadata.idempotencyKey;
+
+    if (!version || !idempotencyKey) {
+      throw new PublicProposalIdempotencyRequiredError();
+    }
+
+    try {
+      parseIdempotencyKey(idempotencyKey);
+    } catch {
+      throw new PublicProposalIdempotencyRequiredError();
+    }
+
+    const scope = `proposal_accept:${proposal.id}`;
+    const requestHash = hashJson({
+      action: "accept",
+      acceptedLegalTerms: input.acceptedLegalTerms,
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      proposalCode: version.proposalCode,
+    });
+    const existing =
+      await this.dependencies.quoteRequestRepository.findProposalActionIdempotencyRecord({
+        scope,
+        key: idempotencyKey,
+      });
+
+    if (existing) {
+      if (existing.requestHash !== requestHash) {
+        throw new PublicProposalIdempotencyConflictError();
+      }
+
+      return {
+        proposal: await this.findPublicProposal(context),
+        tracking: await this.toTrackingResponse(context),
+      };
+    }
+
+    if (proposal.acceptance || version.status === "accepted") {
+      return {
+        proposal,
+        tracking: await this.toTrackingResponse(context),
+      };
+    }
+
+    if (version.status === "rejected") {
+      throw new PublicProposalAlreadyDecidedError();
+    }
+
+    const now = this.now();
+    let toStatus: QuoteVersionStatus;
+
+    try {
+      toStatus = assertCanAcceptProposalVersion({
+        status: version.status,
+        now,
+        validUntil: new Date(version.validUntil),
+      });
+    } catch (error) {
+      if (
+        error instanceof ProposalLifecycleError &&
+        error.code === "PROPOSAL_VERSION_EXPIRED"
+      ) {
+        throw new PublicProposalExpiredError();
+      }
+
+      if (error instanceof ProposalLifecycleError) {
+        throw new PublicProposalAlreadyDecidedError();
+      }
+
+      throw error;
+    }
+
+    const legalVersions = createProposalLegalVersions({
+      proposalTermsVersion: version.termsVersion,
+      hasCompanyTerms: Boolean(context.company.profile.terms?.trim()),
+    });
+
+    const accepted = await this.dependencies.quoteRequestRepository.acceptProposal({
+      id: randomUUID(),
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      quoteRequestId: context.request.id,
+      companyId: context.request.companyId,
+      requestCode: context.request.requestCode!,
+      proposalCode: version.proposalCode,
+      customerName: context.request.data.contact.name,
+      customerWhatsapp: context.request.data.contact.whatsapp,
+      customerEmail: context.request.data.contact.email || null,
+      finalTotalCents: version.finalTotalCents,
+      termsVersion: legalVersions.termsVersion,
+      privacyPolicyVersion: legalVersions.privacyPolicyVersion,
+      estimateDisclaimerVersion: legalVersions.estimateDisclaimerVersion,
+      companyTermsVersion: legalVersions.companyTermsVersion,
+      legalSnapshot: createProposalAcceptanceLegalSnapshot({
+        context,
+        proposal,
+        version,
+        legalVersions,
+        acceptedAt: now,
+        metadata,
+      }),
+      ipAddress: metadata.ipAddress ?? null,
+      userAgent: metadata.userAgent ?? null,
+      idempotencyKey,
+      metadata: {
+        source: "public_tracking",
+        acceptedLegalTerms: input.acceptedLegalTerms,
+      },
+      fromStatus: version.status,
+      toStatus,
+      quoteStatus: "accepted",
+      now,
+      idempotency: {
+        id: randomUUID(),
+        scope,
+        key: idempotencyKey,
+        requestHash,
+        responseBody: {
+          quoteId: proposal.id,
+          quoteVersionId: version.id,
+        },
+        statusCode: 200,
+        expiresAt: addDays(now, 1),
+      },
+    });
+
+    await this.createNotification({
+      companyId: context.request.companyId,
+      type: "proposal_accepted_by_customer",
+      title: "Proposta aceita",
+      message: `O cliente aceitou a proposta ${version.proposalCode}.`,
+      entityType: "quote",
+      entityId: proposal.id,
+      metadata: {
+        quoteRequestId: context.request.id,
+        requestCode: context.request.requestCode,
+        quoteVersionId: version.id,
+        proposalCode: version.proposalCode,
+        finalTotalCents: version.finalTotalCents,
+      },
+      now,
+    });
+
+    return {
+      proposal: accepted,
+      tracking: await this.toTrackingResponse(context),
+    };
+  }
+
+  async rejectPublicProposal(
+    publicToken: string,
+    input: PublicProposalRejectRequest,
+    metadata: RequestMetadata,
+  ): Promise<PublicTrackingProposalActionResponse> {
+    const context = await this.loadTrackingContext(publicToken);
+    const proposal = await this.findPublicProposal(context);
+    const version = proposal.latestVersion;
+    const idempotencyKey = input.idempotencyKey ?? metadata.idempotencyKey;
+
+    if (!version || !idempotencyKey) {
+      throw new PublicProposalIdempotencyRequiredError();
+    }
+
+    try {
+      parseIdempotencyKey(idempotencyKey);
+    } catch {
+      throw new PublicProposalIdempotencyRequiredError();
+    }
+
+    const reason = input.reason?.trim() || null;
+    const scope = `proposal_reject:${proposal.id}`;
+    const requestHash = hashJson({
+      action: "reject",
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      proposalCode: version.proposalCode,
+      reasonCode: input.reasonCode,
+      reason,
+    });
+    const existing =
+      await this.dependencies.quoteRequestRepository.findProposalActionIdempotencyRecord({
+        scope,
+        key: idempotencyKey,
+      });
+
+    if (existing) {
+      if (existing.requestHash !== requestHash) {
+        throw new PublicProposalIdempotencyConflictError();
+      }
+
+      return {
+        proposal: await this.findPublicProposal(context),
+        tracking: await this.toTrackingResponse(context),
+      };
+    }
+
+    if (version.status === "rejected") {
+      return {
+        proposal,
+        tracking: await this.toTrackingResponse(context),
+      };
+    }
+
+    if (proposal.acceptance || version.status === "accepted") {
+      throw new PublicProposalAlreadyDecidedError();
+    }
+
+    const now = this.now();
+    let toStatus: QuoteVersionStatus;
+
+    try {
+      toStatus = assertCanRejectProposalVersion({
+        status: version.status,
+      });
+    } catch (error) {
+      if (error instanceof ProposalLifecycleError) {
+        throw new PublicProposalAlreadyDecidedError();
+      }
+
+      throw error;
+    }
+
+    const rejected = await this.dependencies.quoteRequestRepository.rejectProposal({
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      quoteRequestId: context.request.id,
+      companyId: context.request.companyId,
+      fromStatus: version.status,
+      toStatus,
+      quoteStatus: "rejected",
+      reasonCode: input.reasonCode,
+      reason,
+      now,
+      idempotency: {
+        id: randomUUID(),
+        scope,
+        key: idempotencyKey,
+        requestHash,
+        responseBody: {
+          quoteId: proposal.id,
+          quoteVersionId: version.id,
+        },
+        statusCode: 200,
+        expiresAt: addDays(now, 1),
+      },
+    });
+
+    await this.createNotification({
+      companyId: context.request.companyId,
+      type: "proposal_rejected_by_customer",
+      title: "Proposta recusada",
+      message: `O cliente recusou a proposta ${version.proposalCode}.`,
+      entityType: "quote",
+      entityId: proposal.id,
+      metadata: {
+        quoteRequestId: context.request.id,
+        requestCode: context.request.requestCode,
+        quoteVersionId: version.id,
+        proposalCode: version.proposalCode,
+        reasonCode: input.reasonCode,
+        reason,
+      },
+      now,
+    });
+
+    return {
+      proposal: rejected,
+      tracking: await this.toTrackingResponse(context),
+    };
+  }
+
   async requestRecovery(
     input: PublicTrackingRecoveryRequest,
     metadata: RequestMetadata,
@@ -551,6 +856,22 @@ export class PublicQuoteRequestService {
       appointment: response.appointment,
       tracking: await this.getTracking(publicToken),
     };
+  }
+
+  private async findPublicProposal(
+    context: TrackingContext,
+  ): Promise<PublicProposalDetail> {
+    const proposal =
+      await this.dependencies.quoteRequestRepository.findLatestPublicProposal({
+        companyId: context.request.companyId,
+        quoteRequestId: context.request.id,
+      });
+
+    if (!proposal?.latestVersion || !isPublicProposalVisible(proposal)) {
+      throw new PublicProposalUnavailableError();
+    }
+
+    return proposal;
   }
 
   private async loadDraftContext(draftToken: string): Promise<DraftContext> {
@@ -1206,6 +1527,61 @@ function maskEmail(email: string) {
 
   const visible = local.slice(0, 2);
   return `${visible}${"*".repeat(Math.max(local.length - visible.length, 3))}@${domain}`;
+}
+
+function isPublicProposalVisible(proposal: PublicProposalDetail) {
+  const status = proposal.latestVersion?.status;
+
+  return Boolean(
+    status && ["sent", "viewed", "accepted", "rejected", "expired"].includes(status),
+  );
+}
+
+function createProposalLegalVersions(input: {
+  proposalTermsVersion: string;
+  hasCompanyTerms: boolean;
+}) {
+  return {
+    termsVersion: input.proposalTermsVersion,
+    privacyPolicyVersion: APP_DEFAULTS.legalVersions.privacyPolicy,
+    estimateDisclaimerVersion: APP_DEFAULTS.legalVersions.estimateDisclaimer,
+    companyTermsVersion: input.hasCompanyTerms
+      ? APP_DEFAULTS.legalVersions.companyTerms
+      : null,
+  };
+}
+
+function createProposalAcceptanceLegalSnapshot(input: {
+  context: TrackingContext;
+  proposal: PublicProposalDetail;
+  version: NonNullable<PublicProposalDetail["latestVersion"]>;
+  legalVersions: ReturnType<typeof createProposalLegalVersions>;
+  acceptedAt: Date;
+  metadata: RequestMetadata;
+}): Record<string, unknown> {
+  return {
+    acceptedLegalTerms: true,
+    acceptedAt: input.acceptedAt.toISOString(),
+    source: "public_tracking",
+    requestLegalSnapshot: input.context.request.legalSnapshot,
+    companyTerms: input.context.company.profile.terms,
+    legalVersions: input.legalVersions,
+    proposal: {
+      quoteId: input.proposal.id,
+      quoteVersionId: input.version.id,
+      proposalCode: input.version.proposalCode,
+      versionNumber: input.version.versionNumber,
+      finalTotalCents: input.version.finalTotalCents,
+      validUntil: input.version.validUntil,
+    },
+    customer: {
+      name: input.context.request.data.contact.name,
+      whatsapp: input.context.request.data.contact.whatsapp,
+      email: input.context.request.data.contact.email || null,
+    },
+    ipAddress: input.metadata.ipAddress ?? null,
+    userAgent: input.metadata.userAgent ?? null,
+  };
 }
 
 function getLatestProposal(proposals: CompanyProposalSummary[]) {

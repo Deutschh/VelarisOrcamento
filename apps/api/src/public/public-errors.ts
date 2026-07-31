@@ -133,3 +133,49 @@ export class PublicRecoveryAttemptsExceededError extends AppError {
     );
   }
 }
+
+export class PublicProposalUnavailableError extends AppError {
+  constructor() {
+    super(
+      "No proposal is available for this public tracking link.",
+      404,
+      "PUBLIC_PROPOSAL_UNAVAILABLE",
+    );
+  }
+}
+
+export class PublicProposalIdempotencyRequiredError extends AppError {
+  constructor() {
+    super(
+      "Proposal action requires an Idempotency-Key header.",
+      400,
+      "PUBLIC_PROPOSAL_IDEMPOTENCY_REQUIRED",
+    );
+  }
+}
+
+export class PublicProposalIdempotencyConflictError extends AppError {
+  constructor() {
+    super(
+      "Idempotency key was already used with a different proposal action.",
+      409,
+      "PUBLIC_PROPOSAL_IDEMPOTENCY_CONFLICT",
+    );
+  }
+}
+
+export class PublicProposalExpiredError extends AppError {
+  constructor() {
+    super("Expired proposals cannot be accepted.", 410, "PUBLIC_PROPOSAL_EXPIRED");
+  }
+}
+
+export class PublicProposalAlreadyDecidedError extends AppError {
+  constructor() {
+    super(
+      "This proposal has already been accepted or rejected.",
+      409,
+      "PUBLIC_PROPOSAL_ALREADY_DECIDED",
+    );
+  }
+}

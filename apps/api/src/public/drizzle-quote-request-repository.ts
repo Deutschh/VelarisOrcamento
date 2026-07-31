@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, desc, eq, gt, isNull, lt, ne, or } from "drizzle-orm";
 
 import {
@@ -6,12 +7,15 @@ import {
   idempotencyKeys,
   notifications,
   publicAccessTokens,
+  quoteAcceptances,
   quotes,
   quoteRequestAnswers,
   quoteRequestCalculations,
   quoteRequestFiles,
   quoteRequests,
   quoteVersions,
+  quoteVersionItems,
+  quoteVersionEvents,
   recoveryCodes,
 } from "@velaris/database-schema";
 import {
@@ -21,6 +25,10 @@ import {
   type CompanyAppointmentConflict,
   type CompanyAppointmentHistory,
   type CompanyProposalSummary,
+  type PublicProposalAcceptance,
+  type PublicProposalDetail,
+  type PublicProposalItem,
+  type PublicProposalVersion,
   type QuoteDraftFileSummary,
 } from "@velaris/shared";
 import type { createDatabaseClient } from "../db/client.js";
@@ -38,6 +46,9 @@ import type {
   SaveCalculationInput,
   SubmitDraftInput,
   UpdateDraftRecordInput,
+  AcceptProposalInput,
+  ProposalActionIdempotencyRecord,
+  RejectProposalInput,
 } from "./quote-request-repository.js";
 
 type Database = ReturnType<typeof createDatabaseClient>["db"];
@@ -49,6 +60,8 @@ type AppointmentRow = typeof appointments.$inferSelect;
 type AppointmentHistoryRow = typeof appointmentHistory.$inferSelect;
 type QuoteRow = typeof quotes.$inferSelect;
 type QuoteVersionRow = typeof quoteVersions.$inferSelect;
+type QuoteVersionItemRow = typeof quoteVersionItems.$inferSelect;
+type QuoteAcceptanceRow = typeof quoteAcceptances.$inferSelect;
 type ProposalRow = {
   quote: QuoteRow;
   version: QuoteVersionRow | null;
@@ -229,6 +242,261 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
       .orderBy(desc(quoteVersions.versionNumber));
 
     return mapProposalSummaries(rows);
+  }
+
+  async findLatestPublicProposal(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<PublicProposalDetail | null> {
+    const rows = await this.db
+      .select({
+        quote: quotes,
+        version: quoteVersions,
+      })
+      .from(quotes)
+      .leftJoin(quoteVersions, eq(quoteVersions.quoteId, quotes.id))
+      .where(
+        and(
+          eq(quotes.companyId, input.companyId),
+          eq(quotes.quoteRequestId, input.quoteRequestId),
+        ),
+      )
+      .orderBy(desc(quoteVersions.versionNumber));
+
+    const summary = mapProposalSummaries(rows)[0];
+
+    if (!summary?.latestVersionId) {
+      return null;
+    }
+
+    const [versionRow] = await this.db
+      .select()
+      .from(quoteVersions)
+      .where(eq(quoteVersions.id, summary.latestVersionId))
+      .limit(1);
+
+    if (!versionRow) {
+      return null;
+    }
+
+    const [itemRows, acceptanceRows] = await Promise.all([
+      this.db
+        .select()
+        .from(quoteVersionItems)
+        .where(eq(quoteVersionItems.quoteVersionId, versionRow.id))
+        .orderBy(quoteVersionItems.displayOrder),
+      this.db
+        .select()
+        .from(quoteAcceptances)
+        .where(eq(quoteAcceptances.quoteVersionId, versionRow.id))
+        .limit(1),
+    ]);
+
+    return {
+      ...summary,
+      latestVersion: mapPublicProposalVersion(versionRow, itemRows),
+      acceptance: acceptanceRows[0]
+        ? mapPublicProposalAcceptance(acceptanceRows[0])
+        : null,
+    };
+  }
+
+  async findProposalActionIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ProposalActionIdempotencyRecord | null> {
+    const [row] = await this.db
+      .select()
+      .from(idempotencyKeys)
+      .where(
+        and(eq(idempotencyKeys.scope, input.scope), eq(idempotencyKeys.key, input.key)),
+      )
+      .limit(1);
+
+    return row
+      ? {
+          id: row.id,
+          scope: row.scope,
+          key: row.key,
+          requestHash: row.requestHash,
+          responseBody:
+            row.responseBody as unknown as ProposalActionIdempotencyRecord["responseBody"],
+          statusCode: row.statusCode,
+          expiresAt: row.expiresAt.toISOString(),
+        }
+      : null;
+  }
+
+  async acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail> {
+    await this.db.transaction(async (tx) => {
+      const rows = await tx
+        .update(quoteVersions)
+        .set({
+          status: input.toStatus,
+          acceptedAt: input.now,
+          updatedAt: input.now,
+        })
+        .where(
+          and(
+            eq(quoteVersions.id, input.quoteVersionId),
+            eq(quoteVersions.quoteId, input.quoteId),
+            eq(quoteVersions.status, input.fromStatus),
+          ),
+        )
+        .returning({ id: quoteVersions.id });
+
+      if (rows.length === 0) {
+        throw new Error("Proposal version could not be accepted.");
+      }
+
+      await tx
+        .update(quotes)
+        .set({
+          status: input.quoteStatus,
+          acceptedQuoteVersionId: input.quoteVersionId,
+          updatedAt: input.now,
+        })
+        .where(eq(quotes.id, input.quoteId));
+
+      await tx.insert(quoteVersionEvents).values({
+        id: randomUUID(),
+        quoteVersionId: input.quoteVersionId,
+        eventType: "proposal.accepted",
+        fromStatus: input.fromStatus,
+        toStatus: input.toStatus,
+        actorUserId: null,
+        metadata: {
+          quoteId: input.quoteId,
+          quoteRequestId: input.quoteRequestId,
+          proposalCode: input.proposalCode,
+          source: "public_tracking",
+        },
+        createdAt: input.now,
+      });
+
+      await tx.insert(quoteAcceptances).values({
+        id: input.id,
+        quoteId: input.quoteId,
+        quoteVersionId: input.quoteVersionId,
+        quoteRequestId: input.quoteRequestId,
+        companyId: input.companyId,
+        requestCode: input.requestCode,
+        proposalCode: input.proposalCode,
+        customerName: input.customerName,
+        customerWhatsapp: input.customerWhatsapp,
+        customerEmail: input.customerEmail,
+        finalTotal: centsToDecimalMoney(input.finalTotalCents),
+        termsVersion: input.termsVersion,
+        privacyPolicyVersion: input.privacyPolicyVersion,
+        estimateDisclaimerVersion: input.estimateDisclaimerVersion,
+        companyTermsVersion: input.companyTermsVersion,
+        legalSnapshot: input.legalSnapshot,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        idempotencyKey: input.idempotencyKey,
+        metadata: input.metadata,
+        acceptedAt: input.now,
+        createdAt: input.now,
+      });
+
+      await tx.insert(idempotencyKeys).values({
+        id: input.idempotency.id,
+        scope: input.idempotency.scope,
+        key: input.idempotency.key,
+        requestHash: input.idempotency.requestHash,
+        responseBody: input.idempotency.responseBody as unknown as Record<
+          string,
+          unknown
+        >,
+        statusCode: input.idempotency.statusCode,
+        expiresAt: input.idempotency.expiresAt,
+        createdAt: input.now,
+      });
+    });
+
+    const proposal = await this.findLatestPublicProposal({
+      companyId: input.companyId,
+      quoteRequestId: input.quoteRequestId,
+    });
+
+    if (!proposal) {
+      throw new Error("Accepted proposal could not be reloaded.");
+    }
+
+    return proposal;
+  }
+
+  async rejectProposal(input: RejectProposalInput): Promise<PublicProposalDetail> {
+    await this.db.transaction(async (tx) => {
+      const rows = await tx
+        .update(quoteVersions)
+        .set({
+          status: input.toStatus,
+          rejectedAt: input.now,
+          updatedAt: input.now,
+        })
+        .where(
+          and(
+            eq(quoteVersions.id, input.quoteVersionId),
+            eq(quoteVersions.quoteId, input.quoteId),
+            eq(quoteVersions.status, input.fromStatus),
+          ),
+        )
+        .returning({ id: quoteVersions.id });
+
+      if (rows.length === 0) {
+        throw new Error("Proposal version could not be rejected.");
+      }
+
+      await tx
+        .update(quotes)
+        .set({
+          status: input.quoteStatus,
+          updatedAt: input.now,
+        })
+        .where(eq(quotes.id, input.quoteId));
+
+      await tx.insert(quoteVersionEvents).values({
+        id: randomUUID(),
+        quoteVersionId: input.quoteVersionId,
+        eventType: "proposal.rejected",
+        fromStatus: input.fromStatus,
+        toStatus: input.toStatus,
+        actorUserId: null,
+        metadata: {
+          quoteId: input.quoteId,
+          reasonCode: input.reasonCode,
+          reason: input.reason,
+          source: "public_tracking",
+        },
+        createdAt: input.now,
+      });
+
+      await tx.insert(idempotencyKeys).values({
+        id: input.idempotency.id,
+        scope: input.idempotency.scope,
+        key: input.idempotency.key,
+        requestHash: input.idempotency.requestHash,
+        responseBody: input.idempotency.responseBody as unknown as Record<
+          string,
+          unknown
+        >,
+        statusCode: input.idempotency.statusCode,
+        expiresAt: input.idempotency.expiresAt,
+        createdAt: input.now,
+      });
+    });
+
+    const proposal = await this.findLatestPublicProposal({
+      companyId: input.companyId,
+      quoteRequestId: input.quoteRequestId,
+    });
+
+    if (!proposal) {
+      throw new Error("Rejected proposal could not be reloaded.");
+    }
+
+    return proposal;
   }
 
   async listAppointments(input: {
@@ -695,6 +963,69 @@ function mapFile(row: QuoteRequestFileRow): QuoteDraftFileSummary {
     sizeBytes: row.sizeBytes,
     storageProvider: "stub",
     createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function mapPublicProposalVersion(
+  row: QuoteVersionRow,
+  itemRows: QuoteVersionItemRow[],
+): PublicProposalVersion {
+  return {
+    id: row.id,
+    quoteId: row.quoteId,
+    quoteRequestId: row.quoteRequestId,
+    companyId: row.companyId,
+    versionNumber: row.versionNumber,
+    proposalCode: row.proposalCode,
+    status: row.status,
+    estimateMinCents: decimalMoneyToCents(row.estimateMin) ?? 0,
+    estimateMaxCents: decimalMoneyToCents(row.estimateMax) ?? 0,
+    finalTotalCents: decimalMoneyToCents(row.finalTotal) ?? 0,
+    outOfRangeReason: row.outOfRangeReason,
+    validUntil: row.validUntil.toISOString(),
+    terms: row.terms,
+    termsVersion: row.termsVersion,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    viewedAt: row.viewedAt?.toISOString() ?? null,
+    acceptedAt: row.acceptedAt?.toISOString() ?? null,
+    rejectedAt: row.rejectedAt?.toISOString() ?? null,
+    expiredAt: row.expiredAt?.toISOString() ?? null,
+    items: itemRows.map(mapPublicProposalItem),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function mapPublicProposalItem(row: QuoteVersionItemRow): PublicProposalItem {
+  return {
+    id: row.id,
+    quoteVersionId: row.quoteVersionId,
+    itemId: row.itemId,
+    label: row.label,
+    quantity: row.quantity,
+    finalTotalCents: decimalMoneyToCents(row.finalTotal) ?? 0,
+    snapshot: row.snapshot,
+    displayOrder: row.displayOrder,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function mapPublicProposalAcceptance(row: QuoteAcceptanceRow): PublicProposalAcceptance {
+  return {
+    id: row.id,
+    quoteId: row.quoteId,
+    quoteVersionId: row.quoteVersionId,
+    quoteRequestId: row.quoteRequestId,
+    companyId: row.companyId,
+    requestCode: row.requestCode,
+    proposalCode: row.proposalCode,
+    finalTotalCents: decimalMoneyToCents(row.finalTotal) ?? 0,
+    termsVersion: row.termsVersion,
+    privacyPolicyVersion: row.privacyPolicyVersion,
+    estimateDisclaimerVersion: row.estimateDisclaimerVersion,
+    companyTermsVersion: row.companyTermsVersion,
+    acceptedAt: row.acceptedAt.toISOString(),
   };
 }
 

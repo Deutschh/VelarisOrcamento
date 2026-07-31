@@ -1,10 +1,15 @@
 import type {
   CompanyAppointment,
   CompanyProposalSummary,
+  PublicProposalAcceptance,
+  PublicProposalDetail,
+  PublicProposalVersion,
   QuoteDraftData,
   QuoteDraftFileSummary,
   QuoteRequestStatus,
   QuoteSubmitResponse,
+  QuoteStatus,
+  QuoteVersionStatus,
 } from "@velaris/shared";
 
 export interface PersistedQuoteRequest {
@@ -170,6 +175,83 @@ export interface CreateNotificationInput {
   now: Date;
 }
 
+export interface ProposalActionIdempotencyRecord {
+  id: string;
+  scope: string;
+  key: string;
+  requestHash: string;
+  responseBody: {
+    quoteId: string;
+    quoteVersionId: string;
+  };
+  statusCode: number;
+  expiresAt: string;
+}
+
+export interface AcceptProposalInput {
+  id: string;
+  quoteId: string;
+  quoteVersionId: string;
+  quoteRequestId: string;
+  companyId: string;
+  requestCode: string;
+  proposalCode: string;
+  customerName: string;
+  customerWhatsapp: string;
+  customerEmail: string | null;
+  finalTotalCents: number;
+  termsVersion: string;
+  privacyPolicyVersion: string;
+  estimateDisclaimerVersion: string;
+  companyTermsVersion: string | null;
+  legalSnapshot: Record<string, unknown>;
+  ipAddress: string | null;
+  userAgent: string | null;
+  idempotencyKey: string;
+  metadata: Record<string, unknown>;
+  fromStatus: QuoteVersionStatus;
+  toStatus: QuoteVersionStatus;
+  quoteStatus: QuoteStatus;
+  now: Date;
+  idempotency: {
+    id: string;
+    scope: string;
+    key: string;
+    requestHash: string;
+    responseBody: {
+      quoteId: string;
+      quoteVersionId: string;
+    };
+    statusCode: number;
+    expiresAt: Date;
+  };
+}
+
+export interface RejectProposalInput {
+  quoteId: string;
+  quoteVersionId: string;
+  quoteRequestId: string;
+  companyId: string;
+  fromStatus: QuoteVersionStatus;
+  toStatus: QuoteVersionStatus;
+  quoteStatus: QuoteStatus;
+  reasonCode: string;
+  reason: string | null;
+  now: Date;
+  idempotency: {
+    id: string;
+    scope: string;
+    key: string;
+    requestHash: string;
+    responseBody: {
+      quoteId: string;
+      quoteVersionId: string;
+    };
+    statusCode: number;
+    expiresAt: Date;
+  };
+}
+
 export interface PublicQuoteRequestRepository {
   createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest>;
   findByDraftTokenHash(draftTokenHash: string): Promise<PersistedQuoteRequest | null>;
@@ -186,6 +268,19 @@ export interface PublicQuoteRequestRepository {
     companyId: string;
     quoteRequestId: string;
   }): Promise<CompanyProposalSummary[]>;
+  findLatestPublicProposal(input: {
+    companyId: string;
+    quoteRequestId: string;
+  }): Promise<PublicProposalDetail | null>;
+
+  findProposalActionIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ProposalActionIdempotencyRecord | null>;
+
+  acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail>;
+
+  rejectProposal(input: RejectProposalInput): Promise<PublicProposalDetail>;
   listAppointments(input: {
     companyId: string;
     quoteRequestId: string;
