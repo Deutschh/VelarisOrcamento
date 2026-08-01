@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import type { PublicProposalDetail } from "@velaris/shared";
 
 import { TemplateAdminService } from "../templates/template-service.js";
 import type { EmailAdapter, RecoveryOtpMessage } from "../notifications/email-adapter.js";
@@ -16,7 +17,7 @@ import type {
 import { PublicQuoteRequestService } from "./public-quote-request-service.js";
 
 class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
-  constructor(private readonly companies: PersistedPublicCompany[]) {}
+  constructor(private readonly companies: PersistedPublicCompany[]) { }
 
   async listPublishedCompanies() {
     return this.companies;
@@ -53,9 +54,9 @@ async function createService(options: { now?: () => Date } = {}) {
   const quoteRequestRepository = new InMemoryQuoteRequestRepository();
   const recoveryMessages: RecoveryOtpMessage[] = [];
   const emailAdapter: EmailAdapter = {
-    async sendEmailVerification() {},
-    async sendCompanyActivation() {},
-    async sendQuoteRequestConfirmation() {},
+    async sendEmailVerification() { },
+    async sendCompanyActivation() { },
+    async sendQuoteRequestConfirmation() { },
     async sendRecoveryOtp(message) {
       recoveryMessages.push(message);
     },
@@ -253,6 +254,138 @@ describe("PublicQuoteRequestService", () => {
       }),
     ).rejects.toMatchObject({ code: "PUBLIC_RECOVERY_OTP_EXPIRED" });
   });
+
+  it("accepts a sent proposal and records the accepted version", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { proposal, publicToken } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+    );
+
+    const result = await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey: randomUUID(),
+        ipAddress: "127.0.0.1",
+        userAgent: "vitest",
+      },
+    );
+
+    expect(result.proposal.status).toBe("accepted");
+    expect(result.proposal.latestVersionStatus).toBe("accepted");
+    expect(result.proposal.acceptedQuoteVersionId).toBe(proposal.latestVersionId);
+    expect(result.proposal.acceptance).toMatchObject({
+      quoteId: proposal.id,
+      quoteVersionId: proposal.latestVersionId,
+      proposalCode: proposal.latestProposalCode,
+      finalTotalCents: proposal.finalTotalCents,
+      termsVersion: "proposal_terms_v1",
+    });
+    expect(result.tracking.latestProposal?.latestVersionStatus).toBe("accepted");
+    expect(quoteRequestRepository.proposalActionIdempotencyRecords.size).toBe(1);
+    expect(
+      Array.from(quoteRequestRepository.notifications.values()).some(
+        (notification) => notification.type === "proposal_accepted_by_customer",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not create a second acceptance for the same idempotency key", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { publicToken } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+    );
+    const idempotencyKey = randomUUID();
+
+    const first = await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey,
+      },
+    );
+    const second = await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey,
+      },
+    );
+
+    expect(second.proposal.acceptance?.id).toBe(first.proposal.acceptance?.id);
+    expect(second.proposal.latestVersionStatus).toBe("accepted");
+    expect(quoteRequestRepository.proposalActionIdempotencyRecords.size).toBe(1);
+  });
+
+  it("does not accept expired proposals", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { publicToken } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+      {
+        validUntil: "2026-07-28T12:00:00.000Z",
+      },
+    );
+
+    await expect(
+      service.acceptPublicProposal(
+        publicToken,
+        {
+          acceptedLegalTerms: true,
+        },
+        {
+          idempotencyKey: randomUUID(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLIC_PROPOSAL_EXPIRED",
+    });
+
+    expect(quoteRequestRepository.proposalActionIdempotencyRecords.size).toBe(0);
+    expect(
+      Array.from(quoteRequestRepository.publicProposals.values())[0]?.acceptance,
+    ).toBeNull();
+  });
+
+  it("does not reject a proposal after it has been accepted", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { publicToken } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+    );
+
+    await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey: randomUUID(),
+      },
+    );
+
+    await expect(
+      service.rejectPublicProposal(
+        publicToken,
+        {
+          idempotencyKey: randomUUID(),
+          reasonCode: "price",
+        },
+        {},
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLIC_PROPOSAL_ALREADY_DECIDED",
+    });
+  });
+
 });
 
 async function submitValidDraft(service: PublicQuoteRequestService) {
@@ -283,4 +416,92 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
   }
 
   return { publicToken, response };
+}
+
+
+async function submitDraftWithSentProposal(
+  service: PublicQuoteRequestService,
+  quoteRequestRepository: InMemoryQuoteRequestRepository,
+  options: { validUntil?: string } = {},
+) {
+  const submitted = await submitValidDraft(service);
+  const request = Array.from(quoteRequestRepository.requests.values()).find(
+    (candidate) => candidate.requestCode === submitted.response.requestCode,
+  );
+
+  if (!request?.requestCode) {
+    throw new Error("Submitted quote request was not stored.");
+  }
+
+  const quoteId = randomUUID();
+  const quoteVersionId = randomUUID();
+  const sentAt = "2026-07-29T12:05:00.000Z";
+  const validUntil = options.validUntil ?? "2026-08-05T12:00:00.000Z";
+  const proposalCode = `ORC-${request.requestCode}-V1`;
+
+  const proposal: PublicProposalDetail = {
+    id: quoteId,
+    quoteRequestId: request.id,
+    companyId: request.companyId,
+    status: "sent",
+    latestVersionId: quoteVersionId,
+    latestVersionNumber: 1,
+    latestProposalCode: proposalCode,
+    latestVersionStatus: "sent",
+    finalTotalCents: 12345,
+    validUntil,
+    sentAt,
+    acceptedQuoteVersionId: null,
+    createdAt: sentAt,
+    updatedAt: sentAt,
+    latestVersion: {
+      id: quoteVersionId,
+      quoteId,
+      quoteRequestId: request.id,
+      companyId: request.companyId,
+      versionNumber: 1,
+      proposalCode,
+      status: "sent",
+      estimateMinCents: request.estimateMinCents ?? 11000,
+      estimateMaxCents: request.estimateMaxCents ?? 13000,
+      finalTotalCents: 12345,
+      outOfRangeReason: null,
+      validUntil,
+      terms: "Proposta válida conforme análise técnica.",
+      termsVersion: "proposal_terms_v1",
+      sentAt,
+      viewedAt: null,
+      acceptedAt: null,
+      rejectedAt: null,
+      expiredAt: null,
+      items: [
+        {
+          id: randomUUID(),
+          quoteVersionId,
+          itemId: request.data.items[0]?.id ?? null,
+          label: "Limpeza de sofá",
+          quantity: 1,
+          finalTotalCents: 12345,
+          snapshot: {
+            source: "test",
+          },
+          displayOrder: 0,
+          createdAt: sentAt,
+          updatedAt: sentAt,
+        },
+      ],
+      createdAt: sentAt,
+      updatedAt: sentAt,
+    },
+    acceptance: null,
+  };
+
+  quoteRequestRepository.publicProposals.set(request.id, proposal);
+  quoteRequestRepository.proposals.set(request.id, [proposal]);
+
+  return {
+    ...submitted,
+    proposal,
+    request,
+  };
 }

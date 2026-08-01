@@ -1,11 +1,14 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import {
   HTTP_HEADERS,
-  customerAppointmentActionRequestSchema,
+  PUBLIC_COMPANY_CATEGORIES,
   createQuoteDraftRequestSchema,
+  customerAppointmentActionRequestSchema,
+  publicCompanySearchQuerySchema,
+  publicProposalAcceptRequestSchema,
+  publicProposalRejectRequestSchema,
   publicTrackingRecoveryRequestSchema,
   publicTrackingRecoveryVerifyRequestSchema,
-  publicCompanySearchQuerySchema,
   quoteDraftFileMetadataRequestSchema,
   submitQuoteDraftRequestSchema,
   updateQuoteDraftRequestSchema,
@@ -62,6 +65,44 @@ export function createPublicRouter(
     asyncHandler(async (request, response) => {
       const service = requireQuoteRequestService(publicQuoteRequestService);
       response.json(await service.getTracking(String(request.params.token)));
+    }),
+  );
+
+  router.get(
+    "/tracking/:token/proposal",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const result = await service.getPublicProposal(String(request.params.token));
+
+      response.json(result);
+    }),
+  );
+
+  router.post(
+    "/tracking/:token/proposal/accept",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const result = await service.acceptPublicProposal(
+        String(request.params.token),
+        publicProposalAcceptRequestSchema.parse(request.body),
+        getRequestMetadata(request),
+      );
+
+      response.json(result);
+    }),
+  );
+
+  router.post(
+    "/tracking/:token/proposal/reject",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const result = await service.rejectPublicProposal(
+        String(request.params.token),
+        publicProposalRejectRequestSchema.parse(request.body),
+        getRequestMetadata(request),
+      );
+
+      response.json(result);
     }),
   );
 
@@ -184,6 +225,17 @@ export function createPublicRouter(
   );
 
   return router;
+}
+
+function getRequestMetadata(request: Request) {
+  const idempotencyKey = request.get(HTTP_HEADERS.idempotencyKey);
+  const userAgent = request.get("user-agent");
+
+  return {
+    ...(idempotencyKey ? { idempotencyKey } : {}),
+    ...(request.ip ? { ipAddress: request.ip } : {}),
+    ...(userAgent ? { userAgent } : {}),
+  };
 }
 
 function requireQuoteRequestService(
