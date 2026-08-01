@@ -8,6 +8,8 @@
   quoteDraftFileMetadataRequestSchema,
   submitQuoteDraftRequestSchema,
   updateQuoteDraftRequestSchema,
+  publicProposalAcceptRequestSchema,
+  publicProposalRejectRequestSchema,
 } from "@velaris/shared";
 import type {
   CompanyAppointment,
@@ -25,6 +27,10 @@ import type {
   QuoteDraftResponse,
   QuoteEstimateResponse,
   QuoteSubmitResponse,
+  PublicProposalDetail,
+  PublicProposalRejectRequest,
+  PublicTrackingProposalActionResponse,
+  PublicTrackingProposalDetailResponse,
 } from "@velaris/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -46,6 +52,8 @@ import {
   Star,
   Trash2,
   Upload,
+  FileText,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -71,7 +79,12 @@ import {
   QuoteRequestStatusBadge,
   proposalVersionStatusLabels,
 } from "../components/status-badges.js";
-import { ApiError, apiRequest, errorMessage } from "../lib/api.js";
+import {
+  ApiError,
+  apiRequest,
+  createIdempotencyHeaders,
+  errorMessage,
+} from "../lib/api.js";
 import {
   formatAppointmentWindow,
   formatDate,
@@ -248,11 +261,10 @@ export function OnboardingPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {steps.map((step, index) => (
             <button
-              className={`rounded-md border p-4 text-left text-sm ${
-                index === stepIndex
-                  ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-100"
-                  : "border-white/10 bg-white/[0.03] text-white/55"
-              }`}
+              className={`rounded-md border p-4 text-left text-sm ${index === stepIndex
+                ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-100"
+                : "border-white/10 bg-white/[0.03] text-white/55"
+                }`}
               key={step.title}
               type="button"
               onClick={() => setStepIndex(index)}
@@ -289,7 +301,7 @@ export function CompaniesSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [category, setCategory] = useState<PublicCompanyCategoryCode>(
     (searchParams.get("category") as PublicCompanyCategoryCode | null) ??
-      "cleaning_upholstery",
+    "cleaning_upholstery",
   );
   const [location, setLocation] = useState(searchParams.get("location") ?? "");
   const companiesQuery = useQuery({
@@ -551,9 +563,9 @@ export function QuoteRequestPage() {
       setDraftData((current) =>
         current
           ? {
-              ...current,
-              currentStep: "submitted",
-            }
+            ...current,
+            currentStep: "submitted",
+          }
           : current,
       );
       if (draftEnvelope) {
@@ -572,9 +584,9 @@ export function QuoteRequestPage() {
     setDraftEnvelope((current) =>
       current
         ? {
-            ...current,
-            draft,
-          }
+          ...current,
+          draft,
+        }
         : current,
     );
     setDraftData(draft.data);
@@ -597,9 +609,9 @@ export function QuoteRequestPage() {
       items: current.items.map((item) =>
         item.id === itemId
           ? {
-              ...item,
-              ...patch,
-            }
+            ...item,
+            ...patch,
+          }
           : item,
       ),
     }));
@@ -758,11 +770,10 @@ export function QuoteRequestPage() {
                 <div className="mt-6 grid gap-2 sm:grid-cols-4">
                   {quoteStepItems.map((step) => (
                     <button
-                      className={`rounded-md border px-3 py-2 text-left text-sm ${
-                        draftData.currentStep === step.code
-                          ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
-                          : "border-white/10 bg-[#15171d] text-white/60 hover:bg-white/10"
-                      }`}
+                      className={`rounded-md border px-3 py-2 text-left text-sm ${draftData.currentStep === step.code
+                        ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
+                        : "border-white/10 bg-[#15171d] text-white/60 hover:bg-white/10"
+                        }`}
                       key={step.code}
                       type="button"
                       onClick={() =>
@@ -1226,6 +1237,9 @@ export function PublicTrackingPage() {
   const { token } = useParams();
   const queryClient = useQueryClient();
   const [rescheduleReason, setRescheduleReason] = useState("");
+  const [proposalRejectReasonCode, setProposalRejectReasonCode] =
+    useState<PublicProposalRejectRequest["reasonCode"]>("price");
+  const [proposalRejectReason, setProposalRejectReason] = useState("");
   const trackingQuery = useQuery({
     enabled: Boolean(token),
     queryKey: ["public-tracking", token],
@@ -1251,6 +1265,64 @@ export function PublicTrackingPage() {
     },
   });
   const tracking = trackingQuery.data;
+
+  const proposalQuery = useQuery({
+    enabled: Boolean(token && tracking?.latestProposal),
+    queryKey: ["public-proposal", token],
+    queryFn: () =>
+      apiRequest<PublicTrackingProposalDetailResponse>(
+        `/api/public/tracking/${encodeURIComponent(String(token))}/proposal`,
+      ),
+  });
+
+  const acceptProposalMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<PublicTrackingProposalActionResponse>(
+        `/api/public/tracking/${encodeURIComponent(String(token))}/proposal/accept`,
+        {
+          method: "POST",
+          headers: createIdempotencyHeaders(),
+          body: JSON.stringify(
+            publicProposalAcceptRequestSchema.parse({
+              acceptedLegalTerms: true,
+            }),
+          ),
+        },
+      ),
+    onSuccess(response) {
+      queryClient.setQueryData(["public-tracking", token], response.tracking);
+      queryClient.setQueryData(["public-proposal", token], {
+        proposal: response.proposal,
+      });
+    },
+  });
+
+  const rejectProposalMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<PublicTrackingProposalActionResponse>(
+        `/api/public/tracking/${encodeURIComponent(String(token))}/proposal/reject`,
+        {
+          method: "POST",
+          headers: createIdempotencyHeaders(),
+          body: JSON.stringify(
+            publicProposalRejectRequestSchema.parse({
+              reasonCode: proposalRejectReasonCode,
+              ...(proposalRejectReason.trim()
+                ? { reason: proposalRejectReason.trim() }
+                : {}),
+            }),
+          ),
+        },
+      ),
+    onSuccess(response) {
+      setProposalRejectReason("");
+      queryClient.setQueryData(["public-tracking", token], response.tracking);
+      queryClient.setQueryData(["public-proposal", token], {
+        proposal: response.proposal,
+      });
+    },
+  });
+
   const latestAppointment = tracking ? getLatestAppointment(tracking.appointments) : null;
 
   return (
@@ -1296,10 +1368,10 @@ export function PublicTrackingPage() {
                   value={
                     tracking.quoteRequest.estimate
                       ? `${formatMoneyCents(
-                          tracking.quoteRequest.estimate.estimateMinCents,
-                        )} a ${formatMoneyCents(
-                          tracking.quoteRequest.estimate.estimateMaxCents,
-                        )}`
+                        tracking.quoteRequest.estimate.estimateMinCents,
+                      )} a ${formatMoneyCents(
+                        tracking.quoteRequest.estimate.estimateMaxCents,
+                      )}`
                       : "Pendente"
                   }
                 />
@@ -1308,15 +1380,40 @@ export function PublicTrackingPage() {
 
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
               <section className="space-y-6">
-                <PublicProposalPanel proposal={tracking.latestProposal} />
+                <PublicProposalPanel
+                  actionError={
+                    acceptProposalMutation.error
+                      ? errorMessage(
+                        acceptProposalMutation.error,
+                        "Nao foi possivel aceitar a proposta.",
+                      )
+                      : rejectProposalMutation.error
+                        ? errorMessage(
+                          rejectProposalMutation.error,
+                          "Nao foi possivel recusar a proposta.",
+                        )
+                        : null
+                  }
+                  isAccepting={acceptProposalMutation.isPending}
+                  isLoadingDetail={proposalQuery.isFetching}
+                  isRejecting={rejectProposalMutation.isPending}
+                  proposal={tracking.latestProposal}
+                  proposalDetail={proposalQuery.data?.proposal ?? null}
+                  rejectReason={proposalRejectReason}
+                  rejectReasonCode={proposalRejectReasonCode}
+                  onAccept={() => acceptProposalMutation.mutate()}
+                  onReject={() => rejectProposalMutation.mutate()}
+                  onRejectReasonChange={setProposalRejectReason}
+                  onRejectReasonCodeChange={setProposalRejectReasonCode}
+                />
                 <PublicAppointmentPanel
                   appointment={latestAppointment}
                   error={
                     appointmentMutation.error
                       ? errorMessage(
-                          appointmentMutation.error,
-                          "Nao foi possivel atualizar o horario.",
-                        )
+                        appointmentMutation.error,
+                        "Nao foi possivel atualizar o horario.",
+                      )
                       : null
                   }
                   isLoading={appointmentMutation.isPending}
@@ -1372,36 +1469,198 @@ export function PublicTrackingPage() {
 }
 
 function PublicProposalPanel({
+  actionError,
+  isAccepting,
+  isLoadingDetail,
+  isRejecting,
+  onAccept,
+  onReject,
+  onRejectReasonChange,
+  onRejectReasonCodeChange,
   proposal,
+  proposalDetail,
+  rejectReason,
+  rejectReasonCode,
 }: {
+  actionError: string | null;
+  isAccepting: boolean;
+  isLoadingDetail: boolean;
+  isRejecting: boolean;
+  onAccept: () => void;
+  onReject: () => void;
+  onRejectReasonChange: (value: string) => void;
+  onRejectReasonCodeChange: (value: PublicProposalRejectRequest["reasonCode"]) => void;
   proposal: PublicTrackingResponse["latestProposal"];
+  proposalDetail: PublicProposalDetail | null;
+  rejectReason: string;
+  rejectReasonCode: PublicProposalRejectRequest["reasonCode"];
 }) {
+  const version = proposalDetail?.latestVersion;
+  const status = proposalDetail?.latestVersionStatus ?? proposal?.latestVersionStatus;
+  const canDecide = status === "sent" || status === "viewed";
+  const isAccepted = status === "accepted";
+  const isRejected = status === "rejected";
+
   return (
     <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-      <h2 className="text-xl font-semibold">Proposta</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">Proposta</h2>
+          <p className="mt-2 text-sm text-white/55">
+            Confira o valor final, os itens e as condicoes antes de confirmar.
+          </p>
+        </div>
+        <button
+          className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm text-white/35"
+          disabled
+          type="button"
+          title="O PDF sera liberado na proxima etapa."
+        >
+          <FileText size={16} />
+          PDF em breve
+        </button>
+      </div>
+
       {proposal ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <InfoBlock label="Codigo" value={proposal.latestProposalCode ?? "Pendente"} />
-          <InfoBlock
-            label="Valor"
-            value={
-              proposal.finalTotalCents !== null
-                ? formatMoneyCents(proposal.finalTotalCents)
-                : "Pendente"
-            }
-          />
-          <InfoBlock
-            label="Validade"
-            value={proposal.validUntil ? formatDate(proposal.validUntil) : "Pendente"}
-          />
-          <InfoBlock
-            label="Status"
-            value={
-              proposal.latestVersionStatus
-                ? proposalVersionStatusLabels[proposal.latestVersionStatus]
-                : "Pendente"
-            }
-          />
+        <div className="mt-4 space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBlock label="Codigo" value={proposal.latestProposalCode ?? "Pendente"} />
+            <InfoBlock
+              label="Valor"
+              value={
+                proposal.finalTotalCents !== null
+                  ? formatMoneyCents(proposal.finalTotalCents)
+                  : "Pendente"
+              }
+            />
+            <InfoBlock
+              label="Validade"
+              value={proposal.validUntil ? formatDate(proposal.validUntil) : "Pendente"}
+            />
+            <InfoBlock
+              label="Status"
+              value={
+                proposal.latestVersionStatus
+                  ? proposalVersionStatusLabels[proposal.latestVersionStatus]
+                  : "Pendente"
+              }
+            />
+          </div>
+
+          {isLoadingDetail ? <LoadingLine /> : null}
+
+          {version ? (
+            <div className="space-y-4 border-t border-white/10 pt-5">
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Itens da proposta</h3>
+                <div className="mt-3 space-y-2">
+                  {version.items.map((item) => (
+                    <div
+                      className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-[#12141a] px-4 py-3 text-sm"
+                      key={item.id}
+                    >
+                      <div>
+                        <p className="font-medium text-white/85">{item.label}</p>
+                        <p className="mt-1 text-xs text-white/45">
+                          Quantidade: {item.quantity}
+                        </p>
+                      </div>
+                      <span className="text-emerald-100">
+                        {formatMoneyCents(item.finalTotalCents)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {version.terms ? (
+                <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
+                  <h3 className="text-sm font-medium text-white/80">Condicoes</h3>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-white/60">
+                    {version.terms}
+                  </p>
+                  <p className="mt-3 text-xs text-white/40">
+                    Versao dos termos: {version.termsVersion}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {isAccepted ? (
+            <div className="rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+              Proposta aceita. A empresa ja pode seguir com os proximos detalhes do
+              atendimento.
+            </div>
+          ) : null}
+
+          {isRejected ? (
+            <div className="rounded-md border border-white/10 bg-[#12141a] p-4 text-sm text-white/60">
+              Proposta recusada. Fale com a empresa pelo WhatsApp caso queira negociar uma
+              nova versao.
+            </div>
+          ) : null}
+
+          {canDecide ? (
+            <div className="space-y-4 border-t border-white/10 pt-5">
+              <div className="rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-50">
+                Ao aceitar, voce confirma o valor final desta versao da proposta e os
+                termos apresentados.
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ActionButton
+                  icon={CheckCircle2}
+                  isLoading={isAccepting}
+                  onClick={onAccept}
+                >
+                  Aceitar proposta
+                </ActionButton>
+                <ActionButton
+                  icon={XCircle}
+                  isLoading={isRejecting}
+                  variant="secondary"
+                  onClick={onReject}
+                >
+                  Recusar proposta
+                </ActionButton>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
+                <label className="block text-sm text-white/70">
+                  Motivo da recusa
+                  <select
+                    className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
+                    value={rejectReasonCode}
+                    onChange={(event) =>
+                      onRejectReasonCodeChange(
+                        event.target.value as PublicProposalRejectRequest["reasonCode"],
+                      )
+                    }
+                  >
+                    <option value="price">Valor</option>
+                    <option value="deadline">Prazo</option>
+                    <option value="schedule">Horario</option>
+                    <option value="hired_another_company">
+                      Contratei outra empresa
+                    </option>
+                    <option value="gave_up">Desisti</option>
+                    <option value="other">Outro</option>
+                  </select>
+                </label>
+                <TextAreaField
+                  label="Observacao opcional"
+                  rows={2}
+                  value={rejectReason}
+                  onChange={(event) => onRejectReasonChange(event.target.value)}
+                />
+              </div>
+
+              <FormError message={actionError} />
+            </div>
+          ) : (
+            <FormError message={actionError} />
+          )}
         </div>
       ) : (
         <p className="mt-4 text-sm text-white/55">
@@ -1567,9 +1826,9 @@ export function PublicRecoveryPage() {
               message={
                 requestMutation.error
                   ? errorMessage(
-                      requestMutation.error,
-                      "Nao foi possivel iniciar a recuperacao.",
-                    )
+                    requestMutation.error,
+                    "Nao foi possivel iniciar a recuperacao.",
+                  )
                   : null
               }
             />
@@ -1598,9 +1857,9 @@ export function PublicRecoveryPage() {
                 message={
                   verifyMutation.error
                     ? errorMessage(
-                        verifyMutation.error,
-                        "Nao foi possivel validar o codigo.",
-                      )
+                      verifyMutation.error,
+                      "Nao foi possivel validar o codigo.",
+                    )
                     : null
                 }
               />
@@ -1743,11 +2002,11 @@ const quoteStepItems: Array<{
   code: QuoteDraftData["currentStep"];
   label: string;
 }> = [
-  { code: "items", label: "Itens" },
-  { code: "details", label: "Atendimento" },
-  { code: "contact", label: "Contato" },
-  { code: "review", label: "Revisao" },
-];
+    { code: "items", label: "Itens" },
+    { code: "details", label: "Atendimento" },
+    { code: "contact", label: "Contato" },
+    { code: "review", label: "Revisao" },
+  ];
 
 function CompanyGrid({ companies }: { companies: PublicCompanySummary[] }) {
   if (companies.length === 0) {
