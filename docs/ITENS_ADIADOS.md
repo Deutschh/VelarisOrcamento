@@ -96,15 +96,16 @@ infraestrutura, textos finais ou aprovacao do usuario.
 
 ### Provedor real de e-mail transacional
 
-- Status: decisao pendente.
-- Motivo: foi confirmado que nao seria escolhido/conectado fornecedor definitivo
-  nesta etapa.
-- Implementacao local adiantada: existe adapter `stub` em
-  `apps/api/src/notifications/email-adapter.ts`.
+- Status: implementado tecnicamente com ativacao operacional pendente.
+- Decisao inicial: usar Resend como primeiro provider real configuravel.
+- Implementacao local: existem adapters `stub` e `resend` em
+  `apps/api/src/notifications/email-adapter.ts`, com selecao por
+  `EMAIL_PROVIDER`.
 - Fluxos afetados: verificacao de e-mail, recuperacao publica por OTP, convite
   de avaliacao, liberacao de empresa e comunicacoes futuras.
-- Proximo passo: escolher fornecedor, remetente, dominio, entregabilidade e
-  templates antes do uso publico.
+- Proximo passo: criar conta no Resend, verificar dominio, adicionar DNS de
+  entregabilidade, criar API key, definir `EMAIL_FROM`, configurar variaveis na
+  Render e validar chegada real dos e-mails antes do uso publico.
 
 ### Envio automatico de WhatsApp
 

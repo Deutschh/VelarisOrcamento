@@ -48,7 +48,10 @@ export function validateProductionReadiness(env: AppEnv): ReadinessIssue[] {
 
   const corsOrigins = resolveCorsOrigins(env);
 
-  if (isHostedEnvironment && corsOrigins.some((origin) => !origin.startsWith("https://"))) {
+  if (
+    isHostedEnvironment &&
+    corsOrigins.some((origin) => !origin.startsWith("https://"))
+  ) {
     issues.push({
       level: "error",
       code: "CORS_ORIGIN_HTTPS_REQUIRED",
@@ -79,6 +82,32 @@ export function validateProductionReadiness(env: AppEnv): ReadinessIssue[] {
       message:
         "Transactional e-mail is still using the stub adapter; real delivery remains pending.",
     });
+  }
+
+  if (env.EMAIL_PROVIDER === "resend") {
+    if (!env.RESEND_API_KEY) {
+      issues.push({
+        level: "error",
+        code: "RESEND_API_KEY_REQUIRED",
+        message: "RESEND_API_KEY must be configured outside versioned files.",
+      });
+    }
+
+    if (!env.EMAIL_FROM) {
+      issues.push({
+        level: "error",
+        code: "EMAIL_FROM_REQUIRED",
+        message: "EMAIL_FROM must use an address from the verified sending domain.",
+      });
+    }
+
+    if (isHostedEnvironment && !env.APP_PUBLIC_URL.startsWith("https://")) {
+      issues.push({
+        level: "error",
+        code: "APP_PUBLIC_URL_HTTPS_REQUIRED",
+        message: "Hosted environments must use an HTTPS APP_PUBLIC_URL.",
+      });
+    }
   }
 
   if (env.FILE_STORAGE_PROVIDER === "stub") {

@@ -41,9 +41,11 @@ Lista consolidada de adiados e decisoes externas: `docs/ITENS_ADIADOS.md`.
 
 ## Comunicacao
 
-- Decisao pendente: provedor futuro de e-mail transacional.
+- Decisao inicial registrada: Resend como primeiro provedor real de e-mail
+  transacional.
 - Decisao pendente: templates finais dos e-mails transacionais.
-- Decisao pendente: remetente, dominio e configuracao de entregabilidade.
+- Decisao pendente: remetente final, caixa de resposta e configuracao de
+  entregabilidade no DNS.
 
 ## Arquivos
 

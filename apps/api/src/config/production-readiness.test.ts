@@ -12,6 +12,7 @@ const baseEnv: AppEnv = {
   APP_LOCALE: "pt-BR",
   APP_TIMEZONE: "America/Sao_Paulo",
   APP_CURRENCY: "BRL",
+  APP_PUBLIC_URL: "https://velaris.example",
   WEB_PORT: 5173,
   API_PORT: 3333,
   CORS_ORIGIN: "https://app.velaris.example",
@@ -36,6 +37,9 @@ const baseEnv: AppEnv = {
   PUBLIC_RECOVERY_OTP_TTL_MINUTES: 10,
   PUBLIC_RECOVERY_MAX_ATTEMPTS: 5,
   EMAIL_PROVIDER: "stub",
+  EMAIL_FROM: undefined,
+  EMAIL_REPLY_TO: undefined,
+  RESEND_API_KEY: undefined,
   FILE_STORAGE_PROVIDER: "stub",
 };
 
@@ -101,8 +105,24 @@ describe("validateProductionReadiness", () => {
         "https://app.velarisorcamentos.com.br, https://velaris-orcamento.vercel.app",
     });
 
-    expect(
-      issues.some((issue) => issue.code === "CORS_ORIGIN_HTTPS_REQUIRED"),
-    ).toBe(false);
+    expect(issues.some((issue) => issue.code === "CORS_ORIGIN_HTTPS_REQUIRED")).toBe(
+      false,
+    );
+  });
+
+  it("requires resend credentials when resend is selected", () => {
+    const issues = validateProductionReadiness({
+      ...baseEnv,
+      EMAIL_PROVIDER: "resend",
+      EMAIL_FROM: undefined,
+      RESEND_API_KEY: undefined,
+    });
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "RESEND_API_KEY_REQUIRED", level: "error" }),
+        expect.objectContaining({ code: "EMAIL_FROM_REQUIRED", level: "error" }),
+      ]),
+    );
   });
 });

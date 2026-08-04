@@ -2,6 +2,7 @@ import {
   loginRequestSchema,
   registerCompanyRequestSchema,
   registerCustomerRequestSchema,
+  verifyEmailRequestSchema,
 } from "@velaris/shared";
 import type {
   AuthUser,
@@ -10,10 +11,17 @@ import type {
   RegisterCustomerRequest,
 } from "@velaris/shared";
 import { useMutation } from "@tanstack/react-query";
-import { Building2, LogIn, PlusCircle, UserRound } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  LogIn,
+  MailCheck,
+  PlusCircle,
+  UserRound,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   AppShell,
@@ -327,6 +335,80 @@ export function RegisterCompanyPage() {
             <FormError message={formError} />
           </div>
         </form>
+      </main>
+    </AppShell>
+  );
+}
+
+export function VerifyEmailPage() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const [formError, setFormError] = useState<string | null>(null);
+  const verifyMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = verifyEmailRequestSchema.safeParse({ token });
+
+      if (!parsed.success) {
+        throw new Error("Link de verificação inválido.");
+      }
+
+      await apiRequest<void>("/api/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify(parsed.data),
+      });
+    },
+  });
+
+  async function onVerify() {
+    setFormError(null);
+
+    try {
+      await verifyMutation.mutateAsync();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Falha ao confirmar e-mail.");
+    }
+  }
+
+  return (
+    <AppShell>
+      <main className="mx-auto max-w-xl px-4 py-10 sm:px-6">
+        <SectionTitle eyebrow="Verificação" title="Confirmar e-mail" />
+        <div className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-6">
+          {verifyMutation.isSuccess ? (
+            <>
+              <CheckCircle2 className="text-emerald-200" size={32} />
+              <h2 className="mt-4 text-xl font-semibold">E-mail confirmado</h2>
+              <p className="mt-2 text-sm leading-6 text-white/60">
+                Sua conta foi verificada com sucesso.
+              </p>
+              <Link
+                className="mt-5 inline-flex rounded-md bg-emerald-300 px-4 py-2 text-sm font-semibold text-slate-950"
+                to="/login"
+              >
+                Ir para login
+              </Link>
+            </>
+          ) : (
+            <>
+              <MailCheck className="text-emerald-200" size={32} />
+              <p className="mt-4 text-sm leading-6 text-white/65">
+                Clique para confirmar o e-mail vinculado ao seu cadastro.
+              </p>
+              <button
+                className="mt-5 inline-flex items-center gap-2 rounded-md bg-emerald-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!token || verifyMutation.isPending}
+                type="button"
+                onClick={onVerify}
+              >
+                <MailCheck size={16} />
+                {verifyMutation.isPending ? "Confirmando..." : "Confirmar e-mail"}
+              </button>
+              <FormError
+                message={formError || (!token ? "Token ausente no link." : null)}
+              />
+            </>
+          )}
+        </div>
       </main>
     </AppShell>
   );

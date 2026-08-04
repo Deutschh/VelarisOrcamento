@@ -49,6 +49,10 @@ export const appEnvSchema = z.object({
   APP_LOCALE: z.string().default(APP_DEFAULTS.locale),
   APP_TIMEZONE: z.string().default(APP_DEFAULTS.timezone),
   APP_CURRENCY: z.string().default(APP_DEFAULTS.currency),
+  APP_PUBLIC_URL: z.preprocess(
+    emptyToUndefined,
+    z.string().url().default("http://localhost:5173"),
+  ),
   WEB_PORT: z.coerce.number().int().positive().default(5173),
   API_PORT: z.coerce.number().int().positive().default(3333),
   CORS_ORIGIN: z.string().url().default("http://localhost:5173"),
@@ -56,9 +60,17 @@ export const appEnvSchema = z.object({
   TRUST_PROXY: stringBoolean.default(false),
   SECURITY_HSTS_ENABLED: stringBoolean.optional(),
   RATE_LIMIT_ENABLED: stringBoolean.default(true),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60 * 1000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(300),
-  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60 * 1000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
   DATABASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   DATABASE_SSL_MODE: z.enum(["disable", "prefer", "require"]).default("require"),
@@ -90,7 +102,10 @@ export const appEnvSchema = z.object({
     .positive()
     .max(20)
     .default(APP_DEFAULTS.publicRecoveryMaxAttempts),
-  EMAIL_PROVIDER: z.enum(["stub"]).default("stub"),
+  EMAIL_PROVIDER: z.enum(["stub", "resend"]).default("stub"),
+  EMAIL_FROM: z.preprocess(emptyToUndefined, z.string().optional()),
+  EMAIL_REPLY_TO: z.preprocess(emptyToUndefined, z.string().optional()),
+  RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   FILE_STORAGE_PROVIDER: z.enum(["stub"]).default("stub"),
 });
 

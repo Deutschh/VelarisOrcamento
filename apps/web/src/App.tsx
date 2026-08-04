@@ -6,6 +6,7 @@ import {
   RegisterChoicePage,
   RegisterCompanyPage,
   RegisterCustomerPage,
+  VerifyEmailPage,
 } from "./pages/auth-pages.js";
 import { CompanyAreaPage } from "./pages/company-pages.js";
 import { CustomerAreaPage } from "./pages/customer-pages.js";
@@ -33,6 +34,7 @@ export function App() {
       <Route element={<RegisterChoicePage />} path="/cadastro" />
       <Route element={<RegisterCustomerPage />} path="/cadastro/cliente" />
       <Route element={<RegisterCompanyPage />} path="/cadastro/empresa" />
+      <Route element={<VerifyEmailPage />} path="/verificar-email" />
       <Route element={<CustomerAreaPage />} path="/cliente" />
       <Route element={<CompanyAreaPage />} path="/app" />
       <Route element={<CompanyAreaPage />} path="/app/pendente" />

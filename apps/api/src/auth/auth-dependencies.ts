@@ -6,7 +6,7 @@ import { DrizzleAuthRepository } from "./drizzle-auth-repository.js";
 import { argon2idPasswordHasher } from "./password.js";
 import { AuthService } from "./auth-service.js";
 import { TokenService } from "./token-service.js";
-import { stubEmailAdapter } from "../notifications/email-adapter.js";
+import { createEmailAdapterFromEnv } from "../notifications/email-adapter.js";
 import type { EmailAdapter } from "../notifications/email-adapter.js";
 
 export function createAuthServiceFromEnv(): AuthService {
@@ -19,7 +19,7 @@ export function createAuthServiceFromEnv(): AuthService {
   return createAuthService({
     repository: new DrizzleAuthRepository(db),
     tokenService: createTokenServiceFromEnv(),
-    emailAdapter: stubEmailAdapter,
+    emailAdapter: createEmailAdapterFromEnv(),
   });
 }
 

@@ -19,7 +19,7 @@ import { env } from "./config/env.js";
 import { CustomerService } from "./customer/customer-service.js";
 import { DrizzleCustomerRepository } from "./customer/drizzle-customer-repository.js";
 import { createDatabaseClient } from "./db/client.js";
-import { stubEmailAdapter } from "./notifications/email-adapter.js";
+import { createEmailAdapterFromEnv } from "./notifications/email-adapter.js";
 import { DrizzleOperationalMetricsRepository } from "./operational/drizzle-operational-metrics-repository.js";
 import { OperationalMetricsService } from "./operational/operational-metrics-service.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
@@ -50,6 +50,7 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   }
 
   const { db } = createDatabaseClient(env.DATABASE_URL);
+  const emailAdapter = createEmailAdapterFromEnv();
   const tokenService = createTokenServiceFromEnv();
   const publicCompanyRepository = new DrizzlePublicCompanyRepository(db);
   const templateRepository = new DrizzleTemplateRepository(db);
@@ -64,19 +65,19 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     quoteRequestRepository: companyQuoteRequestRepository,
     proposalRepository: companyProposalRepository,
     appointmentRepository: companyAppointmentRepository,
-    emailAdapter: stubEmailAdapter,
+    emailAdapter,
   });
 
   return {
     authService: createAuthService({
       repository: new DrizzleAuthRepository(db),
       tokenService,
-      emailAdapter: stubEmailAdapter,
+      emailAdapter,
     }),
     tokenService,
     adminService: new AdminService({
       repository: new DrizzleAdminRepository(db),
-      emailAdapter: stubEmailAdapter,
+      emailAdapter,
     }),
     companyAccountService: new CompanyAccountService(companyAccountRepository),
     companyQuoteRequestService: new CompanyQuoteRequestService({
@@ -97,7 +98,7 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
       templateRepository,
       quoteRequestRepository: new DrizzleQuoteRequestRepository(db),
       companyAppointmentService,
-      emailAdapter: stubEmailAdapter,
+      emailAdapter,
     }),
     templateAdminService: new TemplateAdminService(templateRepository),
     customerService: new CustomerService({

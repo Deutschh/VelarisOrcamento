@@ -18,10 +18,9 @@ Dominio: velarisorcamentos.com.br
 Subdominios recomendados:
 
 ```txt
-app.velarisorcamentos.com.br -> frontend Vercel
+velarisorcamentos.com.br     -> frontend Vercel
 api.velarisorcamentos.com.br -> API Render
-www.velarisorcamentos.com.br -> landing/redirecionamento futuro
-velarisorcamentos.com.br     -> landing/redirecionamento futuro
+www.velarisorcamentos.com.br -> redirecionamento para o dominio raiz
 ```
 
 ## O que ja foi ajustado no codigo
@@ -34,6 +33,9 @@ velarisorcamentos.com.br     -> landing/redirecionamento futuro
 - A raiz declara Node `22.x` para a Vercel e `.node-version`/`.nvmrc` mantem
   `22.15.0` para ambientes que suportam versao exata.
 - O `vercel.json` fixa install, build e output do frontend no monorepo.
+- O e-mail transacional possui adapter `stub` e adapter real `resend`, sem
+  dependencia externa no npm. A ativacao real depende de dominio verificado,
+  DNS de entregabilidade e `RESEND_API_KEY` no ambiente hospedado.
 
 ## Antes de publicar
 
@@ -101,7 +103,7 @@ APP_CURRENCY=BRL
 DATABASE_URL=<valor_real_do_Neon>
 DATABASE_SSL_MODE=require
 
-CORS_ORIGIN=https://app.velarisorcamentos.com.br
+CORS_ORIGIN=https://velarisorcamentos.com.br
 # Opcional: use quando precisar liberar dominio final e URL temporaria da Vercel.
 CORS_ORIGINS=
 TRUST_PROXY=true
@@ -125,7 +127,12 @@ QUOTE_VALIDITY_DAYS=7
 PUBLIC_RECOVERY_OTP_TTL_MINUTES=10
 PUBLIC_RECOVERY_MAX_ATTEMPTS=5
 
+APP_PUBLIC_URL=https://velarisorcamentos.com.br
+
 EMAIL_PROVIDER=stub
+EMAIL_FROM=
+EMAIL_REPLY_TO=
+RESEND_API_KEY=
 FILE_STORAGE_PROVIDER=stub
 ```
 
@@ -136,13 +143,13 @@ Se estiver testando antes de o dominio final estar ativo, configure a Render com
 a origem exata aberta no navegador. Exemplos:
 
 ```txt
-CORS_ORIGIN=https://app.velarisorcamentos.com.br
+CORS_ORIGIN=https://velarisorcamentos.com.br
 ```
 
 ou, temporariamente, para liberar tambem a URL da Vercel:
 
 ```txt
-CORS_ORIGINS=https://app.velarisorcamentos.com.br,https://seu-projeto.vercel.app
+CORS_ORIGINS=https://velarisorcamentos.com.br,https://seu-projeto.vercel.app
 ```
 
 O valor precisa ser exatamente o `origin` do navegador: protocolo `https`,
@@ -160,6 +167,38 @@ api.velarisorcamentos.com.br
 3. No Registro.br, crie o registro indicado pela Render.
 4. Volte na Render e clique para verificar o dominio.
 5. Aguarde o TLS/HTTPS ficar ativo.
+
+## E-mail transacional com Resend
+
+O codigo ja suporta `EMAIL_PROVIDER=resend`. Para ativar envio real:
+
+1. Crie uma conta no Resend.
+2. Adicione o dominio `velarisorcamentos.com.br` no Resend.
+3. Copie os registros DNS exigidos pelo Resend.
+4. Adicione os registros no provedor DNS atual do dominio.
+5. Aguarde a verificacao do dominio.
+6. Crie uma API key no Resend.
+7. Configure na Render, nunca no codigo:
+
+```txt
+EMAIL_PROVIDER=resend
+EMAIL_FROM=Velaris Orçamentos <noreply@velarisorcamentos.com.br>
+EMAIL_REPLY_TO=
+RESEND_API_KEY=<valor_real_da_resend>
+APP_PUBLIC_URL=https://velarisorcamentos.com.br
+```
+
+`EMAIL_FROM` precisa usar um remetente do dominio verificado. `EMAIL_REPLY_TO`
+pode ficar vazio no inicio ou apontar para uma caixa real de atendimento.
+
+Depois de alterar as variaveis, faca redeploy da API. Fluxos que passam a enviar
+e-mail real:
+
+- verificacao de cadastro;
+- liberacao de empresa;
+- confirmacao de solicitacao publica;
+- OTP de recuperacao publica;
+- convite de avaliacao.
 
 ## Deploy do frontend na Vercel
 
@@ -212,7 +251,7 @@ Se o contato oficial ainda nao estiver definido, manter
 1. No projeto da Vercel, adicione:
 
 ```txt
-app.velarisorcamentos.com.br
+velarisorcamentos.com.br
 ```
 
 2. A Vercel mostrara os registros DNS necessarios.
@@ -221,16 +260,16 @@ app.velarisorcamentos.com.br
 5. Quando estiver tudo verde, acesse:
 
 ```txt
-https://app.velarisorcamentos.com.br
+https://velarisorcamentos.com.br
 ```
 
 ## DNS no Registro.br
 
 Nao invente registros antes de ver as instrucoes da Vercel/Render. Em geral:
 
-- `app` sera um CNAME apontando para a Vercel.
+- o dominio raiz tera os registros indicados pela Vercel.
 - `api` sera um CNAME apontando para a Render.
-- `www` e o dominio raiz podem ficar para uma landing page futura.
+- `www` pode redirecionar para o dominio raiz.
 
 Depois, para e-mail transacional, tambem serao adicionados registros SPF, DKIM e
 DMARC conforme o provedor escolhido.
