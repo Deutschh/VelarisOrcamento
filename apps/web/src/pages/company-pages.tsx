@@ -79,6 +79,7 @@ import {
   parseNumberInput,
   schedulingModeLabels,
 } from "../lib/quote-form-options.js";
+import { CompanyOperationalPanel } from "./company-operational.js";
 export function CompanyAreaPage() {
   const contactUrl = import.meta.env.VITE_VELARIS_CONTACT_URL as string | undefined;
   const accountQuery = useQuery({
@@ -123,7 +124,10 @@ export function CompanyAreaPage() {
           </section>
         ) : null}
         {account?.status === "active" ? (
-          <CompanyQuoteRequestsPanel />
+          <>
+            <CompanyOperationalPanel />
+            <CompanyQuoteRequestsPanel />
+          </>
         ) : account ? (
           <CompanyPendingPanel contactUrl={contactUrl} />
         ) : null}

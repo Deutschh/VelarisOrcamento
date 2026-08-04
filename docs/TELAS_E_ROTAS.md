@@ -194,8 +194,9 @@ Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implement
 - `PATCH /api/company/appointments/:id`. Implementado Sprint 13.
 - `POST /api/company/appointments/:id/complete`. Implementado Sprint 13.
 - `GET /api/company/customers`
-- `GET /api/company/metrics`
-- `POST /api/company/price-change-requests`
+- `GET /api/company/metrics`. Implementado Sprint 18.
+- `GET /api/company/price-change-requests`. Implementado Sprint 18.
+- `POST /api/company/price-change-requests`. Implementado Sprint 18.
 
 ### Admin Velaris
 
@@ -216,10 +217,10 @@ Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implement
 
 Status Sprint 7: rotas Admin de templates/configuracoes implementadas; `POST /api/admin/company-configurations/:id/simulate` retorna `preview` e `calculation` usando o template completo de limpeza quando aplicavel.
 
-- `GET /api/admin/price-change-requests`
-- `POST /api/admin/price-change-requests/:id/resolve`
-- `GET /api/admin/audit`
-- `GET /api/admin/metrics`
+- `GET /api/admin/price-change-requests`. Implementado Sprint 18.
+- `POST /api/admin/price-change-requests/:id/resolve`. Implementado Sprint 18.
+- `GET /api/admin/audit`. Implementado Sprint 18.
+- `GET /api/admin/metrics`. Implementado Sprint 18.
 
 ## Regras transversais de rota
 

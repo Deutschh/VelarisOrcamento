@@ -139,6 +139,13 @@ export const serviceStatusEnum = pgEnum("service_status", [
   "closed",
 ]);
 export const reviewStatusEnum = pgEnum("review_status", ["visible", "hidden"]);
+export const priceChangeRequestStatusEnum = pgEnum("price_change_request_status", [
+  "open",
+  "under_review",
+  "approved",
+  "rejected",
+  "implemented",
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1149,6 +1156,42 @@ export const reviews = pgTable(
       table.status,
     ),
     requestIdx: index("reviews_request_idx").on(table.quoteRequestId),
+  }),
+);
+
+export const priceChangeRequests = pgTable(
+  "company_price_change_requests",
+  {
+    id: uuid("id").primaryKey(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    serviceId: uuid("service_id").references(() => companyServices.id, {
+      onDelete: "set null",
+    }),
+    status: priceChangeRequestStatusEnum("status").notNull().default("open"),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    resolutionNote: text("resolution_note"),
+    resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    companyStatusIdx: index("company_price_change_requests_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    statusIdx: index("company_price_change_requests_status_idx").on(table.status),
+    createdAtIdx: index("company_price_change_requests_created_at_idx").on(
+      table.createdAt,
+    ),
   }),
 );
 

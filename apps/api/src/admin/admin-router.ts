@@ -3,8 +3,12 @@ import type { Request } from "express";
 import {
   adminCompanyActionRequestSchema,
   adminCompanyPublicProfileRequestSchema,
+  adminAuditLogQuerySchema,
   adminCompanyListQuerySchema,
   adminCreateCompanyConfigurationRequestSchema,
+  adminMetricsQuerySchema,
+  adminPriceChangeRequestListQuerySchema,
+  adminPriceChangeRequestResolveSchema,
   adminSimulateCompanyConfigurationRequestSchema,
   adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
@@ -14,14 +18,68 @@ import {
 
 import { asyncHandler } from "../lib/async-handler.js";
 import { AppError } from "../lib/app-error.js";
+import type { OperationalMetricsService } from "../operational/operational-metrics-service.js";
 import type { TemplateAdminService } from "../templates/template-service.js";
 import type { AdminService } from "./admin-service.js";
 
 export function createAdminRouter(
   adminService: AdminService,
   templateAdminService?: TemplateAdminService,
+  operationalMetricsService?: OperationalMetricsService,
 ) {
   const router = Router();
+
+  router.get(
+    "/metrics",
+    asyncHandler(async (request, response) => {
+      const query = adminMetricsQuerySchema.parse(request.query);
+      response.json(
+        await getOperationalMetricsService(operationalMetricsService).getAdminMetrics(
+          query,
+        ),
+      );
+    }),
+  );
+
+  router.get(
+    "/audit",
+    asyncHandler(async (request, response) => {
+      const query = adminAuditLogQuerySchema.parse(request.query);
+      response.json(
+        await getOperationalMetricsService(operationalMetricsService).listAdminAuditLogs(
+          query,
+        ),
+      );
+    }),
+  );
+
+  router.get(
+    "/price-change-requests",
+    asyncHandler(async (request, response) => {
+      const query = adminPriceChangeRequestListQuerySchema.parse(request.query);
+      response.json(
+        await getOperationalMetricsService(
+          operationalMetricsService,
+        ).listAdminPriceChangeRequests(query),
+      );
+    }),
+  );
+
+  router.post(
+    "/price-change-requests/:priceChangeRequestId/resolve",
+    asyncHandler(async (request, response) => {
+      const body = adminPriceChangeRequestResolveSchema.parse(request.body);
+      response.json(
+        await getOperationalMetricsService(
+          operationalMetricsService,
+        ).resolveAdminPriceChangeRequest(
+          getPriceChangeRequestId(request.params),
+          getActorUserId(request),
+          body,
+        ),
+      );
+    }),
+  );
 
   router.get(
     "/companies",
@@ -240,6 +298,23 @@ function getReviewId(params: Record<string, string | string[] | undefined>) {
   return reviewId;
 }
 
+function getPriceChangeRequestId(params: Record<string, string | string[] | undefined>) {
+  const rawPriceChangeRequestId = params.priceChangeRequestId;
+  const priceChangeRequestId = Array.isArray(rawPriceChangeRequestId)
+    ? rawPriceChangeRequestId[0]
+    : rawPriceChangeRequestId;
+
+  if (!priceChangeRequestId) {
+    throw new AppError(
+      "Price change request id is required.",
+      400,
+      "PRICE_CHANGE_REQUEST_ID_REQUIRED",
+    );
+  }
+
+  return priceChangeRequestId;
+}
+
 function getTemplateAdminService(templateAdminService?: TemplateAdminService) {
   if (!templateAdminService) {
     throw new AppError(
@@ -250,4 +325,18 @@ function getTemplateAdminService(templateAdminService?: TemplateAdminService) {
   }
 
   return templateAdminService;
+}
+
+function getOperationalMetricsService(
+  operationalMetricsService?: OperationalMetricsService,
+) {
+  if (!operationalMetricsService) {
+    throw new AppError(
+      "Operational metrics are not configured for this environment.",
+      503,
+      "OPERATIONAL_METRICS_NOT_CONFIGURED",
+    );
+  }
+
+  return operationalMetricsService;
 }

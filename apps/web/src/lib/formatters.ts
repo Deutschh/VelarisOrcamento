@@ -99,6 +99,10 @@ export function formatDurationMinutes(minutes: number) {
   return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}min`;
 }
 
+export function formatPercentBps(value: number) {
+  return `${(value / 100).toFixed(1).replace(".", ",")}%`;
+}
+
 export function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
     return `${Math.round(bytes / 1024)} KB`;

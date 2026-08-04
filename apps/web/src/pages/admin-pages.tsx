@@ -70,6 +70,7 @@ import {
   defaultCleaningSimulation,
   schedulingModeLabels,
 } from "../lib/quote-form-options.js";
+import { AdminOperationalPanel } from "./admin-operational.js";
 export function AdminCompaniesPage() {
   const [statusFilter, setStatusFilter] = useState<CompanyStatus | "all">("all");
   const companiesQuery = useQuery({
@@ -107,6 +108,7 @@ export function AdminCompaniesPage() {
         {companiesQuery.error ? (
           <ErrorPanel error={companiesQuery.error} fallback="Acesso Admin necessario." />
         ) : null}
+        <AdminOperationalPanel companies={companiesQuery.data?.companies ?? []} />
         {companiesQuery.data ? (
           <section className="mt-6 overflow-hidden rounded-md border border-white/10">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">

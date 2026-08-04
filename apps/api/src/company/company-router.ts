@@ -2,8 +2,10 @@ import { Router } from "express";
 import type { Request } from "express";
 import {
   HTTP_HEADERS,
+  companyPriceChangeRequestCreateSchema,
   companyProposeAppointmentRequestSchema,
   companyCreateProposalRequestSchema,
+  metricsPeriodQuerySchema,
   companyUpdateAppointmentRequestSchema,
   companyQuoteRequestDeclineRequestSchema,
   companyQuoteRequestListQuerySchema,
@@ -16,12 +18,14 @@ import type { CompanyAccountService } from "./company-account-service.js";
 import type { CompanyAppointmentService } from "./company-appointment-service.js";
 import type { CompanyProposalService } from "./company-proposal-service.js";
 import type { CompanyQuoteRequestService } from "./company-quote-request-service.js";
+import type { OperationalMetricsService } from "../operational/operational-metrics-service.js";
 
 export function createCompanyRouter(
   companyAccountService: CompanyAccountService,
   companyQuoteRequestService?: CompanyQuoteRequestService,
   companyProposalService?: CompanyProposalService,
   companyAppointmentService?: CompanyAppointmentService,
+  operationalMetricsService?: OperationalMetricsService,
 ) {
   const router = Router();
 
@@ -41,6 +45,37 @@ export function createCompanyRouter(
       const service = requireCompanyQuoteRequestService(companyQuoteRequestService);
       const result = await service.listQuoteRequests(actor.userId, {});
       response.json({ dashboard: result.dashboard });
+    }),
+  );
+
+  router.get(
+    "/metrics",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireOperationalMetricsService(operationalMetricsService);
+      const query = metricsPeriodQuerySchema.parse(request.query);
+      response.json(await service.getCompanyMetrics(actor.userId, query));
+    }),
+  );
+
+  router.get(
+    "/price-change-requests",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireOperationalMetricsService(operationalMetricsService);
+      response.json(await service.listCompanyPriceChangeRequests(actor.userId));
+    }),
+  );
+
+  router.post(
+    "/price-change-requests",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireOperationalMetricsService(operationalMetricsService);
+      const body = companyPriceChangeRequestCreateSchema.parse(request.body);
+      response
+        .status(201)
+        .json(await service.createCompanyPriceChangeRequest(actor.userId, body));
     }),
   );
 
@@ -218,6 +253,20 @@ function requireCompanyAppointmentService(
       "Company appointment operations are not configured for this environment.",
       503,
       "COMPANY_APPOINTMENTS_NOT_CONFIGURED",
+    );
+  }
+
+  return service;
+}
+
+function requireOperationalMetricsService(
+  service: OperationalMetricsService | undefined,
+): OperationalMetricsService {
+  if (!service) {
+    throw new AppError(
+      "Company operational metrics are not configured for this environment.",
+      503,
+      "COMPANY_OPERATIONAL_METRICS_NOT_CONFIGURED",
     );
   }
 

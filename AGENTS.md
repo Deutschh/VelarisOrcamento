@@ -24,7 +24,8 @@
 - Sprint 15 concluida tecnicamente: PDF por versao gerado sob demanda no backend, rota publica segura pelo tracking, botao de PDF no frontend, aceite formal, recusa formal, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna e migration `quote_acceptances`.
 - Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
 - Sprint 17 concluida tecnicamente: cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
-- Proxima etapa recomendada para o MVP piloto: Sprint 18, metricas e administracao operacional.
+- Sprint 18 concluida tecnicamente: metricas operacionais da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco.
+- Proxima etapa recomendada para o MVP piloto: Sprint 19, PWA, seguranca, desempenho e deploy.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -116,6 +117,11 @@
 - Deve existir no maximo uma avaliacao por atendimento/agendamento.
 - Apenas avaliacoes visiveis entram na media e contagem do perfil publico.
 - Moderacao Admin pode ocultar/restaurar avaliacao e marcar/limpar suspeita, preservando motivo, moderador e data quando aplicavel.
+- Metricas operacionais devem ser calculadas a partir dos dados internos do produto; analytics externo segue adiado.
+- Metricas empresariais devem respeitar vinculo ativo, papel permitido e `company_id`.
+- Solicitacoes empresariais de alteracao de preco podem ser abertas por `owner` ou `manager`; `operator` pode consultar, mas nao criar.
+- Solicitacoes de alteracao de preco devem ficar auditaveis em `audit_logs` quando criadas ou resolvidas pelo Admin.
+- Admin pode filtrar metricas por periodo, nicho e empresa, e consultar auditoria operacional por periodo/empresa/acao.
 - Variaveis sensiveis devem permanecer fora do codigo.
 - Nenhuma credencial real deve ser criada, solicitada ou escrita em arquivos versionados.
 - Toda migration deve ser revisavel e reversivel quando tecnicamente possivel.
@@ -167,4 +173,5 @@
 - Sprint 15 cria PDF, aceite e documentos legais iniciais.
 - Sprint 16 cria servico realizado e avaliacoes.
 - Sprint 17 cria a area autenticada do cliente.
-- Sprint 17 esta concluida tecnicamente; iniciar Sprint 18 somente apos nova autorizacao do usuario.
+- Sprint 18 cria metricas e administracao operacional.
+- Sprint 18 esta concluida tecnicamente; iniciar Sprint 19 somente apos nova autorizacao do usuario.

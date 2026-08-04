@@ -6,6 +6,7 @@ export * from "./constants.js";
 export * from "./contracts.js";
 export * from "./customer.js";
 export * from "./env.js";
+export * from "./metrics.js";
 export * from "./pricing.js";
 export * from "./proposals.js";
 export * from "./public.js";

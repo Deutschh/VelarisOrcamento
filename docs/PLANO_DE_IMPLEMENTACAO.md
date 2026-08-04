@@ -20,7 +20,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 15 concluida tecnicamente: PDF por versao gerado sob demanda no backend, rota publica segura pelo tracking, botao de PDF no frontend, aceite formal, recusa formal, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna e migration `quote_acceptances`.
 - Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
 - Sprint 17 concluida tecnicamente: area autenticada do cliente com home personalizada, cadastro/entrada de cliente, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
-- Proxima etapa recomendada para o MVP piloto: Sprint 18, metricas e administracao operacional.
+- Sprint 18 concluida tecnicamente: metricas operacionais da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco.
+- Proxima etapa recomendada para o MVP piloto: Sprint 19, PWA, seguranca, desempenho e deploy.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -184,7 +185,10 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 ## Sprint 18 - Metricas e administracao operacional
 
 - Requisito confirmado: metricas da empresa, metricas Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores estimado/proposto/aceito, ranking, auditoria e solicitacoes de preco.
-- Decisao adiada: analytics externo.
+- Implementado Sprint 18: contratos compartilhados de metricas e solicitacoes de alteracao de preco; tabela final `company_price_change_requests`; API empresarial `GET /api/company/metrics`, `GET /api/company/price-change-requests` e `POST /api/company/price-change-requests`; API Admin `GET /api/admin/metrics`, `GET /api/admin/audit`, `GET /api/admin/price-change-requests` e `POST /api/admin/price-change-requests/:id/resolve`; painel operacional da empresa; painel operacional Admin com filtros, ranking, auditoria e resolucao de pedidos de preco.
+- Migrations geradas/aplicadas: `database/migrations/0014_chunky_raza.sql` e `database/migrations/0015_blue_bulldozer.sql`.
+- Decisao adiada: analytics externo segue fora da V1/MVP piloto.
+- Limitacao registrada: metricas sao agregadas pela aplicacao a partir do banco atual; dashboards analiticos avancados, cohort/BI externo e monitoramento definitivo ficam para decisao futura.
 - Estimativa da especificacao: 16 a 24 horas.
 
 ## Sprint 19 - PWA, seguranca, desempenho e deploy

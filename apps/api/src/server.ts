@@ -21,6 +21,7 @@ import { authenticate } from "./middleware/authenticate.js";
 import { authorizeAdmin } from "./middleware/authorize-admin.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { logger } from "./lib/logger.js";
+import type { OperationalMetricsService } from "./operational/operational-metrics-service.js";
 import { createPublicRouter } from "./public/public-router.js";
 import type { PublicCompanyService } from "./public/public-service.js";
 import type { PublicQuoteRequestService } from "./public/public-quote-request-service.js";
@@ -41,6 +42,7 @@ export interface AppDependencies {
   publicQuoteRequestService?: PublicQuoteRequestService;
   templateAdminService?: TemplateAdminService;
   customerService?: CustomerService;
+  operationalMetricsService?: OperationalMetricsService;
 }
 
 export function createApp(dependencies: AppDependencies = {}) {
@@ -81,7 +83,8 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.publicCompanyService ||
     dependencies.publicQuoteRequestService ||
     dependencies.templateAdminService ||
-    dependencies.customerService
+    dependencies.customerService ||
+    dependencies.operationalMetricsService
   ) {
     return dependencies;
   }
@@ -111,7 +114,11 @@ function createProtectedAdminRouterIfAvailable(dependencies: AppDependencies) {
     return [
       authenticate(dependencies.tokenService),
       authorizeAdmin,
-      createAdminRouter(dependencies.adminService, dependencies.templateAdminService),
+      createAdminRouter(
+        dependencies.adminService,
+        dependencies.templateAdminService,
+        dependencies.operationalMetricsService,
+      ),
     ];
   }
 
@@ -127,6 +134,7 @@ function createProtectedCompanyRouterIfAvailable(dependencies: AppDependencies) 
         dependencies.companyQuoteRequestService,
         dependencies.companyProposalService,
         dependencies.companyAppointmentService,
+        dependencies.operationalMetricsService,
       ),
     ];
   }

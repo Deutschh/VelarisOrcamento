@@ -20,6 +20,8 @@ import { CustomerService } from "./customer/customer-service.js";
 import { DrizzleCustomerRepository } from "./customer/drizzle-customer-repository.js";
 import { createDatabaseClient } from "./db/client.js";
 import { stubEmailAdapter } from "./notifications/email-adapter.js";
+import { DrizzleOperationalMetricsRepository } from "./operational/drizzle-operational-metrics-repository.js";
+import { OperationalMetricsService } from "./operational/operational-metrics-service.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
 import { DrizzleQuoteRequestRepository } from "./public/drizzle-quote-request-repository.js";
 import { PublicCompanyService } from "./public/public-service.js";
@@ -39,6 +41,7 @@ export interface RuntimeDependencies {
   publicQuoteRequestService: PublicQuoteRequestService;
   templateAdminService: TemplateAdminService;
   customerService: CustomerService;
+  operationalMetricsService: OperationalMetricsService;
 }
 
 export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
@@ -55,6 +58,7 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   const companyProposalRepository = new DrizzleCompanyProposalRepository(db);
   const companyAppointmentRepository = new DrizzleCompanyAppointmentRepository(db);
   const customerRepository = new DrizzleCustomerRepository(db);
+  const operationalMetricsRepository = new DrizzleOperationalMetricsRepository(db);
   const companyAppointmentService = new CompanyAppointmentService({
     accountRepository: companyAccountRepository,
     quoteRequestRepository: companyQuoteRequestRepository,
@@ -98,6 +102,10 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
     templateAdminService: new TemplateAdminService(templateRepository),
     customerService: new CustomerService({
       repository: customerRepository,
+    }),
+    operationalMetricsService: new OperationalMetricsService({
+      accountRepository: companyAccountRepository,
+      repository: operationalMetricsRepository,
     }),
   };
 }

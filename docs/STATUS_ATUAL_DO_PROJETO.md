@@ -98,7 +98,7 @@ ate a validacao do MVP piloto de limpeza de estofados.
 | Sprint 15 | PDF, aceite e documentos legais           | Implementado tecnicamente. PDF por versao gerado sob demanda no backend, rota publica segura, botao no tracking, aceite/recusa formal, idempotencia, versoes legais iniciais, IP/user agent, bloqueio de expirada, eventos e frontend publico existem.             |
 | Sprint 16 | Servico realizado e avaliacoes            | Implementado tecnicamente. Status de servico, marcacao como realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil, media atualizada e moderacao Admin existem.                                               |
 | Sprint 17 | Area do cliente                           | Implementado tecnicamente. Cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de visitante existem.     |
-| Sprint 18 | Metricas e administracao operacional      | Nao iniciado.                                                                                                                                                                                                                                                      |
+| Sprint 18 | Metricas e administracao operacional      | Implementado tecnicamente. Metricas da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco existem.                                                       |
 | Sprint 19 | PWA, seguranca, desempenho e deploy       | Nao iniciado.                                                                                                                                                                                                                                                      |
 
 ## MVP piloto: o que ja esta pronto e o que falta
@@ -1084,11 +1084,21 @@ Por padrao:
 
 ### Sprint 18
 
-- Metricas para empresa.
-- Metricas Admin.
-- Filtros por periodo/nicho/empresa.
-- Conversao, tempo de resposta, valores estimados/propostos/aceitos.
-- Ranking e solicitacoes de alteracao de preco.
+- Implementado tecnicamente.
+- Metricas para empresa em `/app`, com periodo, recebidas, em analise,
+  recusadas, propostas enviadas/visualizadas/aceitas, conversao, valores,
+  tempo medio, servicos realizados e avaliacoes.
+- Metricas Admin em `/admin`, com filtros por periodo, nicho e empresa,
+  status das empresas, volume, conversao, valores, armazenamento registrado,
+  ranking por empresa e recorte por nicho.
+- Auditoria operacional por periodo/empresa/acao via `GET /api/admin/audit`.
+- Solicitacoes de alteracao de preco via empresa e fila de resolucao Admin.
+- Tabela final: `company_price_change_requests`, alinhada ao nome listado na
+  especificacao.
+- Migrations geradas/aplicadas: `database/migrations/0014_chunky_raza.sql` e
+  `database/migrations/0015_blue_bulldozer.sql`.
+- Limitacao registrada: analytics externo e BI avancado seguem adiados; os
+  indicadores atuais sao agregados a partir do banco transacional.
 
 ### Sprint 19
 
@@ -1132,6 +1142,9 @@ Por padrao:
   de dominio/API.
 - `database/README.md` esta desatualizado em relacao ao estado real, pois ainda
   descreve o banco como sem tabelas/migrations.
+- O driver `pg` avisou que `sslmode=require/prefer/verify-ca` mudara de
+  semantica em versoes futuras; avaliar `sslmode=verify-full` na string local
+  quando formos tratar hardening/deploy.
 
 ## Checklist rapido para achar uma funcionalidade
 
@@ -1140,7 +1153,11 @@ Por padrao:
 - Quero mudar area do cliente: `apps/web/src/pages/customer-pages.tsx` e
   `apps/api/src/customer`.
 - Quero mudar painel da empresa: `apps/web/src/pages/company-pages.tsx`.
+- Quero mudar metricas/pedidos operacionais da empresa:
+  `apps/web/src/pages/company-operational.tsx`.
 - Quero mudar Admin: `apps/web/src/pages/admin-pages.tsx`.
+- Quero mudar metricas/auditoria operacional Admin:
+  `apps/web/src/pages/admin-operational.tsx`.
 - Quero mudar estilos/componentes comuns: `apps/web/src/components`.
 - Quero mudar chamadas HTTP do frontend: `apps/web/src/lib/api.ts`.
 - Quero mudar formatacao de datas/dinheiro: `apps/web/src/lib/formatters.ts`.
@@ -1151,6 +1168,8 @@ Por padrao:
 - Quero mudar calculo: `packages/domain/src/calculation-engine.ts` e
   `packages/domain/src/quote-request-calculation.ts`.
 - Quero mudar contratos de avaliacao: `packages/shared/src/reviews.ts`.
+- Quero mudar metricas/auditoria/pedidos de preco na API:
+  `apps/api/src/operational`.
 - Quero mudar persistencia: repositorio Drizzle correspondente em `apps/api/src`.
 - Quero mudar schema de banco: `database/schemas/index.ts` e gerar migration.
 - Quero mudar endpoints: router correspondente em `apps/api/src/*/*-router.ts`.
@@ -1161,16 +1180,16 @@ Por padrao:
 
 ## Estado recomendado para a proxima etapa
 
-A proxima etapa funcional recomendada e Sprint 18: metricas e administracao
-operacional. Antes dela, vale revisar:
+A proxima etapa funcional recomendada e Sprint 19: PWA, seguranca, desempenho
+e deploy. Antes dela, vale revisar:
 
-- quais metricas entram primeiro no painel da empresa;
-- quais metricas entram primeiro no Admin Velaris;
-- quais filtros por periodo, nicho e empresa sao indispensaveis;
-- como apresentar conversao, tempo de resposta, valores e ranking sem prometer
-  analytics externo definitivo;
-- se solicitacoes de alteracao de preco entram no primeiro recorte da Sprint 18
-  ou ficam apenas preparadas.
+- estrategia de hospedagem frontend/API;
+- dominio, SSL e ambientes de homologacao/producao;
+- rate limit e hardening de permissoes;
+- cache seguro/PWA sem expor dados sensiveis;
+- upload real e armazenamento privado;
+- monitoramento, backups e politica de logs;
+- ajuste da string Neon para modo SSL futuro mais explicito, se aplicavel.
 
 Nao e recomendado iniciar vidracaria ou marmoraria antes da validacao comercial
 do MVP piloto de limpeza de estofados.

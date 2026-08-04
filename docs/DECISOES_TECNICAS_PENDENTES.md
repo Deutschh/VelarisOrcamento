@@ -10,7 +10,7 @@ Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirma
 - Decisao pendente: URL/canal oficial de contato da Velaris para a tela de conta pendente.
 - Decisao pendente: ajuste fino das margens de estimativa por template/servico/empresa apos validacao do piloto.
 - Decisao pendente: politica operacional final de moderacao de avaliacoes, caso a Velaris queira criterios alem das acoes iniciais de ocultar/restaurar e marcar/limpar suspeita.
-- Decisao pendente: recorte inicial das metricas da Sprint 18 para painel da empresa e Admin Velaris.
+- Decisao pendente: refinamento visual e hierarquia final dos dashboards operacionais apos validacao com usuarios reais.
 - Decisao pendente: criterios finais de ordenacao e destaque da home do cliente apos validacao com usuarios reais.
 
 ## Identidade visual
