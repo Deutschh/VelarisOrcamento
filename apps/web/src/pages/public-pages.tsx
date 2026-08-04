@@ -87,6 +87,7 @@ import {
 import {
   ApiError,
   apiRequest,
+  apiUrl,
   createIdempotencyHeaders,
   errorMessage,
 } from "../lib/api.js";
@@ -548,6 +549,7 @@ export function QuoteRequestPage() {
       syncDraft(response.draft);
     },
   });
+
   const estimateMutation = useMutation({
     mutationFn: async (data: QuoteDraftData) => {
       const envelope = requireDraftEnvelope(draftEnvelope);
@@ -576,6 +578,7 @@ export function QuoteRequestPage() {
       syncDraft(response.draft);
     },
   });
+
   const fileMutation = useMutation({
     mutationFn: async (input: { itemId: string; files: FileList }) => {
       const envelope = requireDraftEnvelope(draftEnvelope);
@@ -609,6 +612,7 @@ export function QuoteRequestPage() {
       syncDraft(response.draft);
     },
   });
+
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: string) => {
       const envelope = requireDraftEnvelope(draftEnvelope);
@@ -623,6 +627,7 @@ export function QuoteRequestPage() {
       syncDraft(response.draft);
     },
   });
+
   const submitMutation = useMutation({
     mutationFn: async (data: QuoteDraftData) => {
       const envelope = requireDraftEnvelope(draftEnvelope);
@@ -630,6 +635,7 @@ export function QuoteRequestPage() {
         ...data,
         currentStep: "review",
       });
+
       await apiRequest<QuoteDraftResponse>(
         `/api/public/quote-requests/drafts/${encodeURIComponent(envelope.draftToken)}`,
         {
@@ -637,6 +643,7 @@ export function QuoteRequestPage() {
           body: JSON.stringify(payload),
         },
       );
+
       const submitPayload = submitQuoteDraftRequestSchema.parse({
         acceptedLegalTerms: true,
       });
@@ -662,6 +669,7 @@ export function QuoteRequestPage() {
             }
           : current,
       );
+
       if (draftEnvelope) {
         persistQuoteDraftToken(String(slug), {
           draftToken: draftEnvelope.draftToken,
@@ -741,7 +749,7 @@ export function QuoteRequestPage() {
     try {
       await saveMutation.mutateAsync(draftData);
     } catch (error) {
-      setFormError(errorMessage(error, "Nao foi possivel salvar o rascunho."));
+      setFormError(errorMessage(error, "Não foi possível salvar o rascunho."));
     }
   }
 
@@ -755,7 +763,7 @@ export function QuoteRequestPage() {
     try {
       await estimateMutation.mutateAsync(draftData);
     } catch (error) {
-      setFormError(errorMessage(error, "Nao foi possivel calcular a estimativa."));
+      setFormError(errorMessage(error, "Não foi possível calcular a estimativa."));
     }
   }
 
@@ -772,7 +780,7 @@ export function QuoteRequestPage() {
       setDraftData({
         ...draftData,
         currentStep:
-          validationMessage === "Informe o endereco do atendimento."
+          validationMessage === "Informe o endereço do atendimento."
             ? "details"
             : "contact",
       });
@@ -782,7 +790,7 @@ export function QuoteRequestPage() {
     try {
       await submitMutation.mutateAsync(draftData);
     } catch (error) {
-      setFormError(errorMessage(error, "Nao foi possivel enviar a solicitacao."));
+      setFormError(errorMessage(error, "Não foi possível enviar a solicitação."));
     }
   }
 
@@ -798,36 +806,57 @@ export function QuoteRequestPage() {
   if (submitResult) {
     return (
       <AppShell>
-        <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <section className="rounded-md border border-emerald-300/30 bg-emerald-300/10 p-6">
-            <div className="flex items-center gap-3 text-emerald-100">
-              <CheckCircle2 size={24} />
-              <h1 className="text-2xl font-semibold">Solicitacao enviada</h1>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <InfoBlock label="Codigo" value={submitResult.requestCode} />
-              <InfoBlock
-                label="Estimativa"
-                value={`${formatMoneyCents(submitResult.estimate.estimateMinCents)} a ${formatMoneyCents(
-                  submitResult.estimate.estimateMaxCents,
-                )}`}
-              />
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <PrimaryLink icon={ClipboardList} to={submitResult.trackingPath}>
-                Acompanhar
-              </PrimaryLink>
-              <SecondaryLink icon={ArrowRight} to={`/empresa/${String(slug)}`}>
-                Voltar ao perfil
-              </SecondaryLink>
-              <button
-                className="inline-flex items-center gap-2 rounded-md border border-white/15 px-5 py-3 font-medium text-white/85 hover:bg-white/10"
-                type="button"
-                onClick={() => navigator.clipboard.writeText(submitResult.trackingPath)}
-              >
-                <Copy size={18} />
-                Copiar link
-              </button>
+        <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+          <section className="relative overflow-hidden rounded-[40px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+            <div className="absolute right-[-90px] top-[-90px] h-56 w-56 rounded-full bg-[var(--color-accent-soft)] blur-[90px]" />
+
+            <div className="relative">
+              <div className="flex items-center gap-4">
+                <div className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)]">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                    Solicitação enviada
+                  </p>
+                  <h1 className="mt-1 font-serif text-4xl font-normal tracking-[-0.055em] text-[var(--color-text-primary)]">
+                    Agora é só acompanhar.
+                  </h1>
+                </div>
+              </div>
+
+              <p className="mt-6 max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
+                A empresa recebeu seu pedido e poderá analisar os detalhes antes de enviar
+                uma proposta final. Guarde o link de acompanhamento para consultar tudo em
+                um só lugar.
+              </p>
+
+              <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                <InfoBlock label="Código" value={submitResult.requestCode} />
+                <InfoBlock
+                  label="Estimativa inicial"
+                  value={`${formatMoneyCents(
+                    submitResult.estimate.estimateMinCents,
+                  )} a ${formatMoneyCents(submitResult.estimate.estimateMaxCents)}`}
+                />
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                <PrimaryLink icon={ClipboardList} to={submitResult.trackingPath}>
+                  Acompanhar solicitação
+                </PrimaryLink>
+                <SecondaryLink icon={ArrowRight} to={`/empresa/${String(slug)}`}>
+                  Voltar ao perfil
+                </SecondaryLink>
+                <button
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(submitResult.trackingPath)}
+                >
+                  <Copy size={18} />
+                  Copiar link
+                </button>
+              </div>
             </div>
           </section>
         </main>
@@ -837,58 +866,84 @@ export function QuoteRequestPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         {draftQuery.isLoading ? <LoadingLine /> : null}
         {draftQuery.error ? (
           <ErrorPanel
             error={draftQuery.error}
-            fallback="Nao foi possivel iniciar o rascunho."
+            fallback="Não foi possível iniciar o orçamento."
           />
         ) : null}
+
         {draft && draftData ? (
-          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             <section className="space-y-6">
-              <div className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <section className="relative overflow-hidden rounded-[38px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+                <div className="absolute right-[-100px] top-[-100px] h-56 w-56 rounded-full bg-[var(--color-accent-soft)] blur-[90px]" />
+
+                <div className="relative flex flex-wrap items-start justify-between gap-5">
                   <div>
-                    <p className="text-sm text-emerald-200">{draft.companyName}</p>
-                    <h1 className="mt-2 text-3xl font-semibold">{draft.service.name}</h1>
-                    <p className="mt-2 text-sm text-white/55">
-                      Rascunho expira em {formatDate(draft.expiresAt)}
+                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                      {draft.companyName}
+                    </p>
+                    <h1 className="mt-3 max-w-2xl font-serif text-5xl font-normal leading-[0.95] tracking-[-0.055em] text-[var(--color-text-primary)]">
+                      Conte o que precisa para receber uma proposta mais precisa.
+                    </h1>
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
+                      Você pode salvar, revisar a estimativa e enviar quando tudo estiver
+                      claro. O rascunho expira em {formatDate(draft.expiresAt)}.
                     </p>
                   </div>
+
                   <SecondaryLink icon={ArrowRight} to={`/empresa/${String(slug)}`}>
-                    Perfil
+                    Voltar ao perfil
                   </SecondaryLink>
                 </div>
-                <div className="mt-6 grid gap-2 sm:grid-cols-4">
-                  {quoteStepItems.map((step) => (
-                    <button
-                      className={`rounded-md border px-3 py-2 text-left text-sm ${
-                        draftData.currentStep === step.code
-                          ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
-                          : "border-white/10 bg-[#15171d] text-white/60 hover:bg-white/10"
-                      }`}
-                      key={step.code}
-                      type="button"
-                      onClick={() =>
-                        updateDraftData((current) => ({
-                          ...current,
-                          currentStep: step.code,
-                        }))
-                      }
-                    >
-                      {step.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-xl font-semibold">Itens</h2>
+                <div className="relative mt-7 grid gap-2 sm:grid-cols-4">
+                  {quoteStepItems.map((step, index) => {
+                    const isActive = draftData.currentStep === step.code;
+
+                    return (
+                      <button
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          isActive
+                            ? "border-[var(--color-border-strong)] bg-[var(--color-accent)] text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)]"
+                            : "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+                        }`}
+                        key={step.code}
+                        type="button"
+                        onClick={() =>
+                          updateDraftData((current) => ({
+                            ...current,
+                            currentStep: step.code,
+                          }))
+                        }
+                      >
+                        <span className="block font-serif text-2xl">0{index + 1}</span>
+                        <span className="mt-2 block text-sm font-semibold">
+                          {step.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                      Itens do orçamento
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      Adicione cada item que precisa de atendimento. Quanto mais claro,
+                      melhor a análise da empresa.
+                    </p>
+                  </div>
+
                   <button
-                    className="inline-flex items-center gap-2 rounded-md border border-white/15 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
                     type="button"
                     onClick={() => addItem()}
                   >
@@ -896,7 +951,8 @@ export function QuoteRequestPage() {
                     Adicionar item
                   </button>
                 </div>
-                <div className="mt-5 space-y-4">
+
+                <div className="mt-6 space-y-4">
                   {draftData.items.map((item, index) => (
                     <QuoteItemEditor
                       draft={draft}
@@ -918,38 +974,38 @@ export function QuoteRequestPage() {
                 </div>
               </section>
 
-              <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-                <h2 className="text-xl font-semibold">Atendimento</h2>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <label className="block text-sm text-white/70">
-                    Urgencia
-                    <select
-                      className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
-                      value={draftData.access.urgency}
-                      onChange={(event) =>
-                        updateDraftData((current) => ({
-                          ...current,
-                          access: {
-                            ...current.access,
-                            urgency: event.target.value,
-                          },
-                        }))
-                      }
-                    >
-                      {fieldOptions(
-                        draft,
-                        "urgency",
-                        cleaningSimulationSelectOptions.urgency,
-                      ).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+              <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                  Atendimento
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                  Informe onde e como o serviço será realizado. Esses dados ajudam no
+                  cálculo e no planejamento.
+                </p>
+
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  <SelectField
+                    label="Urgência"
+                    options={fieldOptions(
+                      draft,
+                      "urgency",
+                      cleaningSimulationSelectOptions.urgency,
+                    )}
+                    value={draftData.access.urgency}
+                    onChange={(value) =>
+                      updateDraftData((current) => ({
+                        ...current,
+                        access: {
+                          ...current.access,
+                          urgency: value,
+                        },
+                      }))
+                    }
+                  />
+
                   <TextField
                     inputMode="decimal"
-                    label="Distancia aproximada em km"
+                    label="Distância aproximada em km"
                     value={draftData.access.distanceKm}
                     onChange={(event) =>
                       updateDraftData((current) => ({
@@ -961,6 +1017,7 @@ export function QuoteRequestPage() {
                       }))
                     }
                   />
+
                   <TextField
                     inputMode="numeric"
                     label="Andar"
@@ -975,6 +1032,7 @@ export function QuoteRequestPage() {
                       }))
                     }
                   />
+
                   <div className="grid gap-3 sm:grid-cols-2">
                     <CheckboxField
                       checked={draftData.access.hasElevator}
@@ -1003,9 +1061,11 @@ export function QuoteRequestPage() {
                       }
                     />
                   </div>
+
                   <TextAreaField
                     className="md:col-span-2"
-                    label="Endereco"
+                    label="Endereço do atendimento"
+                    placeholder="Rua, número, bairro, cidade e algum ponto de referência."
                     rows={3}
                     value={draftData.address.fullAddress}
                     onChange={(event) =>
@@ -1018,9 +1078,11 @@ export function QuoteRequestPage() {
                       }))
                     }
                   />
+
                   <TextAreaField
                     className="md:col-span-2"
-                    label="Observacoes"
+                    label="Observações gerais"
+                    placeholder="Exemplo: melhor horário para contato, restrições de acesso ou detalhes importantes."
                     rows={3}
                     value={draftData.notes}
                     onChange={(event) =>
@@ -1033,11 +1095,19 @@ export function QuoteRequestPage() {
                 </div>
               </section>
 
-              <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-                <h2 className="text-xl font-semibold">Contato</h2>
-                <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                  Seus dados de contato
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                  A empresa usará essas informações para retornar com a proposta e
+                  combinar os próximos passos.
+                </p>
+
+                <div className="mt-6 grid gap-4 md:grid-cols-3">
                   <TextField
                     label="Nome"
+                    placeholder="Seu nome"
                     value={draftData.contact.name}
                     onChange={(event) =>
                       updateDraftData((current) => ({
@@ -1049,8 +1119,10 @@ export function QuoteRequestPage() {
                       }))
                     }
                   />
+
                   <TextField
                     label="WhatsApp"
+                    placeholder="(11) 99999-9999"
                     value={draftData.contact.whatsapp}
                     onChange={(event) =>
                       updateDraftData((current) => ({
@@ -1062,8 +1134,10 @@ export function QuoteRequestPage() {
                       }))
                     }
                   />
+
                   <TextField
                     label="E-mail"
+                    placeholder="voce@email.com"
                     type="email"
                     value={draftData.contact.email}
                     onChange={(event) =>
@@ -1080,41 +1154,62 @@ export function QuoteRequestPage() {
               </section>
             </section>
 
-            <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-              <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                  <Calculator size={18} />
-                  Estimativa
-                </h2>
+            <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+              <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                    <Calculator size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                      Estimativa
+                    </p>
+                    <h2 className="font-serif text-2xl font-normal tracking-[-0.04em]">
+                      Revisão do pedido
+                    </h2>
+                  </div>
+                </div>
+
                 {estimate ? (
-                  <div className="mt-5 space-y-4">
-                    <div>
-                      <div className="text-sm text-white/50">Faixa exibida</div>
-                      <div className="mt-1 text-2xl font-semibold text-emerald-100">
-                        {formatMoneyCents(estimate.estimateMinCents)} a{" "}
-                        {formatMoneyCents(estimate.estimateMaxCents)}
+                  <div className="mt-6 space-y-5">
+                    <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+                      <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                        Faixa estimada
+                      </div>
+                      <div className="mt-3 font-serif text-3xl font-normal leading-tight tracking-[-0.045em] text-[var(--color-text-primary)]">
+                        {formatMoneyCents(estimate.estimateMinCents)}
+                        <span className="block text-[var(--color-text-muted)]">
+                          a {formatMoneyCents(estimate.estimateMaxCents)}
+                        </span>
                       </div>
                     </div>
+
                     <div className="space-y-2">
                       {estimate.itemEstimates.map((item) => (
                         <div
-                          className="rounded-md border border-white/10 bg-white/[0.03] p-3"
+                          className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4"
                           key={item.itemId}
                         >
                           <div className="flex justify-between gap-3 text-sm">
-                            <span>{item.label}</span>
-                            <span>{formatMoneyCents(item.internalTotalCents)}</span>
+                            <span className="text-[var(--color-text-secondary)]">
+                              {item.label}
+                            </span>
+                            <span className="font-semibold text-[var(--color-text-primary)]">
+                              {formatMoneyCents(item.internalTotalCents)}
+                            </span>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm leading-6 text-white/55">
-                    Salve e calcule para revisar a faixa antes do envio.
+                  <p className="mt-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                    Calcule a estimativa para revisar uma faixa inicial antes de enviar o
+                    pedido para a empresa.
                   </p>
                 )}
-                <div className="mt-5 grid gap-2">
+
+                <div className="mt-6 grid gap-2">
                   <ActionButton
                     icon={Save}
                     isLoading={saveMutation.isPending}
@@ -1123,6 +1218,7 @@ export function QuoteRequestPage() {
                   >
                     Salvar rascunho
                   </ActionButton>
+
                   <ActionButton
                     icon={Calculator}
                     isLoading={estimateMutation.isPending}
@@ -1130,32 +1226,45 @@ export function QuoteRequestPage() {
                   >
                     Calcular estimativa
                   </ActionButton>
+
                   <ActionButton
                     disabled={!estimate}
                     icon={Send}
                     isLoading={submitMutation.isPending}
                     onClick={submitDraft}
                   >
-                    Enviar solicitacao
+                    Enviar solicitação
                   </ActionButton>
                 </div>
+
                 <FormError message={formError} />
               </section>
-              <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                  <ClipboardList size={18} />
-                  Arquivos
-                </h2>
+
+              <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                    <ClipboardList size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                      Anexos
+                    </p>
+                    <h2 className="font-serif text-2xl font-normal tracking-[-0.04em]">
+                      Arquivos enviados
+                    </h2>
+                  </div>
+                </div>
+
                 {draft.files.length > 0 ? (
-                  <ul className="mt-4 space-y-2">
+                  <ul className="mt-5 space-y-2">
                     {draft.files.map((file) => (
                       <li
-                        className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]"
                         key={file.id}
                       >
                         <span className="truncate">{file.fileName}</span>
                         <button
-                          className="shrink-0 rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white"
+                          className="shrink-0 rounded-full p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
                           type="button"
                           onClick={() => deleteFileMutation.mutate(file.id)}
                         >
@@ -1165,7 +1274,9 @@ export function QuoteRequestPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-4 text-sm text-white/50">Nenhum arquivo vinculado.</p>
+                  <p className="mt-5 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    Nenhum arquivo foi anexado ainda.
+                  </p>
                 )}
               </section>
             </aside>
@@ -1196,24 +1307,27 @@ function QuoteItemEditor({
   onUpdate: (patch: Partial<QuoteDraftItem>) => void;
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 shadow-[var(--shadow-soft)]">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <TextField
           className="min-w-[220px] flex-1"
           label={`Item ${index + 1}`}
+          placeholder="Exemplo: sofá da sala, poltrona, colchão..."
           value={item.label}
           onChange={(event) => onUpdate({ label: event.target.value })}
         />
+
         <div className="flex gap-2 self-end">
           <button
-            className="rounded-md border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
             type="button"
             onClick={onDuplicate}
           >
             Duplicar
           </button>
+
           <button
-            className="rounded-md border border-white/15 p-2 text-white/60 hover:bg-white/10"
+            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
             type="button"
             onClick={onRemove}
           >
@@ -1221,7 +1335,8 @@ function QuoteItemEditor({
           </button>
         </div>
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
         <SelectField
           label="Tipo"
           options={fieldOptions(
@@ -1232,26 +1347,30 @@ function QuoteItemEditor({
           value={item.itemType}
           onChange={(value) => onUpdate({ itemType: value })}
         />
+
         <TextField
           inputMode="numeric"
-          label="Quantidade identica"
+          label="Quantidade idêntica"
           value={item.quantity}
           onChange={(event) =>
             onUpdate({ quantity: Math.max(1, parseIntegerInput(event.target.value)) })
           }
         />
+
         <SelectField
           label="Tamanho"
           options={fieldOptions(draft, "size", cleaningSimulationSelectOptions.size)}
           value={item.size}
           onChange={(value) => onUpdate({ size: value })}
         />
+
         <TextField
           inputMode="numeric"
           label="Lugares"
           value={item.seats}
           onChange={(event) => onUpdate({ seats: parseIntegerInput(event.target.value) })}
         />
+
         <SelectField
           label="Tecido"
           options={fieldOptions(
@@ -1262,8 +1381,9 @@ function QuoteItemEditor({
           value={item.fabricType}
           onChange={(value) => onUpdate({ fabricType: value })}
         />
+
         <SelectField
-          label="Sujeira"
+          label="Nível de sujeira"
           options={fieldOptions(
             draft,
             "dirt_level",
@@ -1273,35 +1393,41 @@ function QuoteItemEditor({
           onChange={(value) => onUpdate({ dirtLevel: value })}
         />
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
         <CheckboxField
           checked={item.hasStains}
           label="Possui manchas"
           onChange={(checked) => onUpdate({ hasStains: checked })}
         />
+
         <CheckboxField
           checked={item.odor}
           label="Possui odor"
           onChange={(checked) => onUpdate({ odor: checked })}
         />
+
         <CheckboxField
           checked={item.petHair}
           label="Possui pelos"
           onChange={(checked) => onUpdate({ petHair: checked })}
         />
+
         <CheckboxField
           checked={item.petsPresent}
           label="Animais no local"
           onChange={(checked) => onUpdate({ petsPresent: checked })}
         />
+
         <CheckboxField
           checked={item.waterproofing}
-          label="Impermeabilizacao"
+          label="Impermeabilização"
           onChange={(checked) => onUpdate({ waterproofing: checked })}
         />
-        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-white/15 px-4 py-2 text-sm text-white/75 hover:bg-white/10">
+
+        <label className="group inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]">
           <Upload size={16} />
-          Fotos/PDF
+          Fotos ou PDF
           <input
             accept="image/jpeg,image/png,image/webp,application/pdf"
             className="hidden"
@@ -1317,9 +1443,11 @@ function QuoteItemEditor({
           />
         </label>
       </div>
+
       <TextAreaField
-        className="mt-4"
-        label="Observacao do item"
+        className="mt-5"
+        label="Observação do item"
+        placeholder="Detalhe algo específico sobre este item, se necessário."
         rows={2}
         value={item.notes}
         onChange={(event) => onUpdate({ notes: event.target.value })}
@@ -1346,6 +1474,7 @@ export function PublicTrackingPage() {
         `/api/public/tracking/${encodeURIComponent(String(token))}`,
       ),
   });
+
   const appointmentMutation = useMutation({
     mutationFn: (
       body: Parameters<typeof customerAppointmentActionRequestSchema.parse>[0],
@@ -1362,6 +1491,7 @@ export function PublicTrackingPage() {
       queryClient.setQueryData(["public-tracking", token], response.tracking);
     },
   });
+
   const tracking = trackingQuery.data;
   const canLoadPublicProposal = Boolean(
     token &&
@@ -1452,44 +1582,58 @@ export function PublicTrackingPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <SectionTitle eyebrow="Acompanhamento" title="Sua solicitacao" />
+          <SectionTitle eyebrow="Acompanhamento" title="Seu pedido em um só lugar." />
           <SecondaryLink icon={KeyRound} to="/recuperar">
-            Recuperar acesso
+            Recuperar outro acesso
           </SecondaryLink>
         </div>
+
         {trackingQuery.isLoading ? <LoadingLine /> : null}
+
         {trackingQuery.error ? (
           <ErrorPanel
             error={trackingQuery.error}
-            fallback="Nao foi possivel abrir o acompanhamento."
+            fallback="Não foi possível abrir o acompanhamento."
           />
         ) : null}
+
         {tracking ? (
-          <div className="mt-6 space-y-6">
-            <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="mt-7 space-y-6">
+            <section className="relative overflow-hidden rounded-[38px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+              <div className="absolute right-[-90px] top-[-90px] h-56 w-56 rounded-full bg-[var(--color-accent-soft)] blur-[90px]" />
+
+              <div className="relative flex flex-wrap items-start justify-between gap-5">
                 <div>
-                  <p className="text-sm text-emerald-200">{tracking.company.name}</p>
-                  <h2 className="mt-2 text-2xl font-semibold">{tracking.service.name}</h2>
-                  <p className="mt-2 text-sm text-white/55">
-                    Codigo {tracking.quoteRequest.requestCode}
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                    {tracking.company.name}
+                  </p>
+                  <h2 className="mt-3 max-w-2xl font-serif text-5xl font-normal leading-[0.95] tracking-[-0.055em] text-[var(--color-text-primary)]">
+                    {tracking.service.name}
+                  </h2>
+                  <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    Código da solicitação:{" "}
+                    <span className="font-semibold text-[var(--color-text-primary)]">
+                      {tracking.quoteRequest.requestCode}
+                    </span>
                   </p>
                 </div>
+
                 <QuoteRequestStatusBadge status={tracking.quoteRequest.status} />
               </div>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+
+              <div className="relative mt-7 grid gap-3 sm:grid-cols-3">
                 <InfoBlock
                   label="Enviada em"
                   value={formatDate(tracking.quoteRequest.submittedAt)}
                 />
                 <InfoBlock
-                  label="Ultima atualizacao"
+                  label="Última atualização"
                   value={formatDate(tracking.quoteRequest.updatedAt)}
                 />
                 <InfoBlock
-                  label="Estimativa"
+                  label="Estimativa inicial"
                   value={
                     tracking.quoteRequest.estimate
                       ? `${formatMoneyCents(
@@ -1497,7 +1641,7 @@ export function PublicTrackingPage() {
                         )} a ${formatMoneyCents(
                           tracking.quoteRequest.estimate.estimateMaxCents,
                         )}`
-                      : "Pendente"
+                      : "Aguardando cálculo"
                   }
                 />
               </div>
@@ -1510,12 +1654,12 @@ export function PublicTrackingPage() {
                     acceptProposalMutation.error
                       ? errorMessage(
                           acceptProposalMutation.error,
-                          "Nao foi possivel aceitar a proposta.",
+                          "Não foi possível aceitar a proposta.",
                         )
                       : rejectProposalMutation.error
                         ? errorMessage(
                             rejectProposalMutation.error,
-                            "Nao foi possivel recusar a proposta.",
+                            "Não foi possível recusar a proposta.",
                           )
                         : null
                   }
@@ -1524,9 +1668,11 @@ export function PublicTrackingPage() {
                   isRejecting={rejectProposalMutation.isPending}
                   proposal={tracking.latestProposal}
                   proposalDetail={proposalQuery.data?.proposal ?? null}
-                  proposalPdfUrl={`/api/public/tracking/${encodeURIComponent(
-                    String(token),
-                  )}/proposal/pdf`}
+                  proposalPdfUrl={apiUrl(
+                    `/api/public/tracking/${encodeURIComponent(
+                      String(token),
+                    )}/proposal/pdf`,
+                  )}
                   rejectReason={proposalRejectReason}
                   rejectReasonCode={proposalRejectReasonCode}
                   onAccept={() => acceptProposalMutation.mutate()}
@@ -1534,13 +1680,14 @@ export function PublicTrackingPage() {
                   onRejectReasonChange={setProposalRejectReason}
                   onRejectReasonCodeChange={setProposalRejectReasonCode}
                 />
+
                 <PublicAppointmentPanel
                   appointment={latestAppointment}
                   error={
                     appointmentMutation.error
                       ? errorMessage(
                           appointmentMutation.error,
-                          "Nao foi possivel atualizar o horario.",
+                          "Não foi possível atualizar o horário.",
                         )
                       : null
                   }
@@ -1555,13 +1702,14 @@ export function PublicTrackingPage() {
                     })
                   }
                 />
+
                 <PublicReviewPanel
                   appointment={latestAppointment}
                   error={
                     reviewMutation.error
                       ? errorMessage(
                           reviewMutation.error,
-                          "Nao foi possivel enviar a avaliacao.",
+                          "Não foi possível enviar a avaliação.",
                         )
                       : null
                   }
@@ -1575,16 +1723,31 @@ export function PublicTrackingPage() {
                   onSubmit={() => reviewMutation.mutate()}
                 />
               </section>
-              <aside className="space-y-6">
-                <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
-                  <h2 className="text-lg font-semibold">Contato da empresa</h2>
-                  <p className="mt-3 text-sm leading-6 text-white/60">
-                    Use o WhatsApp assistido para falar com a empresa sobre esta
-                    solicitacao.
+
+              <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
+                <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                      <MessageCircle size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                        Contato
+                      </p>
+                      <h2 className="font-serif text-2xl font-normal tracking-[-0.04em]">
+                        Falar com a empresa
+                      </h2>
+                    </div>
+                  </div>
+
+                  <p className="mt-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                    Use o WhatsApp para tirar dúvidas sobre esta solicitação sem perder o
+                    contexto do pedido.
                   </p>
+
                   {tracking.whatsappUrl ? (
                     <a
-                      className="mt-4 inline-flex items-center gap-2 rounded-md bg-emerald-300 px-4 py-3 text-sm font-medium text-[#111216]"
+                      className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5"
                       href={tracking.whatsappUrl}
                       rel="noreferrer"
                       target="_blank"
@@ -1593,17 +1756,40 @@ export function PublicTrackingPage() {
                       Abrir WhatsApp
                     </a>
                   ) : (
-                    <p className="mt-4 text-sm text-white/50">
-                      WhatsApp nao informado no perfil publico.
+                    <p className="mt-5 text-sm leading-6 text-[var(--color-text-muted)]">
+                      A empresa ainda não informou um WhatsApp público.
                     </p>
                   )}
                 </section>
-                <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
-                  <h2 className="text-lg font-semibold">Resumo do pedido</h2>
-                  <div className="mt-4 space-y-3 text-sm text-white/65">
-                    <p>{tracking.quoteRequest.data.items.length} item(ns)</p>
-                    <p>{formatQuoteAddress(tracking.quoteRequest.data.address)}</p>
-                    <p>{tracking.quoteRequest.data.notes || "Sem observacoes gerais."}</p>
+
+                <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                      <ClipboardList size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                        Pedido
+                      </p>
+                      <h2 className="font-serif text-2xl font-normal tracking-[-0.04em]">
+                        Resumo enviado
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                    <p>
+                      <span className="text-[var(--color-text-muted)]">Itens:</span>{" "}
+                      {tracking.quoteRequest.data.items.length}
+                    </p>
+                    <p>
+                      <span className="text-[var(--color-text-muted)]">Endereço:</span>{" "}
+                      {formatQuoteAddress(tracking.quoteRequest.data.address)}
+                    </p>
+                    <p>
+                      <span className="text-[var(--color-text-muted)]">Observações:</span>{" "}
+                      {tracking.quoteRequest.data.notes || "Sem observações gerais."}
+                    </p>
                   </div>
                 </section>
               </aside>
@@ -1652,17 +1838,25 @@ function PublicProposalPanel({
   const isRejected = status === "rejected";
 
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="absolute right-[-90px] top-[-90px] h-48 w-48 rounded-full bg-[var(--color-accent-soft)] blur-[80px]" />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Proposta</h2>
-          <p className="mt-2 text-sm text-white/55">
-            Confira o valor final, os itens e as condicoes antes de confirmar.
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Proposta
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+            Valor final e condições
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--color-text-secondary)]">
+            Confira os itens, validade e condições antes de confirmar sua decisão.
           </p>
         </div>
+
         {hasPublicProposal ? (
           <a
-            className="inline-flex items-center gap-2 rounded-md border border-emerald-300/35 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-300/10"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
             href={proposalPdfUrl}
             rel="noreferrer"
             target="_blank"
@@ -1674,11 +1868,11 @@ function PublicProposalPanel({
       </div>
 
       {hasPublicProposal && proposal ? (
-        <div className="mt-4 space-y-5">
+        <div className="relative mt-6 space-y-6">
           <div className="grid gap-3 sm:grid-cols-2">
-            <InfoBlock label="Codigo" value={proposal.latestProposalCode ?? "Pendente"} />
+            <InfoBlock label="Código" value={proposal.latestProposalCode ?? "Pendente"} />
             <InfoBlock
-              label="Valor"
+              label="Valor final"
               value={
                 proposal.finalTotalCents !== null
                   ? formatMoneyCents(proposal.finalTotalCents)
@@ -1702,22 +1896,28 @@ function PublicProposalPanel({
           {isLoadingDetail ? <LoadingLine /> : null}
 
           {version ? (
-            <div className="space-y-4 border-t border-white/10 pt-5">
+            <div className="space-y-5 border-t border-[var(--color-border)] pt-6">
               <div>
-                <h3 className="text-sm font-medium text-white/80">Itens da proposta</h3>
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Itens da proposta
+                </h3>
+
                 <div className="mt-3 space-y-2">
                   {version.items.map((item) => (
                     <div
-                      className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-[#12141a] px-4 py-3 text-sm"
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm"
                       key={item.id}
                     >
                       <div>
-                        <p className="font-medium text-white/85">{item.label}</p>
-                        <p className="mt-1 text-xs text-white/45">
+                        <p className="font-semibold text-[var(--color-text-primary)]">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                           Quantidade: {item.quantity}
                         </p>
                       </div>
-                      <span className="text-emerald-100">
+
+                      <span className="font-semibold text-[var(--color-text-primary)]">
                         {formatMoneyCents(item.finalTotalCents)}
                       </span>
                     </div>
@@ -1726,13 +1926,15 @@ function PublicProposalPanel({
               </div>
 
               {version.terms ? (
-                <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-                  <h3 className="text-sm font-medium text-white/80">Condicoes</h3>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-white/60">
+                <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    Condições da proposta
+                  </h3>
+                  <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)]">
                     {version.terms}
                   </p>
-                  <p className="mt-3 text-xs text-white/40">
-                    Versao dos termos: {version.termsVersion}
+                  <p className="mt-4 text-xs text-[var(--color-text-muted)]">
+                    Versão dos termos: {version.termsVersion}
                   </p>
                 </div>
               ) : null}
@@ -1740,23 +1942,23 @@ function PublicProposalPanel({
           ) : null}
 
           {isAccepted ? (
-            <div className="rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
-              Proposta aceita. A empresa ja pode seguir com os proximos detalhes do
+            <div className="rounded-[26px] border border-lime-300/25 bg-lime-300/10 p-5 text-sm leading-7 text-lime-100">
+              Proposta aceita. A empresa já pode seguir com os próximos detalhes do
               atendimento.
             </div>
           ) : null}
 
           {isRejected ? (
-            <div className="rounded-md border border-white/10 bg-[#12141a] p-4 text-sm text-white/60">
-              Proposta recusada. Fale com a empresa pelo WhatsApp caso queira negociar uma
-              nova versao.
+            <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+              Proposta recusada. Você ainda pode falar com a empresa pelo WhatsApp caso
+              queira negociar uma nova versão.
             </div>
           ) : null}
 
           {canDecide ? (
-            <div className="space-y-4 border-t border-white/10 pt-5">
-              <div className="rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-50">
-                Ao aceitar, voce confirma o valor final desta versao da proposta e os
+            <div className="space-y-5 border-t border-[var(--color-border)] pt-6">
+              <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                Ao aceitar, você confirma o valor final desta versão da proposta e os
                 termos apresentados.
               </div>
 
@@ -1768,6 +1970,7 @@ function PublicProposalPanel({
                 >
                   Aceitar proposta
                 </ActionButton>
+
                 <ActionButton
                   icon={XCircle}
                   isLoading={isRejecting}
@@ -1779,27 +1982,27 @@ function PublicProposalPanel({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
-                <label className="block text-sm text-white/70">
-                  Motivo da recusa
-                  <select
-                    className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
-                    value={rejectReasonCode}
-                    onChange={(event) =>
-                      onRejectReasonCodeChange(
-                        event.target.value as PublicProposalRejectRequest["reasonCode"],
-                      )
-                    }
-                  >
-                    <option value="price">Valor</option>
-                    <option value="deadline">Prazo</option>
-                    <option value="schedule">Horario</option>
-                    <option value="hired_another_company">Contratei outra empresa</option>
-                    <option value="gave_up">Desisti</option>
-                    <option value="other">Outro</option>
-                  </select>
-                </label>
+                <SelectField
+                  label="Motivo da recusa"
+                  options={[
+                    ["price", "Valor"],
+                    ["deadline", "Prazo"],
+                    ["schedule", "Horário"],
+                    ["hired_another_company", "Contratei outra empresa"],
+                    ["gave_up", "Desisti"],
+                    ["other", "Outro"],
+                  ]}
+                  value={rejectReasonCode}
+                  onChange={(value) =>
+                    onRejectReasonCodeChange(
+                      value as PublicProposalRejectRequest["reasonCode"],
+                    )
+                  }
+                />
+
                 <TextAreaField
-                  label="Observacao opcional"
+                  label="Observação opcional"
+                  placeholder="Conte brevemente o motivo, se quiser."
                   rows={2}
                   value={rejectReason}
                   onChange={(event) => onRejectReasonChange(event.target.value)}
@@ -1813,8 +2016,9 @@ function PublicProposalPanel({
           )}
         </div>
       ) : (
-        <p className="mt-4 text-sm text-white/55">
-          A empresa ainda nao enviou uma proposta.
+        <p className="relative mt-5 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+          A empresa ainda não enviou uma proposta. Quando ela estiver disponível, você
+          poderá revisar o valor final e confirmar a decisão por aqui.
         </p>
       )}
     </section>
@@ -2179,11 +2383,11 @@ function validateQuoteSubmissionDraft(data: QuoteDraftData) {
   }
 
   if (data.contact.whatsapp.trim().length < 8) {
-    return "Informe o WhatsApp para contato.";
+    return "Informe um WhatsApp válido para contato.";
   }
 
   if (!hasQuoteSubmissionAddress(data)) {
-    return "Informe o endereco do atendimento.";
+    return "Informe o endereço do atendimento.";
   }
 
   return null;
@@ -2240,7 +2444,7 @@ const quoteStepItems: Array<{
   { code: "items", label: "Itens" },
   { code: "details", label: "Atendimento" },
   { code: "contact", label: "Contato" },
-  { code: "review", label: "Revisao" },
+  { code: "review", label: "Revisão" },
 ];
 
 function CompanyGrid({ companies }: { companies: PublicCompanySummary[] }) {

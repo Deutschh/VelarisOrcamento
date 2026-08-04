@@ -8,52 +8,74 @@
 
 export const quoteRequestStatusLabels: Record<QuoteRequestStatus, string> = {
   draft: "Rascunho",
-  submitted: "Recebida",
-  under_review: "Em revisao",
-  awaiting_information: "Aguardando dados",
+  submitted: "Solicitação recebida",
+  under_review: "Em análise",
+  awaiting_information: "Aguardando informações",
   accepted_for_proposal: "Aceita para proposta",
-  declined_by_company: "Recusada",
+  declined_by_company: "Recusada pela empresa",
   cancelled: "Cancelada",
   archived: "Arquivada",
 };
 
 export const proposalVersionStatusLabels: Record<QuoteVersionStatus, string> = {
   draft: "Rascunho",
-  sent: "Enviada",
+  sent: "Proposta enviada",
   viewed: "Visualizada",
   accepted: "Aceita",
-  rejected: "Rejeitada",
+  rejected: "Recusada",
   expired: "Expirada",
-  superseded: "Substituida",
+  superseded: "Substituída",
 };
 
 export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
-  none: "Sem horario",
-  proposed: "Proposto",
+  none: "Sem horário",
+  proposed: "Horário proposto",
   confirmed: "Confirmado",
-  reschedule_requested: "Alteracao solicitada",
+  reschedule_requested: "Alteração solicitada",
   rescheduled: "Reagendado",
-  completed: "Concluido",
+  completed: "Concluído",
   cancelled: "Cancelado",
 };
 
+const neutralBadgeClass =
+  "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]";
+
+const subtleBadgeClass =
+  "border-[var(--color-border-strong)] bg-[var(--color-surface-strong)] text-[var(--color-text-primary)]";
+
+const successBadgeClass = "border-lime-300/30 bg-lime-300/10 text-lime-100";
+
+const warningBadgeClass = "border-amber-300/30 bg-amber-300/10 text-amber-100";
+
+const infoBadgeClass = "border-sky-300/30 bg-sky-300/10 text-sky-100";
+
+const dangerBadgeClass = "border-rose-300/30 bg-rose-300/10 text-rose-100";
+
+function BadgeShell({ children, className }: { children: string; className: string }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[var(--shadow-soft)] backdrop-blur-xl ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function ProposalVersionStatusBadge({ status }: { status: QuoteVersionStatus }) {
   const classByStatus: Record<QuoteVersionStatus, string> = {
-    draft: "border-white/15 bg-white/[0.04] text-white/65",
-    sent: "border-sky-300/30 bg-sky-300/10 text-sky-100",
-    viewed: "border-violet-300/30 bg-violet-300/10 text-violet-100",
-    accepted: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
-    rejected: "border-rose-300/30 bg-rose-300/10 text-rose-100",
-    expired: "border-amber-300/30 bg-amber-300/10 text-amber-100",
-    superseded: "border-white/15 bg-white/[0.04] text-white/50",
+    draft: neutralBadgeClass,
+    sent: infoBadgeClass,
+    viewed: subtleBadgeClass,
+    accepted: successBadgeClass,
+    rejected: dangerBadgeClass,
+    expired: warningBadgeClass,
+    superseded: neutralBadgeClass,
   };
 
   return (
-    <span
-      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
-    >
+    <BadgeShell className={classByStatus[status]}>
       {proposalVersionStatusLabels[status]}
-    </span>
+    </BadgeShell>
   );
 }
 
@@ -63,41 +85,37 @@ export function AppointmentStatusBadge({
   status: Exclude<AppointmentStatus, "none">;
 }) {
   const classByStatus: Record<Exclude<AppointmentStatus, "none">, string> = {
-    proposed: "border-sky-300/30 bg-sky-300/10 text-sky-100",
-    confirmed: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
-    reschedule_requested: "border-amber-300/30 bg-amber-300/10 text-amber-100",
-    rescheduled: "border-violet-300/30 bg-violet-300/10 text-violet-100",
-    completed: "border-white/15 bg-white/[0.04] text-white/60",
-    cancelled: "border-rose-300/30 bg-rose-300/10 text-rose-100",
+    proposed: infoBadgeClass,
+    confirmed: successBadgeClass,
+    reschedule_requested: warningBadgeClass,
+    rescheduled: subtleBadgeClass,
+    completed: neutralBadgeClass,
+    cancelled: dangerBadgeClass,
   };
 
   return (
-    <span
-      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
-    >
+    <BadgeShell className={classByStatus[status]}>
       {appointmentStatusLabels[status]}
-    </span>
+    </BadgeShell>
   );
 }
 
 export function QuoteRequestStatusBadge({ status }: { status: QuoteRequestStatus }) {
   const classByStatus: Record<QuoteRequestStatus, string> = {
-    draft: "border-white/15 bg-white/[0.04] text-white/60",
-    submitted: "border-sky-300/30 bg-sky-300/10 text-sky-100",
-    under_review: "border-amber-300/30 bg-amber-300/10 text-amber-100",
-    awaiting_information: "border-violet-300/30 bg-violet-300/10 text-violet-100",
-    accepted_for_proposal: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
-    declined_by_company: "border-rose-300/30 bg-rose-300/10 text-rose-100",
-    cancelled: "border-white/15 bg-white/[0.04] text-white/60",
-    archived: "border-white/15 bg-white/[0.04] text-white/60",
+    draft: neutralBadgeClass,
+    submitted: infoBadgeClass,
+    under_review: warningBadgeClass,
+    awaiting_information: subtleBadgeClass,
+    accepted_for_proposal: successBadgeClass,
+    declined_by_company: dangerBadgeClass,
+    cancelled: neutralBadgeClass,
+    archived: neutralBadgeClass,
   };
 
   return (
-    <span
-      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
-    >
+    <BadgeShell className={classByStatus[status]}>
       {quoteRequestStatusLabels[status]}
-    </span>
+    </BadgeShell>
   );
 }
 
@@ -107,18 +125,15 @@ export function StatusBadge({ status }: { status: CompanyStatus }) {
     active: "Ativa",
     suspended: "Suspensa",
   };
+
   const classByStatus: Record<CompanyStatus, string> = {
-    pending: "border-amber-300/30 bg-amber-300/10 text-amber-100",
-    active: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
-    suspended: "border-rose-300/30 bg-rose-300/10 text-rose-100",
+    pending: warningBadgeClass,
+    active: successBadgeClass,
+    suspended: dangerBadgeClass,
   };
 
   return (
-    <span
-      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${classByStatus[status]}`}
-    >
-      {labelByStatus[status]}
-    </span>
+    <BadgeShell className={classByStatus[status]}>{labelByStatus[status]}</BadgeShell>
   );
 }
 
@@ -127,15 +142,17 @@ export function ProfileBadge({
 }: {
   status: AdminCompanySummary["profileStatus"];
 }) {
-  const labels = {
+  const labels: Record<AdminCompanySummary["profileStatus"], string> = {
     draft: "Rascunho",
     published: "Publicado",
     unpublished: "Despublicado",
   };
 
-  return (
-    <span className="inline-flex rounded-md border border-sky-300/25 bg-sky-300/10 px-2.5 py-1 text-xs font-medium text-sky-100">
-      {labels[status]}
-    </span>
-  );
+  const classByStatus: Record<AdminCompanySummary["profileStatus"], string> = {
+    draft: neutralBadgeClass,
+    published: successBadgeClass,
+    unpublished: warningBadgeClass,
+  };
+
+  return <BadgeShell className={classByStatus[status]}>{labels[status]}</BadgeShell>;
 }

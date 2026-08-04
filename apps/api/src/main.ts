@@ -3,9 +3,11 @@ import { logger } from "./lib/logger.js";
 import { createApp } from "./server.js";
 
 const app = createApp();
+const port = resolvePort(process.env.PORT);
+const host = process.env.HOST ?? "0.0.0.0";
 
-const server = app.listen(env.API_PORT, () => {
-  logger.info({ port: env.API_PORT }, "Velaris API listening");
+const server = app.listen(port, host, () => {
+  logger.info({ host, port }, "Velaris API listening");
 });
 
 const shutdown = (signal: NodeJS.Signals) => {
@@ -17,3 +19,17 @@ const shutdown = (signal: NodeJS.Signals) => {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+
+function resolvePort(value: string | undefined) {
+  if (!value) {
+    return env.API_PORT;
+  }
+
+  const port = Number(value);
+
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error("PORT must be a positive integer.");
+  }
+
+  return port;
+}

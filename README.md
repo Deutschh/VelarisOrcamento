@@ -122,6 +122,7 @@ ImagesExemplos/
 - `ImagesExemplos/`: referencias visuais fornecidas pelo usuario. Nao modificar, renomear, mover ou usar automaticamente como ativos finais.
 - `assets/brand/`: materiais oficiais aprovados para uso real no produto.
 - `docs/SISTEMA_VISUAL_INICIAL.md`: registro das observacoes visuais e decisoes pendentes.
+- `docs/GUIA_DEPLOY.md`: passo a passo recomendado para Vercel, Render, Neon e dominio.
 
 ## Regras importantes
 

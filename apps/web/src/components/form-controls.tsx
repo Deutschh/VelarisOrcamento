@@ -12,10 +12,10 @@ export function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block text-sm text-white/70">
+    <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
       {label}
       <select
-        className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-55"
+        className="mt-2 h-12 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)] disabled:cursor-not-allowed disabled:opacity-55"
         disabled={disabled}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -42,14 +42,29 @@ export function CheckboxField({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="inline-flex min-h-11 items-center gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/75 transition hover:bg-white/[0.06] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55">
+    <label className="group inline-flex min-h-12 items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55">
+      <span
+        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border transition ${
+          checked
+            ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+            : "border-[var(--color-border-strong)] bg-transparent"
+        }`}
+      >
+        <span
+          className={`h-2 w-2 rounded-full transition ${
+            checked ? "bg-[var(--color-text-inverted)]" : "bg-transparent"
+          }`}
+        />
+      </span>
+
       <input
         checked={checked}
-        className="h-4 w-4 accent-emerald-300"
+        className="sr-only"
         disabled={disabled}
         type="checkbox"
         onChange={(event) => onChange(event.target.checked)}
       />
+
       <span>{label}</span>
     </label>
   );
