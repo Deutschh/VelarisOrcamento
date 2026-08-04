@@ -9,7 +9,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "maintenance:cleanup": "tsx src/scripts/cleanup-expired-records.ts",
+    "check:production": "tsx src/scripts/check-production-readiness.ts"
   },
   "dependencies": {
     "@velaris/database-schema": "0.0.0",

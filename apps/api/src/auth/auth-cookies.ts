@@ -9,7 +9,7 @@ export function setAuthCookies(
   response: Response,
   tokens: { accessToken: string; refreshToken: string },
 ) {
-  const secure = env.NODE_ENV === "production";
+  const secure = ["homologation", "production"].includes(env.NODE_ENV);
   const sameSite = env.COOKIE_SAMESITE;
 
   response.cookie(accessCookieName, tokens.accessToken, {

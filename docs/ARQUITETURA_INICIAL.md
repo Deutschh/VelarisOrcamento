@@ -185,6 +185,18 @@ Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazena
 
 Limitacao registrada: `quote_request_files` registra metadados de fotos/PDF com `storageProvider = stub`; armazenamento binario privado, thumbnails e URLs temporarias aguardam decisao futura.
 
+Requisito implementado: a Sprint 19 adiciona hardening transversal da API por middleware em `apps/api/src/middleware`, com headers de seguranca, `Cache-Control: no-store` para `/api/*`, rate limit global e rate limit especifico de autenticacao.
+
+Requisito implementado: configuracoes operacionais de seguranca ficam em `packages/shared/src/env.ts` e `.env.example`, incluindo `TRUST_PROXY`, `SECURITY_HSTS_ENABLED`, `RATE_LIMIT_ENABLED`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW_MS` e `AUTH_RATE_LIMIT_MAX_REQUESTS`.
+
+Requisito implementado: a base PWA fica no frontend, com manifest em `apps/web/public/manifest.webmanifest`, icones provisorios em `apps/web/public/icons`, service worker em `apps/web/public/sw.js` e registro em `apps/web/src/pwa.ts`.
+
+Requisito implementado: o service worker deve cachear apenas assets estaticos e nao deve cachear rotas sensiveis como `/api`, `/admin`, `/app`, `/cliente`, `/acompanhar` e `/recuperar`.
+
+Requisito implementado: limpeza operacional de registros expirados fica isolada em `apps/api/src/maintenance`, com script `npm run maintenance:cleanup` para rascunhos expirados, chaves de idempotencia vencidas e OTPs de recuperacao vencidos.
+
+Requisito implementado: a checagem de prontidao de producao fica em `apps/api/src/config/production-readiness.ts`, exposta pelo script `npm run check:production`, bloqueando configuracoes inseguras e alertando decisoes externas ainda em modo `stub`.
+
 ## Estrutura de monorepo
 
 ```txt
@@ -220,7 +232,7 @@ ImagesExemplos/
 
 ## Responsabilidades por pasta
 
-- `apps/web`: aplicacao React/Vite, rotas de tela, integracao com API e PWA futuro.
+- `apps/web`: aplicacao React/Vite, rotas de tela, integracao com API e PWA base.
 - `apps/api`: API Express, autenticacao, autorizacao, controllers, servicos de aplicacao, adapters, jobs e acesso ao banco.
 - `packages/shared`: tipos, schemas Zod, contratos, constantes, enums e helpers compartilhados.
 - `packages/domain`: regras puras de negocio, maquinas de estado, motor de calculo, dinheiro, medidas, snapshots e validacoes de dominio.
@@ -257,6 +269,10 @@ ImagesExemplos/
 - Persistencia monetaria deve usar `NUMERIC(12, 2)`.
 - Medidas devem guardar valor e unidade originais, alem do valor e unidade normalizados.
 - Acoes criticas devem prever idempotencia.
+- Respostas `/api/*` devem usar `Cache-Control: no-store`.
+- Rate limit deve ser configuravel por ambiente e permanecer habilitado em ambientes hospedados.
+- Service worker/PWA nao deve cachear dados autenticados, tracking publico ou respostas da API.
+- Scripts operacionais devem ser idempotentes e seguros para execucao manual/agendada.
 - Conflitos de horario da V1 devem avisar e nao bloquear.
 - Agendamentos devem preservar timezone da empresa, endereco/snapshot, duracao e historico de transicoes.
 - Configuracoes publicadas devem ser imutaveis.

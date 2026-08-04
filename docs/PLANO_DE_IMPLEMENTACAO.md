@@ -21,7 +21,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
 - Sprint 17 concluida tecnicamente: area autenticada do cliente com home personalizada, cadastro/entrada de cliente, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
 - Sprint 18 concluida tecnicamente: metricas operacionais da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco.
-- Proxima etapa recomendada para o MVP piloto: Sprint 19, PWA, seguranca, desempenho e deploy.
+- Sprint 19 adiantada tecnicamente nos itens locais: PWA base, cache seguro, headers, rate limit, limpeza de expirados, checagem de prontidao e testes desses blocos.
+- Proxima etapa recomendada para o MVP piloto: fechar decisoes externas de infraestrutura/homologacao e validar o fluxo piloto com empresa real antes de deploy.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -194,5 +195,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 ## Sprint 19 - PWA, seguranca, desempenho e deploy
 
 - Requisito confirmado: manifest, icones, instalacao, cache seguro, rate limit, permissoes, isolamento, uploads, idempotencia, matriz de estados, timezone, dinheiro, unidades, limpeza de rascunhos, backups, monitoramento, dominio, SSL, homologacao, testes completos, conta piloto, deploy, correcao e suporte.
-- Decisoes adiadas: hospedagem, dominio, monitoramento, backups e sistema definitivo de envio de erros.
+- Implementado localmente: manifest PWA em `apps/web/public/manifest.webmanifest`, icones provisorios em `apps/web/public/icons`, service worker em `apps/web/public/sw.js`, registro em `apps/web/src/pwa.ts`, headers de seguranca em `apps/api/src/middleware/security-headers.ts`, `no-store` para `/api`, rate limit configuravel em `apps/api/src/middleware/rate-limit.ts`, cookies seguros para homologacao/producao, limpeza de expirados em `apps/api/src/maintenance`, script `npm run maintenance:cleanup`, checagem `npm run check:production` e testes unitarios.
+- Decisoes adiadas: hospedagem, dominio, monitoramento, backups, sistema definitivo de envio de erros, provedor real de e-mail, armazenamento privado definitivo, icones finais, homologacao publica, conta piloto real e deploy.
+- Documento complementar: `docs/SPRINT_12_A_19_FUNCIONAMENTO.md`.
+- Documento de adiados: `docs/ITENS_ADIADOS.md`.
 - Estimativa da especificacao: 22 a 32 horas.

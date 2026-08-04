@@ -74,8 +74,8 @@
 - Descoberta completa por localizacao.
 - Templates e fluxos de vidraçaria.
 - Templates e fluxos de marmoraria.
-- Metricas completas.
-- PWA.
+- Metricas operacionais iniciais. Implementado Sprint 18 em `/app` e `/admin`.
+- PWA base. Implementado localmente Sprint 19 com manifest, icones provisorios e service worker seguro; instalacao/deploy real dependem de ambiente hospedado.
 - Seguranca e refinamentos de producao.
 
 ## Telas do cliente autenticado
@@ -105,8 +105,8 @@
 - Agendamento assistido. Implementado Sprint 13 no detalhe da solicitacao aceita para proposta.
 - Clientes.
 - Historico.
-- Metricas.
-- Solicitacao de alteracao de precos.
+- Metricas. Implementado Sprint 18 em `/app`.
+- Solicitacao de alteracao de precos. Implementado Sprint 18 em `/app`.
 
 ## Telas do Admin Velaris
 
@@ -119,9 +119,9 @@
 - Configuracao personalizada por empresa. Implementado Sprint 5 no detalhe Admin.
 - Precos, adicionais, multiplicadores, margens, area minima, deslocamento e duracao. Implementado Sprint 6 em modo controlado pelo template e ampliado na Sprint 7 para o nicho completo de limpeza.
 - Simulacao de configuracao. Implementado Sprint 5 para preview de campos/condicoes, ampliado na Sprint 6 com calculo, faixa estimada, total interno e memoria explicavel, e ampliado na Sprint 7 com respostas tecnicas completas de limpeza.
-- Solicitacoes de alteracao de preco.
-- Auditoria.
-- Metricas gerais.
+- Solicitacoes de alteracao de preco. Implementado Sprint 18.
+- Auditoria. Implementado Sprint 18.
+- Metricas gerais. Implementado Sprint 18.
 - Moderacao de avaliacoes. Implementado Sprint 16 no detalhe Admin da empresa.
 
 ## Rotas de API previstas

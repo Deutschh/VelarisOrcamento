@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App.js";
+import { registerServiceWorker } from "./pwa.js";
 import "./styles.css";
 
 const queryClient = new QueryClient();
@@ -22,3 +23,5 @@ createRoot(rootElement).render(
     </QueryClientProvider>
   </React.StrictMode>,
 );
+
+registerServiceWorker();

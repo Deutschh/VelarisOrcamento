@@ -2,6 +2,8 @@
 
 Este documento lista apenas decisoes que continuam abertas. Decisoes ja confirmadas pela especificacao ou pela consolidacao atual foram removidas daqui.
 
+Lista consolidada de adiados e decisoes externas: `docs/ITENS_ADIADOS.md`.
+
 ## Produto e UX
 
 - Decisao pendente: wireframes de onboarding, Home, perfil publico, formulario, revisao, acompanhamento, painel da empresa e painel Admin.

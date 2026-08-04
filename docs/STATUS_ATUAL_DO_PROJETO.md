@@ -26,7 +26,7 @@ O projeto e um monorepo TypeScript com um web app React/Vite e uma API
 Express/Node. O banco e PostgreSQL no Neon, acessado somente pelo backend via
 Drizzle ORM. O frontend nunca acessa o banco diretamente.
 
-O produto ja possui implementacao tecnica ate a Sprint 17:
+O produto ja possui implementacao tecnica ate a Sprint 18 e adiantamento local da Sprint 19:
 
 - base tecnica do monorepo;
 - autenticacao propria;
@@ -58,11 +58,17 @@ O produto ja possui implementacao tecnica ate a Sprint 17:
 - area autenticada do cliente em `/cliente`;
 - favoritos de empresas;
 - empresas recentes, historico, avaliacoes pendentes e notificacoes para cliente;
-- vinculacao de solicitacoes feitas como visitante a uma conta criada depois.
+- vinculacao de solicitacoes feitas como visitante a uma conta criada depois;
+- metricas operacionais da empresa e do Admin;
+- auditoria operacional e solicitacoes de alteracao de preco;
+- PWA base com manifest, icones provisorios e service worker de cache restrito;
+- hardening inicial da API com headers de seguranca, `no-store` em `/api`, rate limit e checagem de prontidao;
+- rotina de limpeza de rascunhos, chaves de idempotencia e OTPs expirados.
 
-Os principais blocos pendentes apos a Sprint 17 sao metricas, PWA, deploy,
-textos legais definitivos, armazenamento privado definitivo e refinamentos de
-producao.
+Os principais blocos pendentes apos o adiantamento local da Sprint 19 sao deploy,
+homologacao publica, dominio, SSL real, backups, monitoramento, provedor real de
+e-mail, armazenamento privado definitivo, textos legais definitivos e validacao
+com empresa piloto.
 
 Sprints 8 e 9, vidracaria e marmoraria, seguem adiadas por decisao de produto
 ate a validacao do MVP piloto de limpeza de estofados.
@@ -99,7 +105,7 @@ ate a validacao do MVP piloto de limpeza de estofados.
 | Sprint 16 | Servico realizado e avaliacoes            | Implementado tecnicamente. Status de servico, marcacao como realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil, media atualizada e moderacao Admin existem.                                               |
 | Sprint 17 | Area do cliente                           | Implementado tecnicamente. Cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de visitante existem.     |
 | Sprint 18 | Metricas e administracao operacional      | Implementado tecnicamente. Metricas da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco existem.                                                       |
-| Sprint 19 | PWA, seguranca, desempenho e deploy       | Nao iniciado.                                                                                                                                                                                                                                                      |
+| Sprint 19 | PWA, seguranca, desempenho e deploy       | Adiantado tecnicamente nos itens locais. Manifest, icones provisorios, service worker seguro, headers, rate limit, limpeza de expirados e checagem de prontidao existem; deploy e servicos externos seguem pendentes.                                              |
 
 ## MVP piloto: o que ja esta pronto e o que falta
 
@@ -1033,19 +1039,21 @@ Por padrao:
 
 ## Scripts importantes
 
-| Script                 | Uso                                     |
-| ---------------------- | --------------------------------------- |
-| `npm run dev:api`      | Sobe API em desenvolvimento.            |
-| `npm run dev:web`      | Sobe frontend em desenvolvimento.       |
-| `npm run build`        | Build completo dos pacotes, API e web.  |
-| `npm run typecheck`    | TypeScript estrito no monorepo.         |
-| `npm run test`         | Vitest nos workspaces.                  |
-| `npm run test:e2e`     | Playwright.                             |
-| `npm run lint`         | ESLint.                                 |
-| `npm run format:check` | Verificacao Prettier.                   |
-| `npm run db:generate`  | Gera migration Drizzle.                 |
-| `npm run db:migrate`   | Aplica migrations no banco configurado. |
-| `npm run admin:create` | Cria Admin inicial usando `.env` local. |
+| Script                        | Uso                                                                |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `npm run dev:api`             | Sobe API em desenvolvimento.                                       |
+| `npm run dev:web`             | Sobe frontend em desenvolvimento.                                  |
+| `npm run build`               | Build completo dos pacotes, API e web.                             |
+| `npm run typecheck`           | TypeScript estrito no monorepo.                                    |
+| `npm run test`                | Vitest nos workspaces.                                             |
+| `npm run test:e2e`            | Playwright.                                                        |
+| `npm run lint`                | ESLint.                                                            |
+| `npm run format:check`        | Verificacao Prettier.                                              |
+| `npm run db:generate`         | Gera migration Drizzle.                                            |
+| `npm run db:migrate`          | Aplica migrations no banco configurado.                            |
+| `npm run admin:create`        | Cria Admin inicial usando `.env` local.                            |
+| `npm run maintenance:cleanup` | Remove rascunhos, chaves de idempotencia e OTPs expirados.         |
+| `npm run check:production`    | Executa checagem local de prontidao antes de homologacao/producao. |
 
 ## Pendencias funcionais e tecnicas conhecidas
 
@@ -1102,15 +1110,15 @@ Por padrao:
 
 ### Sprint 19
 
-- PWA.
-- Rate limit.
-- Hardening de permissoes.
-- Cache seguro.
-- Upload real/seguro.
-- Backups.
-- Monitoramento.
-- Dominio/SSL.
-- Deploy em homologacao/producao.
+- Adiantado tecnicamente: PWA base, manifest, icones provisorios, service worker
+  com cache restrito, headers de seguranca, `no-store` nas rotas `/api`, rate
+  limit global/autenticacao, cookies seguros em homologacao/producao, limpeza de
+  expirados, checagem de prontidao e testes unitarios.
+- Pendente operacional: upload binario real/seguro, backups, monitoramento,
+  dominio/SSL, homologacao publica, conta piloto real e deploy.
+- Detalhamento de funcionamento das Sprints 12 a 19:
+  `docs/SPRINT_12_A_19_FUNCIONAMENTO.md`.
+- Lista consolidada de adiados: `docs/ITENS_ADIADOS.md`.
 
 ### Servicos externos ainda adiados
 
@@ -1180,8 +1188,8 @@ Por padrao:
 
 ## Estado recomendado para a proxima etapa
 
-A proxima etapa funcional recomendada e Sprint 19: PWA, seguranca, desempenho
-e deploy. Antes dela, vale revisar:
+A proxima etapa recomendada e validar localmente a Sprint 19 e fechar as
+decisoes externas de homologacao/producao. Antes de deploy, vale revisar:
 
 - estrategia de hospedagem frontend/API;
 - dominio, SSL e ambientes de homologacao/producao;

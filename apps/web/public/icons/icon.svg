@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Velaris Orcamentos app icon placeholder</title>
+  <rect width="512" height="512" rx="96" fill="#101217" />
+  <path d="M128 128h256l-54 256H182L128 128Z" fill="#34d399" />
+  <path d="M185 168h142l-30 176H215l-30-176Z" fill="#101217" />
+  <path d="M216 224h80v40h-80v-40Zm0 72h64v40h-64v-40Z" fill="#f4f7f2" />
+</svg>

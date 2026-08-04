@@ -14,7 +14,7 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto concluiu tecnicamente a Sprint 17. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu tecnicamente a Sprint 18 e adiantou localmente os itens de codigo da Sprint 19. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
 status de conta pendente, painel Admin, descoberta publica, perfil publico,
 templates fixos, configuracao por empresa com preview/publicacao imutavel e
@@ -57,12 +57,19 @@ criar conta em `/cadastro/cliente`, entrar pelo login comum, ver solicitacoes,
 propostas aguardando confirmacao, proximos agendamentos, historico, favoritos,
 empresas recentes, avaliacoes pendentes e notificacoes. Tambem e possivel
 favoritar empresas pelo perfil publico e vincular solicitacoes de visitante
-quando o contato da solicitacao corresponde ao e-mail ou telefone da conta.
+quando o contato da solicitacao corresponde ao e-mail verificado da conta.
+
+As metricas operacionais da Sprint 18 estao disponiveis para empresa/Admin, com
+filtros, conversao, tempo de resposta, valores, ranking, auditoria operacional e
+solicitacoes de alteracao de preco. A Sprint 19 foi adiantada nos pontos locais:
+manifest PWA, icones provisorios, service worker com cache restrito, headers de
+seguranca, `no-store` nas rotas `/api`, rate limit, cookies seguros para
+homologacao/producao, limpeza de expirados e checagem de prontidao.
 
 Ainda nao ha textos juridicos definitivos, armazenamento binario definitivo,
-metricas, PWA ou deploy. Vidracaria e marmoraria seguem adiadas ate a validacao
-do MVP piloto; a proxima etapa recomendada para o MVP e a Sprint 18, metricas e
-administracao operacional.
+provedor real de e-mail, monitoramento, backups, dominio, SSL real, homologacao
+publica ou deploy. Vidracaria e marmoraria seguem adiadas ate a validacao do MVP
+piloto. A lista consolidada de adiados esta em `docs/ITENS_ADIADOS.md`.
 
 ## Stack planejada
 
@@ -139,6 +146,8 @@ npm run format:check  # Prettier em modo verificacao
 npm run db:generate   # Gera migrations Drizzle
 npm run db:migrate    # Aplica migrations no banco configurado
 npm run admin:create  # Cria o primeiro Admin usando ADMIN_* do .env local
+npm run maintenance:cleanup # Remove registros expirados operacionais
+npm run check:production    # Checa prontidao antes de homologacao/producao
 ```
 
 ## Bootstrap Admin

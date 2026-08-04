@@ -2,6 +2,13 @@ import { z } from "zod";
 import { APP_DEFAULTS } from "./constants.js";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
+const stringBoolean = z.preprocess((value) => {
+  if (typeof value === "string") {
+    return value.trim().toLowerCase() === "true";
+  }
+
+  return value;
+}, z.boolean());
 
 export const appEnvSchema = z.object({
   NODE_ENV: z
@@ -14,6 +21,13 @@ export const appEnvSchema = z.object({
   WEB_PORT: z.coerce.number().int().positive().default(5173),
   API_PORT: z.coerce.number().int().positive().default(3333),
   CORS_ORIGIN: z.string().url().default("http://localhost:5173"),
+  TRUST_PROXY: stringBoolean.default(false),
+  SECURITY_HSTS_ENABLED: stringBoolean.optional(),
+  RATE_LIMIT_ENABLED: stringBoolean.default(true),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(300),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
   DATABASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   DATABASE_SSL_MODE: z.enum(["disable", "prefer", "require"]).default("require"),
   JWT_ACCESS_TOKEN_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),

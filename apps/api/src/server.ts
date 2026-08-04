@@ -20,6 +20,8 @@ import type { CustomerService } from "./customer/customer-service.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { authorizeAdmin } from "./middleware/authorize-admin.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
+import { noStoreApiResponses, securityHeaders } from "./middleware/security-headers.js";
 import { logger } from "./lib/logger.js";
 import type { OperationalMetricsService } from "./operational/operational-metrics-service.js";
 import { createPublicRouter } from "./public/public-router.js";
@@ -50,19 +52,45 @@ export function createApp(dependencies: AppDependencies = {}) {
   const runtimeDependencies = resolveRuntimeDependencies(dependencies);
 
   app.disable("x-powered-by");
+  if (env.TRUST_PROXY) {
+    app.set("trust proxy", 1);
+  }
+  app.use(
+    securityHeaders({
+      hstsEnabled:
+        env.SECURITY_HSTS_ENABLED ?? !["development", "test"].includes(env.NODE_ENV),
+    }),
+  );
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
       credentials: true,
     }),
   );
+  app.use(noStoreApiResponses());
+  app.use(pinoHttp({ logger }));
+  app.use(
+    createRateLimitMiddleware({
+      enabled: env.RATE_LIMIT_ENABLED,
+      windowMs: env.RATE_LIMIT_WINDOW_MS,
+      maxRequests: env.RATE_LIMIT_MAX_REQUESTS,
+      skip: (request) => request.path === "/health",
+    }),
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
-  app.use(pinoHttp({ logger }));
 
   app.use(healthRouter);
   app.use("/api/public", createPublicRouterIfAvailable(runtimeDependencies));
-  app.use("/api/auth", createAuthRouterIfAvailable(runtimeDependencies.authService));
+  app.use(
+    "/api/auth",
+    createRateLimitMiddleware({
+      enabled: env.RATE_LIMIT_ENABLED,
+      windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+      maxRequests: env.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    }),
+    createAuthRouterIfAvailable(runtimeDependencies.authService),
+  );
   app.use("/api/admin", createProtectedAdminRouterIfAvailable(runtimeDependencies));
   app.use("/api/company", createProtectedCompanyRouterIfAvailable(runtimeDependencies));
   app.use("/api/customer", createProtectedCustomerRouterIfAvailable(runtimeDependencies));

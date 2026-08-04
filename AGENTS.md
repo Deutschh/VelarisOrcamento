@@ -25,7 +25,9 @@
 - Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
 - Sprint 17 concluida tecnicamente: cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
 - Sprint 18 concluida tecnicamente: metricas operacionais da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco.
-- Proxima etapa recomendada para o MVP piloto: Sprint 19, PWA, seguranca, desempenho e deploy.
+- Sprint 19 adiantada tecnicamente nos itens locais: manifest PWA, icones provisorios, service worker com cache restrito, headers de seguranca, `no-store` em `/api`, rate limit global/autenticacao, cookies seguros em homologacao/producao, limpeza de registros expirados, checagem de prontidao para producao e testes unitarios desses blocos.
+- Itens operacionais da Sprint 19 seguem pendentes por decisao externa: hospedagem, dominio, SSL real, backups, monitoramento, upload/armazenamento privado definitivo, provedor real de e-mail, icones finais, homologacao publica, conta piloto real e deploy.
+- Proxima etapa recomendada para o MVP piloto: validar localmente a Sprint 19, revisar `docs/ITENS_ADIADOS.md` e fechar decisoes de infraestrutura/homologacao antes de deploy.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -122,6 +124,11 @@
 - Solicitacoes empresariais de alteracao de preco podem ser abertas por `owner` ou `manager`; `operator` pode consultar, mas nao criar.
 - Solicitacoes de alteracao de preco devem ficar auditaveis em `audit_logs` quando criadas ou resolvidas pelo Admin.
 - Admin pode filtrar metricas por periodo, nicho e empresa, e consultar auditoria operacional por periodo/empresa/acao.
+- Respostas da API devem receber headers de hardening e `Cache-Control: no-store` em `/api/*`.
+- Rate limit deve permanecer habilitado em ambientes hospedados; limites iniciais ficam configuraveis por ambiente.
+- O service worker/PWA nao deve cachear rotas sensiveis como `/api`, `/admin`, `/app`, `/cliente`, `/acompanhar` ou `/recuperar`.
+- A limpeza operacional de registros expirados deve remover rascunhos vencidos, chaves de idempotencia vencidas e OTPs de recuperacao vencidos por script controlado.
+- A checagem de prontidao de producao deve alertar/bloquear configuracoes inseguras antes de homologacao/deploy.
 - Variaveis sensiveis devem permanecer fora do codigo.
 - Nenhuma credencial real deve ser criada, solicitada ou escrita em arquivos versionados.
 - Toda migration deve ser revisavel e reversivel quando tecnicamente possivel.
@@ -174,4 +181,5 @@
 - Sprint 16 cria servico realizado e avaliacoes.
 - Sprint 17 cria a area autenticada do cliente.
 - Sprint 18 cria metricas e administracao operacional.
-- Sprint 18 esta concluida tecnicamente; iniciar Sprint 19 somente apos nova autorizacao do usuario.
+- Sprint 19 cria PWA, hardening de seguranca, rate limit, limpeza de expirados, validacoes finais e preparacao para deploy.
+- Sprint 19 esta adiantada tecnicamente nos itens locais; deploy e servicos externos aguardam nova autorizacao e decisoes pendentes.
