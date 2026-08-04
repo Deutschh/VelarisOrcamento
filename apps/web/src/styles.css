@@ -4,7 +4,8 @@
 
 :root {
   color-scheme: dark;
-  font-family:
+
+  --font-body:
     Inter,
     ui-sans-serif,
     system-ui,
@@ -12,9 +13,122 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #0b0b0d;
+
+  --font-display:
+    Fraunces,
+    Georgia,
+    "Times New Roman",
+    ui-serif,
+    serif;
+
+  --color-app-bg: #0b0b0d;
+  --color-app-bg-soft: #101217;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-surface-strong: rgba(255, 255, 255, 0.065);
+  --color-surface-muted: rgba(255, 255, 255, 0.028);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+
+  --color-text-primary: rgba(255, 255, 255, 0.92);
+  --color-text-secondary: rgba(255, 255, 255, 0.62);
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+  --color-text-inverted: #0b0b0d;
+
+  --color-accent: #f2f2f4;
+  --color-accent-soft: rgba(255, 255, 255, 0.12);
+  --color-danger: #fda4af;
+  --color-success: #d9f99d;
+  --color-warning: #fde68a;
+
+  --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 55px rgba(255, 255, 255, 0.09);
+
+  font-family: var(--font-body);
+  background: var(--color-app-bg);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-app-bg: #f2f2f4;
+  --color-app-bg-soft: #ffffff;
+  --color-surface: rgba(11, 11, 13, 0.045);
+  --color-surface-strong: rgba(11, 11, 13, 0.075);
+  --color-surface-muted: rgba(11, 11, 13, 0.028);
+  --color-border: rgba(11, 11, 13, 0.11);
+  --color-border-strong: rgba(11, 11, 13, 0.18);
+
+  --color-text-primary: rgba(11, 11, 13, 0.92);
+  --color-text-secondary: rgba(11, 11, 13, 0.62);
+  --color-text-muted: rgba(11, 11, 13, 0.42);
+  --color-text-inverted: #f8f8f9;
+
+  --color-accent: #0b0b0d;
+  --color-accent-soft: rgba(11, 11, 13, 0.08);
+  --color-danger: #be123c;
+  --color-success: #365314;
+  --color-warning: #92400e;
+
+  --shadow-soft: 0 24px 80px rgba(11, 11, 13, 0.08);
+  --shadow-glow: 0 0 45px rgba(11, 11, 13, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-app-bg);
 }
 
 body {
+  min-height: 100%;
   margin: 0;
+  background: var(--color-app-bg);
+  color: var(--color-text-primary);
+  transition:
+    background-color 240ms ease,
+    color 240ms ease;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  color-scheme: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+  background: var(--color-app-bg);
+}
+
+html::-webkit-scrollbar-thumb {
+  border: 3px solid var(--color-app-bg);
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }

@@ -152,25 +152,32 @@ export function HomePage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <section className="grid min-h-[520px] content-center gap-8 lg:grid-cols-[1fr_420px]">
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+        <section className="grid min-h-[calc(100vh-132px)] items-center gap-10 lg:grid-cols-[1fr_420px] lg:gap-16">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-300">
-              Velaris Orcamentos
+            <p className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)] backdrop-blur-xl">
+              <Search className="h-3.5 w-3.5" />
+              Orçamentos com clareza
             </p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-6xl">
-              Encontre empresas e peca seu orcamento.
+
+            <h1 className="mt-7 max-w-4xl font-serif text-[48px] font-normal leading-[0.92] tracking-[-0.065em] text-[var(--color-text-primary)] sm:text-[72px] lg:text-[92px]">
+              Encontre a empresa certa.
+              <span className="block text-[var(--color-text-muted)]">
+                Peça seu orçamento sem complicação.
+              </span>
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/70">
-              Busque por nicho e regiao para abrir o perfil publico da empresa e iniciar o
-              pedido pelo link direto.
+
+            <p className="mt-7 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)] sm:text-lg">
+              Escolha o serviço, informe os detalhes e acompanhe tudo pelo mesmo link:
+              estimativa, proposta, horário e confirmação.
             </p>
+
             <form
-              className="mt-8 grid gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3 md:grid-cols-[180px_1fr_auto]"
+              className="mt-9 grid gap-3 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-soft)] backdrop-blur-2xl md:grid-cols-[220px_1fr_auto]"
               onSubmit={submitSearch}
             >
               <select
-                className="min-h-12 rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
+                className="min-h-12 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                 value={category}
                 onChange={(event) =>
                   setCategory(event.target.value as PublicCompanyCategoryCode)
@@ -182,49 +189,104 @@ export function HomePage() {
                   </option>
                 ))}
               </select>
+
               <input
-                className="min-h-12 rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
-                placeholder="Cidade ou CEP"
+                className="min-h-12 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
+                placeholder="Cidade, bairro ou CEP"
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
               />
+
               <button
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-emerald-300 px-5 font-medium text-[#111216]"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5"
                 type="submit"
               >
                 <Search size={18} />
                 Buscar
               </button>
             </form>
-          </div>
-          <aside className="self-center rounded-md border border-white/10 bg-[#12141a] p-6">
-            <h2 className="text-xl font-semibold">Categorias</h2>
-            <div className="mt-5 grid gap-3">
-              {PUBLIC_COMPANY_CATEGORIES.map((item) => (
-                <Link
-                  className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-4 py-3 text-sm hover:bg-white/[0.07]"
-                  key={item.code}
-                  to={`/empresas?category=${item.code}`}
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                [
+                  "01",
+                  "Descreva o serviço",
+                  "Responda apenas o necessário para a empresa entender o pedido.",
+                ],
+                [
+                  "02",
+                  "Receba a proposta",
+                  "A empresa revisa os dados e envia o valor final.",
+                ],
+                [
+                  "03",
+                  "Confirme pelo link",
+                  "Aceite, recuse ou fale pelo WhatsApp sem perder o histórico.",
+                ],
+              ].map(([number, title, body]) => (
+                <div
+                  className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-xl"
+                  key={number}
                 >
-                  <span>{item.label}</span>
-                  <ArrowRight size={16} />
-                </Link>
+                  <p className="font-serif text-3xl text-[var(--color-text-muted)]">
+                    {number}
+                  </p>
+                  <h3 className="mt-4 text-sm font-semibold text-[var(--color-text-primary)]">
+                    {title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    {body}
+                  </p>
+                </div>
               ))}
+            </div>
+          </div>
+
+          <aside className="relative overflow-hidden rounded-[36px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+            <div className="absolute right-[-80px] top-[-80px] h-48 w-48 rounded-full bg-[var(--color-accent-soft)] blur-[70px]" />
+            <div className="relative">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                Categorias
+              </p>
+              <h2 className="mt-4 font-serif text-4xl font-normal tracking-[-0.05em]">
+                Comece pelo que você precisa.
+              </h2>
+              <div className="mt-7 grid gap-3">
+                {PUBLIC_COMPANY_CATEGORIES.map((item) => (
+                  <Link
+                    className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-4 text-sm text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+                    key={item.code}
+                    to={`/empresas?category=${item.code}`}
+                  >
+                    <span>{item.label}</span>
+                    <ArrowRight
+                      className="transition group-hover:translate-x-1"
+                      size={16}
+                    />
+                  </Link>
+                ))}
+              </div>
             </div>
           </aside>
         </section>
-        <section className="border-t border-white/10 py-8">
-          <div className="flex items-end justify-between gap-4">
+
+        <section className="border-t border-[var(--color-border)] py-10">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionTitle eyebrow="Descoberta" title="Empresas publicadas" />
-            <Link className="text-sm text-emerald-200 underline" to="/empresas">
+            <Link
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"
+              to="/empresas"
+            >
               Ver busca completa
+              <ArrowRight size={16} />
             </Link>
           </div>
+
           {companiesQuery.isLoading ? <LoadingLine /> : null}
           {companiesQuery.error ? (
             <ErrorPanel
               error={companiesQuery.error}
-              fallback="Nao foi possivel carregar empresas."
+              fallback="Não foi possível carregar as empresas agora."
             />
           ) : null}
           {companiesQuery.data ? (
@@ -240,62 +302,75 @@ export function OnboardingPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const steps = [
     {
-      title: "Encontre empresas e peca seu orcamento",
-      body: "Escolha o servico e informe o que precisa em poucos passos.",
+      title: "Encontre uma empresa",
+      body: "Escolha o serviço e veja empresas publicadas que atendem sua região.",
     },
     {
-      title: "Envie fotos e detalhes",
-      body: "Ajude a empresa a analisar o servico com mais precisao.",
+      title: "Explique o que precisa",
+      body: "Preencha os detalhes, adicione fotos e gere uma estimativa inicial.",
     },
     {
-      title: "Receba a proposta e confirme o horario",
-      body: "Acompanhe tudo pelo celular, mesmo sem criar conta.",
+      title: "Acompanhe até a decisão",
+      body: "Receba a proposta final, confirme o valor e combine o atendimento pelo mesmo link.",
     },
   ];
   const step = steps[stepIndex] ?? steps[0]!;
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <SectionTitle eyebrow="Inicio" title="Como funciona" />
-        <section className="mt-8 rounded-md border border-white/10 bg-white/[0.04] p-6">
-          <div className="text-sm text-emerald-200">0{stepIndex + 1} / 03</div>
-          <h2 className="mt-4 text-2xl font-semibold">{step.title}</h2>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-white/65">{step.body}</p>
+      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <SectionTitle
+          eyebrow="Primeiro acesso"
+          title="Uma jornada simples para pedir orçamento."
+        />
+
+        <section className="mt-8 overflow-hidden rounded-[36px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+          <div className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+            0{stepIndex + 1} / 03
+          </div>
+          <h2 className="mt-6 max-w-3xl font-serif text-5xl font-normal leading-[0.95] tracking-[-0.055em]">
+            {step.title}
+          </h2>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
+            {step.body}
+          </p>
         </section>
+
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {steps.map((step, index) => (
             <button
-              className={`rounded-md border p-4 text-left text-sm ${
+              className={`rounded-[28px] border p-5 text-left text-sm transition ${
                 index === stepIndex
-                  ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-100"
-                  : "border-white/10 bg-white/[0.03] text-white/55"
+                  ? "border-[var(--color-border-strong)] bg-[var(--color-accent)] text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-strong)]"
               }`}
               key={step.title}
               type="button"
               onClick={() => setStepIndex(index)}
             >
-              0{index + 1}. {step.title}
+              <span className="font-serif text-3xl">0{index + 1}</span>
+              <span className="mt-4 block font-semibold">{step.title}</span>
             </button>
           ))}
         </div>
+
         <div className="mt-8 flex flex-wrap gap-3">
           {stepIndex < steps.length - 1 ? (
             <button
-              className="inline-flex items-center gap-2 rounded-md bg-emerald-300 px-5 py-3 font-medium text-[#111216]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5"
               type="button"
               onClick={() => setStepIndex((current) => current + 1)}
             >
-              <ArrowRight size={18} />
               Continuar
+              <ArrowRight size={18} />
             </button>
           ) : (
             <PrimaryLink icon={Search} to="/empresas">
-              Comecar
+              Começar busca
             </PrimaryLink>
           )}
           <SecondaryLink icon={ArrowRight} to="/">
-            Pular
+            Voltar ao início
           </SecondaryLink>
         </div>
       </main>
@@ -339,14 +414,24 @@ export function CompaniesSearchPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <SectionTitle eyebrow="Busca" title="Empresas disponiveis" />
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <SectionTitle
+            eyebrow="Busca"
+            title="Encontre empresas disponíveis para seu pedido."
+          />
+          <p className="max-w-2xl text-base leading-8 text-[var(--color-text-secondary)] lg:justify-self-end">
+            Filtre por categoria e região para encontrar empresas que já possuem perfil
+            publicado na Velaris.
+          </p>
+        </div>
+
         <form
-          className="mt-6 grid gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3 md:grid-cols-[220px_1fr_auto]"
+          className="mt-8 grid gap-3 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-soft)] backdrop-blur-2xl md:grid-cols-[240px_1fr_auto]"
           onSubmit={submitSearch}
         >
           <select
-            className="min-h-12 rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
+            className="min-h-12 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
             value={category}
             onChange={(event) =>
               setCategory(event.target.value as PublicCompanyCategoryCode)
@@ -358,25 +443,28 @@ export function CompaniesSearchPage() {
               </option>
             ))}
           </select>
+
           <input
-            className="min-h-12 rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
-            placeholder="Cidade ou CEP"
+            className="min-h-12 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
+            placeholder="Cidade, bairro ou CEP"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
           />
+
           <button
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-emerald-300 px-5 font-medium text-[#111216]"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5"
             type="submit"
           >
             <Search size={18} />
             Buscar
           </button>
         </form>
+
         {companiesQuery.isLoading ? <LoadingLine /> : null}
         {companiesQuery.error ? (
           <ErrorPanel
             error={companiesQuery.error}
-            fallback="Nao foi possivel carregar empresas."
+            fallback="Não foi possível carregar as empresas agora."
           />
         ) : null}
         {companiesQuery.data ? (
@@ -2158,14 +2246,14 @@ const quoteStepItems: Array<{
 function CompanyGrid({ companies }: { companies: PublicCompanySummary[] }) {
   if (companies.length === 0) {
     return (
-      <div className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-6 text-sm text-white/60">
-        Nenhuma empresa publicada atende os filtros informados.
+      <div className="mt-6 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm leading-6 text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] backdrop-blur-xl">
+        Nenhuma empresa publicada atende os filtros informados no momento.
       </div>
     );
   }
 
   return (
-    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {companies.map((company) => (
         <CompanyCard company={company} key={company.id} />
       ))}
@@ -2176,62 +2264,71 @@ function CompanyGrid({ companies }: { companies: PublicCompanySummary[] }) {
 function CompanyCard({ company }: { company: PublicCompanySummary }) {
   return (
     <Link
-      className="group flex min-h-[260px] flex-col rounded-md border border-white/10 bg-white/[0.04] p-5 transition hover:border-emerald-300/40 hover:bg-white/[0.07]"
+      className="group relative flex min-h-[300px] flex-col overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)]"
       to={`/empresa/${company.slug}`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="pointer-events-none absolute right-[-60px] top-[-60px] h-36 w-36 rounded-full bg-[var(--color-accent-soft)] opacity-0 blur-[60px] transition group-hover:opacity-100" />
+
+      <div className="relative flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-white/10 bg-[#15171d] text-emerald-200">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
             {company.logoUrl ? (
-              <img
-                alt=""
-                className="h-full w-full rounded-md object-cover"
-                src={company.logoUrl}
-              />
+              <img alt="" className="h-full w-full object-cover" src={company.logoUrl} />
             ) : (
-              <Building2 size={22} />
+              <Building2 size={23} />
             )}
           </div>
+
           <div>
-            <h2 className="font-semibold text-white">{company.tradingName}</h2>
-            <p className="mt-1 text-xs text-emerald-200">{company.nicheLabel}</p>
+            <h2 className="font-semibold text-[var(--color-text-primary)]">
+              {company.tradingName}
+            </h2>
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              {company.nicheLabel}
+            </p>
           </div>
         </div>
-        <ArrowRight
-          className="text-white/30 transition group-hover:text-emerald-200"
-          size={18}
-        />
+
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)] transition group-hover:bg-[var(--color-accent)] group-hover:text-[var(--color-text-inverted)]">
+          <ArrowRight size={17} />
+        </span>
       </div>
-      <p className="mt-5 line-clamp-3 text-sm leading-6 text-white/65">
-        {company.headline ?? company.description ?? "Perfil publicado na Velaris."}
+
+      <p className="relative mt-6 line-clamp-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+        {company.headline ??
+          company.description ??
+          "Perfil publicado na Velaris para receber solicitações de orçamento com mais clareza."}
       </p>
-      <div className="mt-auto space-y-3 pt-5 text-sm text-white/60">
+
+      <div className="relative mt-auto space-y-3 pt-6 text-sm text-[var(--color-text-secondary)]">
         <div className="flex items-center gap-2">
           <MapPin size={16} />
           <span>
             {[company.city, company.state].filter(Boolean).join(", ") ||
-              "Regiao informada no perfil"}
+              "Região informada no perfil"}
           </span>
         </div>
+
         <div className="flex items-center gap-2">
           <LocateFixed size={16} />
           <span>
             {company.distanceKm !== null
-              ? `${company.distanceKm} km`
+              ? `${company.distanceKm} km de distância`
               : company.serviceRadiusKm !== null
-                ? `Raio de ${company.serviceRadiusKm} km`
-                : "Regioes atendidas"}
+                ? `Raio de atendimento: ${company.serviceRadiusKm} km`
+                : "Regiões atendidas pela empresa"}
           </span>
         </div>
-        <div className="flex items-center justify-between pt-2 text-white/75">
+
+        <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4 text-[var(--color-text-primary)]">
           <span className="inline-flex items-center gap-1">
             <Star size={16} />
             {company.reviewSummary.count > 0
               ? `${company.reviewSummary.average} (${company.reviewSummary.count})`
-              : "Sem avaliacoes"}
+              : "Sem avaliações"}
           </span>
-          <span className="inline-flex items-center gap-1 text-emerald-200">
-            Abrir
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-text-secondary)] transition group-hover:text-[var(--color-text-primary)]">
+            Abrir perfil
             <ArrowRight size={16} />
           </span>
         </div>
@@ -2243,7 +2340,7 @@ function CompanyCard({ company }: { company: PublicCompanySummary }) {
 function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
   const queryClient = useQueryClient();
   const [favoriteMessage, setFavoriteMessage] = useState<string | null>(null);
-  const accentColor = company.primaryColor ?? "#6ee7b7";
+  const accentColor = company.primaryColor ?? "#f2f2f4";
   const favoriteMutation = useMutation({
     mutationFn: () => {
       const payload = customerFavoriteCompanyRequestSchema.parse({
@@ -2256,7 +2353,7 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
       });
     },
     onSuccess() {
-      setFavoriteMessage("Empresa adicionada aos favoritos.");
+      setFavoriteMessage("Empresa salva nos seus favoritos.");
       void queryClient.invalidateQueries({ queryKey: ["customer-dashboard"] });
     },
     onError() {
@@ -2266,130 +2363,159 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
   const favoriteError =
     favoriteMutation.error instanceof ApiError &&
     (favoriteMutation.error.status === 401 || favoriteMutation.error.status === 403)
-      ? "Entre como cliente para favoritar empresas."
+      ? "Entre como cliente para salvar empresas nos favoritos."
       : favoriteMutation.error
-        ? errorMessage(favoriteMutation.error, "Nao foi possivel favoritar.")
+        ? errorMessage(favoriteMutation.error, "Não foi possível favoritar agora.")
         : null;
 
   return (
     <article>
-      <section className="overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
+      <section className="relative overflow-hidden rounded-[40px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] backdrop-blur-2xl">
         <div
-          className="h-56 bg-[#15171d]"
+          className="h-64 bg-[var(--color-app-bg-soft)] bg-cover bg-center"
           style={
             company.coverImageUrl
-              ? { backgroundImage: `url(${company.coverImageUrl})` }
-              : { background: `linear-gradient(135deg, ${accentColor}33, #15171d)` }
+              ? {
+                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.58)), url(${company.coverImageUrl})`,
+                }
+              : {
+                  background: `radial-gradient(circle at 72% 28%, ${accentColor}33, transparent 32%), linear-gradient(135deg, var(--color-surface-strong), var(--color-app-bg-soft))`,
+                }
           }
         />
-        <div className="p-6">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-white/10 bg-[#15171d] text-emerald-200">
+              <div className="flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
                 {company.logoUrl ? (
                   <img
                     alt=""
-                    className="h-full w-full rounded-md object-cover"
+                    className="h-full w-full object-cover"
                     src={company.logoUrl}
                   />
                 ) : (
-                  <Building2 size={28} />
+                  <Building2 size={30} />
                 )}
               </div>
+
               <div>
-                <p className="text-sm text-emerald-200">{company.nicheLabel}</p>
-                <h1 className="mt-1 text-3xl font-semibold">{company.tradingName}</h1>
-                <p className="mt-2 text-sm text-white/60">
-                  {[company.city, company.state].filter(Boolean).join(", ")}
+                <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                  {company.nicheLabel}
+                </p>
+                <h1 className="mt-2 font-serif text-5xl font-normal leading-[0.95] tracking-[-0.055em] text-[var(--color-text-primary)]">
+                  {company.tradingName}
+                </h1>
+                <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                  {[company.city, company.state].filter(Boolean).join(", ") ||
+                    "Região informada no perfil"}
                 </p>
               </div>
             </div>
+
             <div className="flex flex-col items-stretch gap-2 sm:items-end">
               <div className="flex flex-wrap gap-3">
                 <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/15 px-5 py-3 font-medium text-white/85 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)] disabled:cursor-wait disabled:opacity-70"
                   disabled={favoriteMutation.isPending}
                   type="button"
                   onClick={() => favoriteMutation.mutate()}
                 >
                   <Heart size={18} />
-                  {favoriteMutation.isPending ? "Salvando" : "Favoritar"}
+                  {favoriteMutation.isPending ? "Salvando..." : "Favoritar"}
                 </button>
+
                 <PrimaryLink icon={PlusCircle} to={`/empresa/${company.slug}/orcamento`}>
-                  Solicitar orcamento
+                  Solicitar orçamento
                 </PrimaryLink>
               </div>
+
               {favoriteMessage ? (
-                <p className="text-sm text-emerald-100">{favoriteMessage}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  {favoriteMessage}
+                </p>
               ) : null}
               <FormError message={favoriteError} />
             </div>
           </div>
-          <p className="mt-6 max-w-3xl text-base leading-7 text-white/70">
-            {company.description ?? company.headline ?? "Perfil publico da empresa."}
+
+          <p className="mt-7 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)]">
+            {company.description ??
+              company.headline ??
+              "Perfil público da empresa na Velaris Orçamentos."}
           </p>
         </div>
       </section>
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
+
+      <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
-          <ProfileSection title="Servicos">
+          <ProfileSection title="Serviços">
             {company.services.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2">
                 {company.services.map((service) => (
                   <div
-                    className="rounded-md border border-white/10 bg-white/[0.04] p-4"
+                    className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5"
                     key={service.name}
                   >
-                    <h3 className="font-medium">{service.name}</h3>
+                    <h3 className="font-semibold text-[var(--color-text-primary)]">
+                      {service.name}
+                    </h3>
                     {service.description ? (
-                      <p className="mt-2 text-sm text-white/60">{service.description}</p>
+                      <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+                        {service.description}
+                      </p>
                     ) : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/55">
-                Servicos serao informados no perfil.
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Os serviços serão exibidos assim que a empresa completar o perfil.
               </p>
             )}
           </ProfileSection>
+
           <ProfileSection title="Galeria">
             {company.gallery.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-3">
                 {company.gallery.map((item) => (
                   <img
                     alt={item.alt ?? ""}
-                    className="aspect-[4/3] rounded-md border border-white/10 object-cover"
+                    className="aspect-[4/3] rounded-[26px] border border-[var(--color-border)] object-cover shadow-[var(--shadow-soft)]"
                     key={item.url}
                     src={item.url}
                   />
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/55">Galeria ainda nao informada.</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                A galeria ainda não foi informada.
+              </p>
             )}
           </ProfileSection>
-          <ProfileSection title="Avaliacoes">
+
+          <ProfileSection title="Avaliações">
             {company.reviews.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2">
                 {company.reviews.map((review) => (
                   <div
-                    className="rounded-md border border-white/10 bg-white/[0.03] p-4"
+                    className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5"
                     key={review.id}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-white/90">
-                          {review.rating}/5 - {review.customerName}
+                        <p className="font-semibold text-[var(--color-text-primary)]">
+                          {review.rating}/5 — {review.customerName}
                         </p>
-                        <p className="mt-1 text-xs text-white/45">
-                          {review.serviceName} - {formatDate(review.createdAt)}
+                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                          {review.serviceName} — {formatDate(review.createdAt)}
                         </p>
                       </div>
-                      <Star className="text-emerald-200" size={17} />
+                      <Star className="text-[var(--color-text-secondary)]" size={17} />
                     </div>
+
                     {review.comment ? (
-                      <p className="mt-3 text-sm leading-6 text-white/65">
+                      <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
                         {review.comment}
                       </p>
                     ) : null}
@@ -2397,17 +2523,20 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/55">Sem avaliacoes publicas ainda.</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Esta empresa ainda não possui avaliações públicas.
+              </p>
             )}
           </ProfileSection>
         </section>
+
         <aside className="space-y-4">
           <InfoBlock
             label="Atendimento"
             value={
               company.serviceCities.length > 0
                 ? company.serviceCities.join(", ")
-                : "Regiao definida pela empresa"
+                : "Região definida pela empresa"
             }
           />
           <InfoBlock
@@ -2415,7 +2544,7 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
             value={
               company.serviceRadiusKm !== null
                 ? `${company.serviceRadiusKm} km`
-                : "Nao informado"
+                : "Não informado"
             }
           />
           <InfoBlock
@@ -2428,11 +2557,11 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
             }
           />
           <InfoBlock
-            label="Avaliacoes"
+            label="Avaliações"
             value={
               company.reviewSummary.count > 0
                 ? `${company.reviewSummary.average} de 5`
-                : "Sem avaliacoes publicas"
+                : "Sem avaliações públicas"
             }
           />
         </aside>
@@ -2443,9 +2572,11 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
 
 function ProfileSection({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <div className="mt-4">{children}</div>
+    <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+        {title}
+      </h2>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
