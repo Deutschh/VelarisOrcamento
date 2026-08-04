@@ -15,6 +15,7 @@ const baseEnv: AppEnv = {
   WEB_PORT: 5173,
   API_PORT: 3333,
   CORS_ORIGIN: "https://app.velaris.example",
+  CORS_ORIGINS: undefined,
   TRUST_PROXY: true,
   SECURITY_HSTS_ENABLED: true,
   RATE_LIMIT_ENABLED: true,
@@ -90,5 +91,18 @@ describe("validateProductionReadiness", () => {
         expect.objectContaining({ code: "RATE_LIMIT_DISABLED", level: "error" }),
       ]),
     );
+  });
+
+  it("accepts a list of https cors origins for hosted environments", () => {
+    const issues = validateProductionReadiness({
+      ...baseEnv,
+      CORS_ORIGIN: "http://localhost:5173",
+      CORS_ORIGINS:
+        "https://app.velarisorcamentos.com.br, https://velaris-orcamento.vercel.app",
+    });
+
+    expect(
+      issues.some((issue) => issue.code === "CORS_ORIGIN_HTTPS_REQUIRED"),
+    ).toBe(false);
   });
 });

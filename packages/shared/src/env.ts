@@ -10,6 +10,37 @@ const stringBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const corsOriginsSchema = z.preprocess(
+  emptyToUndefined,
+  z
+    .string()
+    .superRefine((value, context) => {
+      const origins = value
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
+      if (!origins.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "CORS_ORIGINS must contain at least one URL.",
+        });
+        return;
+      }
+
+      for (const origin of origins) {
+        const result = z.string().url().safeParse(origin);
+        if (!result.success) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid CORS origin: ${origin}`,
+          });
+        }
+      }
+    })
+    .optional(),
+);
+
 export const appEnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "homologation", "production"])
@@ -21,6 +52,7 @@ export const appEnvSchema = z.object({
   WEB_PORT: z.coerce.number().int().positive().default(5173),
   API_PORT: z.coerce.number().int().positive().default(3333),
   CORS_ORIGIN: z.string().url().default("http://localhost:5173"),
+  CORS_ORIGINS: corsOriginsSchema,
   TRUST_PROXY: stringBoolean.default(false),
   SECURITY_HSTS_ENABLED: stringBoolean.optional(),
   RATE_LIMIT_ENABLED: stringBoolean.default(true),

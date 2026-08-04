@@ -102,6 +102,8 @@ DATABASE_URL=<valor_real_do_Neon>
 DATABASE_SSL_MODE=require
 
 CORS_ORIGIN=https://app.velarisorcamentos.com.br
+# Opcional: use quando precisar liberar dominio final e URL temporaria da Vercel.
+CORS_ORIGINS=
 TRUST_PROXY=true
 SECURITY_HSTS_ENABLED=true
 
@@ -129,6 +131,22 @@ FILE_STORAGE_PROVIDER=stub
 
 Nao definir manualmente `PORT` na Render, a menos que a propria plataforma peca.
 A Render injeta `PORT` automaticamente.
+
+Se estiver testando antes de o dominio final estar ativo, configure a Render com
+a origem exata aberta no navegador. Exemplos:
+
+```txt
+CORS_ORIGIN=https://app.velarisorcamentos.com.br
+```
+
+ou, temporariamente, para liberar tambem a URL da Vercel:
+
+```txt
+CORS_ORIGINS=https://app.velarisorcamentos.com.br,https://seu-projeto.vercel.app
+```
+
+O valor precisa ser exatamente o `origin` do navegador: protocolo `https`,
+subdominio e dominio, sem barra final.
 
 ### Dominio da API
 

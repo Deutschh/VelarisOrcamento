@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { pinoHttp } from "pino-http";
 
+import type { AppEnv } from "@velaris/shared";
 import { createAdminRouter } from "./admin/admin-router.js";
 import type { AdminService } from "./admin/admin-service.js";
 import { createAuthRouter } from "./auth/auth-router.js";
@@ -50,6 +51,7 @@ export interface AppDependencies {
 export function createApp(dependencies: AppDependencies = {}) {
   const app = express();
   const runtimeDependencies = resolveRuntimeDependencies(dependencies);
+  const corsAllowedOrigins = resolveCorsAllowedOrigins(env);
 
   app.disable("x-powered-by");
   if (env.TRUST_PROXY) {
@@ -63,7 +65,14 @@ export function createApp(dependencies: AppDependencies = {}) {
   );
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: (origin, callback) => {
+        if (!origin || corsAllowedOrigins.has(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(null, false);
+      },
       credentials: true,
     }),
   );
@@ -97,6 +106,19 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use(errorHandler);
 
   return app;
+}
+
+export function resolveCorsAllowedOrigins(
+  config: Pick<AppEnv, "CORS_ORIGIN" | "CORS_ORIGINS">,
+) {
+  const configuredValue = config.CORS_ORIGINS ?? config.CORS_ORIGIN;
+
+  return new Set(
+    configuredValue
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
 }
 
 function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependencies {

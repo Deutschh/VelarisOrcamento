@@ -46,11 +46,13 @@ export function validateProductionReadiness(env: AppEnv): ReadinessIssue[] {
     });
   }
 
-  if (isHostedEnvironment && !env.CORS_ORIGIN.startsWith("https://")) {
+  const corsOrigins = resolveCorsOrigins(env);
+
+  if (isHostedEnvironment && corsOrigins.some((origin) => !origin.startsWith("https://"))) {
     issues.push({
       level: "error",
       code: "CORS_ORIGIN_HTTPS_REQUIRED",
-      message: "Hosted environments must use an HTTPS CORS origin.",
+      message: "Hosted environments must use HTTPS CORS origins.",
     });
   }
 
@@ -89,6 +91,13 @@ export function validateProductionReadiness(env: AppEnv): ReadinessIssue[] {
   }
 
   return issues;
+}
+
+function resolveCorsOrigins(env: Pick<AppEnv, "CORS_ORIGIN" | "CORS_ORIGINS">) {
+  return (env.CORS_ORIGINS ?? env.CORS_ORIGIN)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 }
 
 export function hasBlockingReadinessIssues(issues: ReadinessIssue[]) {
