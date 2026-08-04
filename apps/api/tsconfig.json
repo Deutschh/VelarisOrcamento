@@ -7,9 +7,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
-    "types": ["node", "vitest/globals"]
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"],
   "references": [
     { "path": "../../database/schemas/tsconfig.json" },
     { "path": "../../packages/shared/tsconfig.json" },

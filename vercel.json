@@ -1,0 +1,6 @@
+{
+  "framework": "vite",
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build -w @velaris/shared && npm run build -w @velaris/ui && npm run build -w @velaris/web",
+  "outputDirectory": "apps/web/dist"
+}

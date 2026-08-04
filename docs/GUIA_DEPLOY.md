@@ -30,6 +30,10 @@ velarisorcamentos.com.br     -> landing/redirecionamento futuro
 - O frontend aceita `VITE_API_BASE_URL` para chamar a API em outro dominio.
 - O link publico do PDF usa o mesmo resolvedor de URL da API.
 - O `.env.example` documenta `PORT` e `VITE_API_BASE_URL` sem valores secretos.
+- O build de producao nao compila arquivos `*.test.ts`.
+- A raiz declara Node `22.x` para a Vercel e `.node-version`/`.nvmrc` mantem
+  `22.15.0` para ambientes que suportam versao exata.
+- O `vercel.json` fixa install, build e output do frontend no monorepo.
 
 ## Antes de publicar
 
@@ -64,8 +68,12 @@ npm run check:production
 Build command:
 
 ```txt
-npm ci && npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/api
+npm ci --include=dev && npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/api
 ```
+
+O `--include=dev` e necessario porque o build usa ferramentas de
+desenvolvimento, como TypeScript. Os arquivos de teste nao entram no build de
+producao.
 
 Start command:
 
@@ -143,13 +151,15 @@ api.velarisorcamentos.com.br
 2. Importe o mesmo repositorio Git.
 3. Configure como projeto Vite/React.
 4. Use a raiz do repositorio como base do monorepo.
+5. Em **Settings > Build and Deployment > Node.js Version**, selecione `22.x`
+   se a Vercel nao respeitar automaticamente o `engines.node`.
 
 ### Configuracao do build
 
 Build command:
 
 ```txt
-npm run build -w @velaris/web
+npm run build -w @velaris/shared && npm run build -w @velaris/ui && npm run build -w @velaris/web
 ```
 
 Output directory:
@@ -161,11 +171,11 @@ apps/web/dist
 Install command:
 
 ```txt
-npm ci
+npm ci --include=dev
 ```
 
-Se a Render reaproveitar cache antigo depois de uma correcao de build, use a
-opcao de redeploy limpando o cache do build.
+Se a Render ou a Vercel reaproveitar cache antigo depois de uma correcao de
+build, use a opcao de redeploy limpando o cache do build.
 
 ### Variaveis de ambiente do frontend
 
