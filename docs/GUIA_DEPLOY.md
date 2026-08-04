@@ -64,7 +64,7 @@ npm run check:production
 Build command:
 
 ```txt
-npm install && npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/api
+npm ci && npm run build -w @velaris/database-schema && npm run build -w @velaris/shared && npm run build -w @velaris/domain && npm run build -w @velaris/api
 ```
 
 Start command:
@@ -161,8 +161,11 @@ apps/web/dist
 Install command:
 
 ```txt
-npm install
+npm ci
 ```
+
+Se a Render reaproveitar cache antigo depois de uma correcao de build, use a
+opcao de redeploy limpando o cache do build.
 
 ### Variaveis de ambiente do frontend
 

@@ -12,14 +12,6 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
-    "paths": {
-      "@velaris/config": ["packages/config/src/index.ts"],
-      "@velaris/database-schema": ["database/schemas/index.ts"],
-      "@velaris/domain": ["packages/domain/src/index.ts"],
-      "@velaris/shared": ["packages/shared/src/index.ts"],
-      "@velaris/ui": ["packages/ui/src/index.ts"]
-    }
+    "allowSyntheticDefaultImports": true
   }
 }
