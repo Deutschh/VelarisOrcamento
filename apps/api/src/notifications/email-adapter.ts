@@ -27,11 +27,20 @@ export interface RecoveryOtpMessage {
   expiresAt: string;
 }
 
+export interface ReviewInvitationMessage {
+  to: string;
+  name: string;
+  companyName: string;
+  requestCode: string;
+  recoveryPath: string;
+}
+
 export interface EmailAdapter {
   sendEmailVerification(message: EmailVerificationMessage): Promise<void>;
   sendCompanyActivation(message: CompanyActivationMessage): Promise<void>;
   sendQuoteRequestConfirmation?(message: QuoteRequestConfirmationMessage): Promise<void>;
   sendRecoveryOtp?(message: RecoveryOtpMessage): Promise<void>;
+  sendReviewInvitation?(message: ReviewInvitationMessage): Promise<void>;
 }
 
 export const stubEmailAdapter: EmailAdapter = {
@@ -78,6 +87,18 @@ export const stubEmailAdapter: EmailAdapter = {
         otpGenerated: Boolean(message.otp),
       },
       "Recovery OTP email skipped because no email provider is configured.",
+    );
+  },
+
+  async sendReviewInvitation(message) {
+    logger.info(
+      {
+        provider: "stub",
+        recipientProvided: Boolean(message.to),
+        requestCode: message.requestCode,
+        recoveryPath: message.recoveryPath,
+      },
+      "Review invitation email skipped because no email provider is configured.",
     );
   },
 };

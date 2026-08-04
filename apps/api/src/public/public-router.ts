@@ -6,6 +6,7 @@ import {
   publicCompanySearchQuerySchema,
   publicProposalAcceptRequestSchema,
   publicProposalRejectRequestSchema,
+  publicReviewCreateRequestSchema,
   publicTrackingRecoveryRequestSchema,
   publicTrackingRecoveryVerifyRequestSchema,
   quoteDraftFileMetadataRequestSchema,
@@ -77,6 +78,23 @@ export function createPublicRouter(
     }),
   );
 
+  router.get(
+    "/tracking/:token/proposal/pdf",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const pdf = await service.getPublicProposalPdf(String(request.params.token));
+
+      response
+        .status(200)
+        .set({
+          "Cache-Control": "private, no-store",
+          "Content-Disposition": `inline; filename="${pdf.fileName}"`,
+          "Content-Type": pdf.contentType,
+        })
+        .send(pdf.buffer);
+    }),
+  );
+
   router.post(
     "/tracking/:token/proposal/accept",
     asyncHandler(async (request, response) => {
@@ -140,6 +158,22 @@ export function createPublicRouter(
       const service = requireQuoteRequestService(publicQuoteRequestService);
       const payload = publicTrackingRecoveryVerifyRequestSchema.parse(request.body);
       response.json(await service.verifyRecovery(payload));
+    }),
+  );
+
+  router.post(
+    "/reviews",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      const headerIdempotencyKey = request.get(HTTP_HEADERS.idempotencyKey);
+      const payload = publicReviewCreateRequestSchema.parse({
+        ...request.body,
+        ...(headerIdempotencyKey ? { idempotencyKey: headerIdempotencyKey } : {}),
+      });
+
+      response
+        .status(201)
+        .json(await service.createPublicReview(payload, getRequestMetadata(request)));
     }),
   );
 

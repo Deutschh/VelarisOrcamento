@@ -17,8 +17,10 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 13 concluida tecnicamente: agendamento assistido, tabelas de agendamento/historico, modos configuraveis, timezone da empresa, aviso de conflito sem bloqueio, painel da empresa e testes.
 - Pendencia operacional: validacao comercial com empresa real.
 - Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por OTP de e-mail, `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
-- Sprint 15 parcialmente concluida: aceite formal, recusa formal, rotas publicas de proposta no tracking, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna, frontend publico e migration `quote_acceptances`.
-- Proxima etapa recomendada para o MVP piloto: concluir o PDF por versao da proposta na Sprint 15.
+- Sprint 15 concluida tecnicamente: PDF por versao gerado sob demanda no backend, rota publica segura pelo tracking, botao de PDF no frontend, aceite formal, recusa formal, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna e migration `quote_acceptances`.
+- Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
+- Sprint 17 concluida tecnicamente: area autenticada do cliente com home personalizada, cadastro/entrada de cliente, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
+- Proxima etapa recomendada para o MVP piloto: Sprint 18, metricas e administracao operacional.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -64,7 +66,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Requisito confirmado: onboarding, Home publica, categorias, busca por cidade/CEP, localizacao, distancia, raio de atendimento, listagem, perfil publico, galeria, avaliacoes resumidas, CTA de orcamento e favoritos para autenticados.
 - Regra confirmada: link direto para `/empresa/:slug` nao deve ser bloqueado pelo onboarding.
 - Implementado Sprint 4: rotas `/`, `/onboarding`, `/empresas`, `/empresa/:slug` e `/empresa/:slug/orcamento`; API `GET /api/public/categories`, `GET /api/public/companies`, `GET /api/public/companies/:slug` e `GET /api/public/companies/:slug/services`; tabela `company_public_profiles`; formulario Admin para dados publicos basicos, servicos, cidade, raio e regioes atendidas.
-- Limitacao registrada: descoberta completa por geolocalizacao precisa de refinamento posterior; favoritos continuam fora do MVP piloto conforme secao 34.1.
+- Limitacao registrada: descoberta completa por geolocalizacao precisa de refinamento posterior; favoritos autenticados foram implementados posteriormente na Sprint 17.
 - Estimativa da especificacao: 16 a 22 horas.
 
 ## Sprint 5 - Templates fixos e campos configuraveis
@@ -130,7 +132,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Padrao inicial configuravel: propostas validas por 7 dias.
 - Regra confirmada: proposta aceita e imutavel; alteracao comercial posterior gera nova versao.
 - Implementado Sprint 12: enums `quote_status` e `quote_version_status`; tabelas `quotes`, `quote_versions`, `quote_version_items` e `quote_version_events`; contratos compartilhados de propostas; dominio puro para transicoes e validacao de valor final; API `POST /api/company/quote-requests/:id/proposals` e `POST /api/company/proposals/:id/send`; painel `/app` com criacao/preview/envio de proposta; envio com `Idempotency-Key`; preservacao de versoes anteriores; testes de valor fora da faixa, expiracao, envio duplicado, versao aceita bloqueada e proposta sem agendamento.
-- Limitacao registrada: visualizacao publica, solicitacao publica de alteracao, aceite/rejeicao do cliente, PDF e documentos legais versionados permanecem para as sprints posteriores previstas.
+- Limitacao registrada: visualizacao publica, aceite/rejeicao do cliente, PDF e documentos legais versionados foram tratados posteriormente nas Sprints 14 e 15; solicitacao publica de complemento ainda segue pendente.
 - Estimativa da especificacao: 20 a 26 horas.
 
 ## Sprint 13 - Agendamento assistido
@@ -138,7 +140,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Requisito confirmado: `appointments`, `scheduling_mode`, data, horario, duracao, timezone, conflito basico com aviso sem bloqueio, confirmacao, solicitacao de outro horario, nova proposta, historico, cancelamento, conclusao e testes.
 - Padrao inicial configuravel: timezone inicial das empresas e `America/Sao_Paulo`.
 - Implementado Sprint 13: enum `appointment_status`; tabelas `appointments` e `appointment_history`; contratos compartilhados de agendamento; dominio puro para transicoes, validade do horario e restricoes por modo; API `POST /api/company/proposals/:id/appointment`, `PATCH /api/company/appointments/:id` e `POST /api/company/appointments/:id/complete`; painel `/app` com proposta de horario, duracao, endereco, observacoes, aviso de conflito, cancelamento e conclusao; envio de proposta bloqueado quando `required_with_proposal` nao possui horario ativo; migration aplicada no Neon; testes de conflito, modo externo, depois do aceite, reagendamento e conclusao.
-- Limitacao registrada: confirmacao publica pelo cliente, acompanhamento por token, aceite/rejeicao de proposta e PDF permanecem para as Sprints 14 e 15.
+- Limitacao registrada: confirmacao publica pelo cliente, acompanhamento por token, aceite/rejeicao de proposta e PDF foram tratados posteriormente nas Sprints 14 e 15.
 - Fora da V1: agenda automatica completa.
 - Estimativa da especificacao: 14 a 20 horas.
 
@@ -149,26 +151,34 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Padrao inicial configuravel: OTP de recuperacao publica expira em 10 minutos e permite 5 tentativas.
 - Implementado Sprint 14: contratos compartilhados de acompanhamento/recuperacao; rotas `GET /api/public/tracking/:token`, `POST /api/public/recovery/request`, `POST /api/public/recovery/verify` e `POST /api/public/tracking/:token/appointment`; telas `/acompanhar/:token` e `/recuperar`; tabela `recovery_codes` com hash de token/OTP, validade, uso unico, tentativas e revogacao; tabela `notifications`; substituicao do token publico apos recuperacao; link `wa.me` com mensagem preenchida; testes de token, recuperacao por e-mail, identificacao por WhatsApp e expiracao de OTP.
 - Limitacao registrada: entrega local usa `EMAIL_PROVIDER=stub`; o contrato de e-mail transacional existe, mas chegada real de e-mail depende da decisao futura do provedor.
-- Limitacao registrada: aceite/rejeicao formal de proposta, PDF, documentos legais versionados e registro juridico do aceite ficam na Sprint 15.
-- Limitacao registrada: vinculacao automatica de solicitacoes antigas a uma conta nova depende da area do cliente e deve ser concluida junto da Sprint 17, pois ainda nao ha cadastro/login de cliente exposto no fluxo publico do MVP piloto.
+- Limitacao registrada: aceite/rejeicao formal de proposta, PDF por versao e registro juridico do aceite foram tratados na Sprint 15; textos juridicos definitivos seguem decisao futura.
+- Implementado posteriormente na Sprint 17: vinculacao manual assistida de solicitacoes antigas a conta do cliente quando o contato da solicitacao corresponde ao e-mail verificado da conta autenticada.
 - Estimativa da especificacao: 16 a 22 horas.
 
 ## Sprint 15 - PDF, aceite e documentos legais
 
 - Requisito confirmado: template PDF, PDF por versao, codigos, validade, itens, agendamento quando existir, termos e versoes, aceite idempotente, IP, user agent, versao da proposta, versoes legais, expiracao e clique duplicado.
-- Implementado parcialmente: tabela `quote_acceptances`, contratos compartilhados de proposta publica, regras de dominio para aceitar/recusar, rotas `GET /api/public/tracking/:token/proposal`, `POST /api/public/tracking/:token/proposal/accept` e `POST /api/public/tracking/:token/proposal/reject`, service publico, repositorios real/em memoria, testes de aceite, frontend publico de detalhe/aceite/recusa e idempotencia no frontend.
-- Pendente para fechar a sprint: template do PDF, geracao do PDF por versao, inclusao de itens/validade/termos/agendamento quando existir, rota de download/visualizacao, conexao do botao de PDF e validacao de correspondencia entre PDF e proposta.
+- Implementado Sprint 15: tabela `quote_acceptances`, contratos compartilhados de proposta publica, regras de dominio para aceitar/recusar, rotas `GET /api/public/tracking/:token/proposal`, `GET /api/public/tracking/:token/proposal/pdf`, `POST /api/public/tracking/:token/proposal/accept` e `POST /api/public/tracking/:token/proposal/reject`, service publico, PDF por versao gerado sob demanda no backend, inclusao de codigos, validade, itens, termos, versoes e agendamento quando existir, repositorios real/em memoria, testes de aceite/PDF/rota, frontend publico de detalhe/aceite/recusa/PDF e idempotencia no frontend.
+- Limitacao registrada: o PDF ainda nao e persistido em armazenamento privado definitivo; a geracao sob demanda evita fornecedor pago ate a decisao futura de arquivos privados.
 - Decisao adiada: textos juridicos definitivos.
 - Estimativa da especificacao: 14 a 20 horas.
 
 ## Sprint 16 - Servico realizado e avaliacoes
 
 - Requisito confirmado: status do servico, marcar realizado, notificar cliente, avaliacao, elegibilidade, bloqueio de duplicacao, exibicao no perfil, media, moderacao e convite por e-mail.
+- Implementado Sprint 16: contrato compartilhado de `serviceStatus` e avaliacoes, regra pura de ciclo do servico em `packages/domain`, coluna `appointments.service_status`, tabela `reviews`, rota `POST /api/public/reviews`, elegibilidade por proposta aceita + horario confirmado/concluido + servico realizado + ausencia de avaliacao anterior, idempotencia de avaliacao, notificacao interna `review_received`, convite por adapter de e-mail `stub`, listagem de avaliacoes visiveis no perfil publico, recalculo de media/contagem no perfil publico e moderacao Admin por `PATCH /api/admin/reviews/:reviewId/moderation`.
+- Implementado frontend: painel de avaliacao no acompanhamento publico quando elegivel, exibicao de avaliacoes no perfil publico da empresa e painel Admin de moderacao no detalhe da empresa.
+- Migration gerada: `database/migrations/0012_stiff_prima.sql`.
+- Limitacao registrada: convite de avaliacao ainda usa `EMAIL_PROVIDER=stub`; envio real depende da decisao futura de provedor transacional.
 - Estimativa da especificacao: 10 a 16 horas.
 
 ## Sprint 17 - Area do cliente
 
 - Requisito confirmado: Home personalizada, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, vinculacao de solicitacoes de visitante e notificacoes.
+- Implementado Sprint 17: rota web `/cliente`; escolha de cadastro em `/cadastro`; cadastro de cliente em `/cadastro/cliente`; redirecionamento de login por papel; API protegida `/api/customer/me`, `/api/customer/link-visitor-requests`, `POST /api/customer/favorites` e `DELETE /api/customer/favorites/:companyId`; tabela `customer_favorite_companies`; dashboard do cliente com solicitacoes, propostas publicas aguardando confirmacao, proximos agendamentos, historico, empresas recentes, favoritos, avaliacoes pendentes e notificacoes; acao de favoritar no perfil publico da empresa; testes unitarios do servico de cliente.
+- Migration gerada: `database/migrations/0013_needy_frightful_four.sql`.
+- Limitacao registrada: a descoberta por empresas proximas reutiliza a busca publica por cidade/categoria; geolocalizacao completa ainda fica para refinamento posterior.
+- Limitacao registrada: vinculo de visitante por telefone fica pendente ate existir verificacao de telefone; a Sprint 17 implementa vinculo por e-mail verificado.
 - Estimativa da especificacao: 14 a 20 horas.
 
 ## Sprint 18 - Metricas e administracao operacional

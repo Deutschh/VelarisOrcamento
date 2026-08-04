@@ -1,6 +1,7 @@
 import type {
   CompanyAppointment,
   CompanyProposalSummary,
+  PublicCompanyReview,
   PublicProposalDetail,
   QuoteDraftFileSummary,
   QuoteSubmitResponse,
@@ -19,8 +20,10 @@ import type {
   SubmitDraftInput,
   UpdateDraftRecordInput,
   AcceptProposalInput,
+  CreateReviewInput,
   ProposalActionIdempotencyRecord,
   RejectProposalInput,
+  ReviewIdempotencyRecord,
 } from "../public/quote-request-repository.js";
 
 export class InMemoryQuoteRequestRepository implements PublicQuoteRequestRepository {
@@ -45,6 +48,8 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
     string,
     ProposalActionIdempotencyRecord
   >();
+  readonly reviews = new Map<string, PublicCompanyReview>();
+  readonly reviewIdempotencyRecords = new Map<string, ReviewIdempotencyRecord>();
 
   async createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest> {
     const request: PersistedQuoteRequest = {
@@ -203,6 +208,51 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
       this.proposalActionIdempotencyRecords.get(idempotencyKey(input.scope, input.key)) ??
       null
     );
+  }
+
+  async findReviewIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ReviewIdempotencyRecord | null> {
+    return (
+      this.reviewIdempotencyRecords.get(idempotencyKey(input.scope, input.key)) ?? null
+    );
+  }
+
+  async findReviewByAppointmentId(
+    appointmentId: string,
+  ): Promise<PublicCompanyReview | null> {
+    return (
+      Array.from(this.reviews.values()).find(
+        (review) => review.appointmentId === appointmentId,
+      ) ?? null
+    );
+  }
+
+  async createReview(input: CreateReviewInput): Promise<PublicCompanyReview> {
+    const review: PublicCompanyReview = {
+      id: input.id,
+      companyId: input.companyId,
+      quoteRequestId: input.quoteRequestId,
+      appointmentId: input.appointmentId,
+      requestCode: input.requestCode,
+      serviceName: input.serviceName,
+      customerName: input.customerName,
+      rating: input.rating,
+      comment: input.comment,
+      createdAt: input.now.toISOString(),
+    };
+
+    this.reviews.set(review.id, review);
+    this.reviewIdempotencyRecords.set(
+      idempotencyKey(input.idempotency.scope, input.idempotency.key),
+      {
+        ...input.idempotency,
+        expiresAt: input.idempotency.expiresAt.toISOString(),
+      },
+    );
+
+    return review;
   }
 
   async acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail> {

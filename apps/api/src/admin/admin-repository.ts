@@ -8,6 +8,8 @@ import type {
 import type {
   AdminCompanyListQuery,
   AdminCompanyPublicProfileRequest,
+  AdminReview,
+  AdminReviewModerationRequest,
   CompanyPublicProfileSettings,
 } from "@velaris/shared";
 
@@ -62,6 +64,12 @@ export interface UpdateCompanyPublicProfileInput {
   profile: AdminCompanyPublicProfileRequest;
 }
 
+export interface ModerateReviewInput {
+  reviewId: string;
+  actorUserId: string;
+  input: AdminReviewModerationRequest;
+}
+
 export interface AdminRepository {
   listCompanies(query: AdminCompanyListQuery): Promise<PersistedAdminCompany[]>;
   findCompanyById(id: string): Promise<PersistedAdminCompany | null>;
@@ -70,6 +78,8 @@ export interface AdminRepository {
   ): Promise<CompanyPublicProfileSettings | null>;
   listCompanyNotes(companyId: string): Promise<PersistedAdminCompanyNote[]>;
   listCompanyAuditLogs(companyId: string): Promise<PersistedAdminAuditLog[]>;
+  listCompanyReviews(companyId: string): Promise<AdminReview[]>;
+  moderateReview(input: ModerateReviewInput): Promise<AdminReview | null>;
   persistCompanyAction(input: PersistCompanyActionInput): Promise<void>;
   createInternalNote(input: CreateInternalNoteInput): Promise<void>;
   updateCompanyPublicProfile(input: UpdateCompanyPublicProfileInput): Promise<void>;

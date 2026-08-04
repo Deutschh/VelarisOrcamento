@@ -131,6 +131,14 @@ export const appointmentStatusEnum = pgEnum("appointment_status", [
   "completed",
   "cancelled",
 ]);
+export const serviceStatusEnum = pgEnum("service_status", [
+  "not_started",
+  "scheduled",
+  "in_progress",
+  "service_realized",
+  "closed",
+]);
+export const reviewStatusEnum = pgEnum("review_status", ["visible", "hidden"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -167,6 +175,27 @@ export const customerProfiles = pgTable(
   },
   (table) => ({
     userUnique: uniqueIndex("customer_profiles_user_unique").on(table.userId),
+  }),
+);
+
+export const customerFavoriteCompanies = pgTable(
+  "customer_favorite_companies",
+  {
+    id: uuid("id").primaryKey(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    customerCompanyUnique: uniqueIndex(
+      "customer_favorite_companies_customer_company_unique",
+    ).on(table.customerId, table.companyId),
+    customerIdx: index("customer_favorite_companies_customer_idx").on(table.customerId),
+    companyIdx: index("customer_favorite_companies_company_idx").on(table.companyId),
   }),
 );
 
@@ -1017,6 +1046,7 @@ export const appointments = pgTable(
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
     status: appointmentStatusEnum("status").notNull().default("proposed"),
+    serviceStatus: serviceStatusEnum("service_status").notNull().default("not_started"),
     schedulingMode: schedulingModeEnum("scheduling_mode").notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),
@@ -1070,6 +1100,55 @@ export const appointmentHistory = pgTable(
   },
   (table) => ({
     appointmentIdx: index("appointment_history_appointment_idx").on(table.appointmentId),
+  }),
+);
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id, { onDelete: "cascade" }),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "restrict" }),
+    quoteRequestId: uuid("quote_request_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    appointmentId: uuid("appointment_id")
+      .notNull()
+      .references(() => appointments.id, { onDelete: "restrict" }),
+    customerProfileId: uuid("customer_profile_id").references(() => customerProfiles.id, {
+      onDelete: "set null",
+    }),
+    customerName: text("customer_name").notNull(),
+    customerEmail: text("customer_email"),
+    requestCode: text("request_code").notNull(),
+    proposalCode: text("proposal_code").notNull(),
+    serviceName: text("service_name").notNull(),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    status: reviewStatusEnum("status").notNull().default("visible"),
+    isSuspicious: boolean("is_suspicious").notNull().default(false),
+    moderationReason: text("moderation_reason"),
+    moderatedByUserId: uuid("moderated_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    moderatedAt: timestamp("moderated_at", { withTimezone: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => ({
+    appointmentUnique: uniqueIndex("reviews_appointment_unique").on(table.appointmentId),
+    companyStatusIdx: index("reviews_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    requestIdx: index("reviews_request_idx").on(table.quoteRequestId),
   }),
 );
 

@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
   AppointmentLifecycleError,
+  ServiceLifecycleError,
   assertAppointmentSchedule,
   assertCanUsePlatformScheduling,
+  transitionServiceStatus as transitionServiceLifecycleStatus,
   transitionAppointmentStatus,
 } from "@velaris/domain";
 import type {
@@ -35,12 +37,14 @@ import type {
   CompanyQuoteRequestRepository,
   PersistedCompanyQuoteRequest,
 } from "./company-quote-request-repository.js";
+import type { EmailAdapter } from "../notifications/email-adapter.js";
 
 interface CompanyAppointmentServiceDependencies {
   accountRepository: CompanyAccountRepository;
   quoteRequestRepository: CompanyQuoteRequestRepository;
   proposalRepository: CompanyProposalRepository;
   appointmentRepository: CompanyAppointmentRepository;
+  emailAdapter?: EmailAdapter;
   now?: () => Date;
 }
 
@@ -191,8 +195,18 @@ export class CompanyAppointmentService {
   ): Promise<CompanyAppointmentResponse> {
     const account = await this.getActiveCompanyAccount(userId);
     const appointment = await this.findAppointment(account.companyId, appointmentId);
+    const quoteRequest = await this.findQuoteRequest(
+      account.companyId,
+      appointment.quoteRequestId,
+    );
     const now = this.now();
     const toStatus = this.transition(appointment.status, "complete");
+    const serviceStatus = this.transitionService(
+      appointment.serviceStatus === "not_started" && appointment.status === "confirmed"
+        ? "scheduled"
+        : appointment.serviceStatus,
+      "mark_realized",
+    );
     const updated = await this.dependencies.appointmentRepository.updateAppointment({
       appointmentId: appointment.id,
       companyId: account.companyId,
@@ -201,10 +215,21 @@ export class CompanyAppointmentService {
       eventType: "appointment.completed",
       fromStatus: appointment.status,
       toStatus,
+      serviceStatus,
       metadata: {},
       completedAt: now,
       now,
     });
+
+    if (quoteRequest.requestCode && quoteRequest.data.contact.email) {
+      await this.dependencies.emailAdapter?.sendReviewInvitation?.({
+        to: quoteRequest.data.contact.email,
+        name: quoteRequest.data.contact.name,
+        companyName: account.tradingName,
+        requestCode: quoteRequest.requestCode,
+        recoveryPath: "/recuperar",
+      });
+    }
 
     return {
       appointment: updated,
@@ -221,6 +246,10 @@ export class CompanyAppointmentService {
     const now = this.now();
     const action = input.body.action === "confirm" ? "confirm" : "request_reschedule";
     const toStatus = this.transition(appointment.status, action);
+    const serviceStatus =
+      input.body.action === "confirm"
+        ? this.transitionService(appointment.serviceStatus, "schedule")
+        : undefined;
     const updateInput = {
       appointmentId: appointment.id,
       companyId: input.companyId,
@@ -232,6 +261,7 @@ export class CompanyAppointmentService {
           : "appointment.reschedule_requested_by_customer",
       fromStatus: appointment.status,
       toStatus,
+      ...(serviceStatus ? { serviceStatus } : {}),
       metadata:
         input.body.action === "request_reschedule"
           ? { reason: input.body.reason?.trim() || null }
@@ -343,6 +373,17 @@ export class CompanyAppointmentService {
     }
   }
 
+  private transitionService(
+    status: Parameters<typeof transitionServiceLifecycleStatus>[0],
+    action: Parameters<typeof transitionServiceLifecycleStatus>[1],
+  ) {
+    try {
+      return transitionServiceLifecycleStatus(status, action);
+    } catch (error) {
+      throw this.toLifecycleError(error);
+    }
+  }
+
   private prepareSchedule(input: {
     input:
       | CompanyProposeAppointmentRequest
@@ -411,6 +452,13 @@ export class CompanyAppointmentService {
 
   private toLifecycleError(error: unknown) {
     if (error instanceof AppointmentLifecycleError) {
+      return new CompanyAppointmentLifecycleApiError(
+        error.message,
+        `COMPANY_${error.code}`,
+      );
+    }
+
+    if (error instanceof ServiceLifecycleError) {
       return new CompanyAppointmentLifecycleApiError(
         error.message,
         `COMPANY_${error.code}`,

@@ -7,13 +7,15 @@ import {
   companyInternalNotes,
   companyMembers,
   companyPublicProfiles,
+  reviews,
   users,
 } from "@velaris/database-schema";
-import type { AdminCompanyListQuery } from "@velaris/shared";
+import type { AdminCompanyListQuery, AdminReview } from "@velaris/shared";
 import type { createDatabaseClient } from "../db/client.js";
 import type {
   AdminRepository,
   CreateInternalNoteInput,
+  ModerateReviewInput,
   PersistCompanyActionInput,
   PersistedAdminAuditLog,
   PersistedAdminCompany,
@@ -22,6 +24,7 @@ import type {
 } from "./admin-repository.js";
 
 type Database = ReturnType<typeof createDatabaseClient>["db"];
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 const ownerJoinCondition = and(
   eq(companyMembers.companyId, companies.id),
@@ -138,6 +141,72 @@ export class DrizzleAdminRepository implements AdminRepository {
       .orderBy(desc(auditLogs.createdAt));
 
     return rows;
+  }
+
+  async listCompanyReviews(companyId: string): Promise<AdminReview[]> {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.companyId, companyId))
+      .orderBy(desc(reviews.createdAt));
+
+    return rows.map(mapAdminReview);
+  }
+
+  async moderateReview(input: ModerateReviewInput): Promise<AdminReview | null> {
+    let companyId: string | null = null;
+
+    await this.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(reviews)
+        .where(eq(reviews.id, input.reviewId))
+        .limit(1);
+
+      if (!current) {
+        return;
+      }
+
+      companyId = current.companyId;
+      const now = new Date();
+      const patch = toReviewModerationPatch(input, now);
+
+      await tx
+        .update(reviews)
+        .set({
+          ...patch,
+          updatedAt: now,
+        })
+        .where(eq(reviews.id, input.reviewId));
+
+      await tx.insert(auditLogs).values({
+        id: randomUUID(),
+        actorUserId: input.actorUserId,
+        companyId: current.companyId,
+        action: `review.${input.input.action}`,
+        entityType: "review",
+        entityId: input.reviewId,
+        metadata: {
+          reason: input.input.reason ?? null,
+          previousStatus: current.status,
+          previousSuspicious: current.isSuspicious,
+        },
+      });
+
+      await refreshCompanyReviewSummary(tx, current.companyId, now);
+    });
+
+    if (!companyId) {
+      return null;
+    }
+
+    const [row] = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.id, input.reviewId))
+      .limit(1);
+
+    return row ? mapAdminReview(row) : null;
   }
 
   async persistCompanyAction(input: PersistCompanyActionInput): Promise<void> {
@@ -310,6 +379,93 @@ function toPublicProfilePersistence(profile: UpdateCompanyPublicProfileInput["pr
     gallery: profile.gallery,
     services: profile.services,
   };
+}
+
+function mapAdminReview(row: typeof reviews.$inferSelect): AdminReview {
+  return {
+    id: row.id,
+    companyId: row.companyId,
+    quoteId: row.quoteId,
+    quoteVersionId: row.quoteVersionId,
+    quoteRequestId: row.quoteRequestId,
+    appointmentId: row.appointmentId,
+    requestCode: row.requestCode,
+    proposalCode: row.proposalCode,
+    serviceName: row.serviceName,
+    customerName: row.customerName,
+    customerEmail: row.customerEmail,
+    rating: row.rating,
+    comment: row.comment,
+    status: row.status,
+    isSuspicious: row.isSuspicious,
+    moderationReason: row.moderationReason,
+    moderatedByUserId: row.moderatedByUserId,
+    moderatedAt: row.moderatedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function toReviewModerationPatch(input: ModerateReviewInput, now: Date) {
+  if (input.input.action === "hide") {
+    return {
+      status: "hidden" as const,
+      moderationReason: input.input.reason ?? null,
+      moderatedByUserId: input.actorUserId,
+      moderatedAt: now,
+    };
+  }
+
+  if (input.input.action === "restore") {
+    return {
+      status: "visible" as const,
+      moderationReason: input.input.reason ?? null,
+      moderatedByUserId: input.actorUserId,
+      moderatedAt: now,
+    };
+  }
+
+  if (input.input.action === "flag_suspicious") {
+    return {
+      isSuspicious: true,
+      moderationReason: input.input.reason ?? null,
+      moderatedByUserId: input.actorUserId,
+      moderatedAt: now,
+    };
+  }
+
+  return {
+    isSuspicious: false,
+    moderationReason: input.input.reason ?? null,
+    moderatedByUserId: input.actorUserId,
+    moderatedAt: now,
+  };
+}
+
+async function refreshCompanyReviewSummary(
+  tx: Transaction,
+  companyId: string,
+  now: Date,
+) {
+  const rows = await tx
+    .select({ rating: reviews.rating })
+    .from(reviews)
+    .where(and(eq(reviews.companyId, companyId), eq(reviews.status, "visible")));
+
+  const count = rows.length;
+  const average =
+    count === 0
+      ? null
+      : (rows.reduce((total, row) => total + row.rating, 0) / count).toFixed(2);
+
+  await tx
+    .update(companyPublicProfiles)
+    .set({
+      reviewAverage: average,
+      reviewCount: count,
+      updatedAt: now,
+    })
+    .where(eq(companyPublicProfiles.companyId, companyId));
 }
 
 function toNumber(value: string | null) {

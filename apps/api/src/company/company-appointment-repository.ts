@@ -2,6 +2,7 @@ import type {
   AppointmentStatus,
   CompanyAppointment,
   CompanyAppointmentConflict,
+  ServiceStatus,
   SchedulingMode,
 } from "@velaris/shared";
 
@@ -36,6 +37,7 @@ export interface UpdateCompanyAppointmentInput {
   eventType: string;
   fromStatus: PersistedCompanyAppointmentStatus;
   toStatus: PersistedCompanyAppointmentStatus;
+  serviceStatus?: ServiceStatus;
   metadata: Record<string, unknown>;
   startsAt?: Date;
   endsAt?: Date;

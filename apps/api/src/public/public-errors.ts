@@ -179,3 +179,29 @@ export class PublicProposalAlreadyDecidedError extends AppError {
     );
   }
 }
+
+export class PublicReviewIdempotencyRequiredError extends AppError {
+  constructor() {
+    super(
+      "Review creation requires an Idempotency-Key header.",
+      400,
+      "PUBLIC_REVIEW_IDEMPOTENCY_REQUIRED",
+    );
+  }
+}
+
+export class PublicReviewIdempotencyConflictError extends AppError {
+  constructor() {
+    super(
+      "Idempotency key was already used with a different review payload.",
+      409,
+      "PUBLIC_REVIEW_IDEMPOTENCY_CONFLICT",
+    );
+  }
+}
+
+export class PublicReviewNotEligibleError extends AppError {
+  constructor(code = "PUBLIC_REVIEW_NOT_ELIGIBLE") {
+    super("This request is not eligible for review yet.", 409, code);
+  }
+}

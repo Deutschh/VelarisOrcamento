@@ -21,8 +21,10 @@
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente, migration e bloqueio de versao aceita.
 - Sprint 13 concluida tecnicamente: agendamento assistido, `appointments`, historico, modos de agendamento, aviso de conflito sem bloqueio, painel da empresa e bloqueio de envio quando o horario e obrigatorio.
 - Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por codigo + contato + OTP por e-mail, substituicao/revogacao de token, link `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
-- Sprint 15 parcialmente concluida: aceite formal, recusa formal, rotas publicas de proposta no tracking, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna, frontend publico e migration `quote_acceptances`.
-- Proxima etapa recomendada para o MVP piloto: concluir PDF por versao da proposta na Sprint 15.
+- Sprint 15 concluida tecnicamente: PDF por versao gerado sob demanda no backend, rota publica segura pelo tracking, botao de PDF no frontend, aceite formal, recusa formal, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna e migration `quote_acceptances`.
+- Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
+- Sprint 17 concluida tecnicamente: cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
+- Proxima etapa recomendada para o MVP piloto: Sprint 18, metricas e administracao operacional.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -82,6 +84,10 @@
 - OTP automatico de recuperacao deve ser enviado exclusivamente por e-mail, com hash persistido em `recovery_codes`, uso unico, validade curta, limite de tentativas e revogacao/substituicao do token publico apos sucesso.
 - Links de WhatsApp devem ser assistidos via `wa.me` com mensagem preenchida; nao prometer envio automatico de WhatsApp.
 - No fluxo publico, quantidade representa itens identicos; itens com caracteristicas diferentes devem ser linhas separadas no rascunho.
+- A area autenticada do cliente deve exigir usuario com papel `customer`.
+- Solicitacoes de visitante so podem ser vinculadas a conta do cliente quando o contato da solicitacao corresponder ao e-mail verificado da conta autenticada; verificacao por telefone permanece pendente.
+- Rascunhos publicos nao devem aparecer na area autenticada do cliente.
+- Favoritos de clientes devem ser persistidos por par cliente/empresa, sem duplicidade.
 - Submissao publica de solicitacao exige `Idempotency-Key` UUID v4.
 - Revisoes empresariais de solicitacoes devem auditar valor original, valor revisado, responsavel, data, motivo quando houver alteracao tecnica, versao da configuracao e versao de precos.
 - Transicoes de solicitacao da empresa devem seguir a matriz da especificacao: `submitted -> under_review`, `under_review -> awaiting_information`, `awaiting_information -> under_review`, `under_review -> accepted_for_proposal` e `under_review -> declined_by_company`.
@@ -103,6 +109,13 @@
 - Servicos `external_only` nao devem criar agendamento pela plataforma.
 - Servicos `after_proposal_acceptance` so podem criar horario pela plataforma apos aceite da proposta.
 - Servicos `required_with_proposal` exigem horario ativo (`proposed`, `rescheduled` ou `confirmed`) antes do envio da proposta.
+- Estados de servico devem seguir a especificacao: `not_started`, `scheduled`, `in_progress`, `service_realized` e `closed`.
+- Marcacao de servico realizado deve passar por `packages/domain` e por servico de aplicacao; controllers nao podem alterar o status livremente.
+- Avaliacao publica so pode ser criada quando a proposta foi aceita, o horario foi confirmado/concluido, a empresa marcou o servico como realizado e ainda nao existe avaliacao para aquele atendimento.
+- Avaliacoes devem ser vinculadas a empresa, solicitacao, proposta, versao e agendamento, preservando codigo da solicitacao e codigo da proposta.
+- Deve existir no maximo uma avaliacao por atendimento/agendamento.
+- Apenas avaliacoes visiveis entram na media e contagem do perfil publico.
+- Moderacao Admin pode ocultar/restaurar avaliacao e marcar/limpar suspeita, preservando motivo, moderador e data quando aplicavel.
 - Variaveis sensiveis devem permanecer fora do codigo.
 - Nenhuma credencial real deve ser criada, solicitada ou escrita em arquivos versionados.
 - Toda migration deve ser revisavel e reversivel quando tecnicamente possivel.
@@ -151,4 +164,7 @@
 - Sprint 12 cria propostas, versoes e valor final.
 - Sprint 13 cria agendamento assistido.
 - Sprint 14 cria acompanhamento publico, recuperacao e comunicacao inicial.
-- Sprint 15 esta em andamento parcial; concluir PDF, aceite/documentos legais restantes somente apos nova autorizacao do usuario.
+- Sprint 15 cria PDF, aceite e documentos legais iniciais.
+- Sprint 16 cria servico realizado e avaliacoes.
+- Sprint 17 cria a area autenticada do cliente.
+- Sprint 17 esta concluida tecnicamente; iniciar Sprint 18 somente apos nova autorizacao do usuario.

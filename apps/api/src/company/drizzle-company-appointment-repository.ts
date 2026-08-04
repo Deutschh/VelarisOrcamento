@@ -113,6 +113,7 @@ export class DrizzleCompanyAppointmentRepository implements CompanyAppointmentRe
         quoteRequestId: input.quoteRequestId,
         companyId: input.companyId,
         status: "proposed",
+        serviceStatus: "not_started",
         schedulingMode: input.schedulingMode,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
@@ -202,6 +203,10 @@ export class DrizzleCompanyAppointmentRepository implements CompanyAppointmentRe
         changes.cancelledAt = input.cancelledAt;
       }
 
+      if (input.serviceStatus !== undefined) {
+        changes.serviceStatus = input.serviceStatus;
+      }
+
       const rows = await tx
         .update(appointments)
         .set(changes)
@@ -259,6 +264,7 @@ export class DrizzleCompanyAppointmentRepository implements CompanyAppointmentRe
       quoteRequestId: row.appointment.quoteRequestId,
       companyId: row.appointment.companyId,
       status: row.appointment.status as CompanyAppointment["status"],
+      serviceStatus: row.appointment.serviceStatus,
       schedulingMode: row.appointment.schedulingMode,
       proposalVersionStatus: row.version.status,
       startsAt: row.appointment.startsAt.toISOString(),

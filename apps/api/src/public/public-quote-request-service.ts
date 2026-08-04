@@ -3,6 +3,8 @@ import {
   CalculationError,
   ProposalLifecycleError,
   QuoteRequestLifecycleError,
+  ServiceLifecycleError,
+  assertCanCreateReview,
   assertCanAcceptProposalVersion,
   assertCanRejectProposalVersion,
   assertDraftQuoteRequest,
@@ -44,6 +46,8 @@ import {
   type PublicProposalRejectRequest,
   type PublicTrackingProposalActionResponse,
   type PublicTrackingProposalDetailResponse,
+  type PublicReviewCreateRequest,
+  type PublicReviewCreateResponse,
 } from "@velaris/shared";
 import { hashToken } from "../auth/token-service.js";
 import type { CompanyAppointmentService } from "../company/company-appointment-service.js";
@@ -72,6 +76,9 @@ import {
   PublicProposalIdempotencyConflictError,
   PublicProposalIdempotencyRequiredError,
   PublicProposalUnavailableError,
+  PublicReviewIdempotencyConflictError,
+  PublicReviewIdempotencyRequiredError,
+  PublicReviewNotEligibleError,
 } from "./public-errors.js";
 import type {
   PersistedPublicCompany,
@@ -82,6 +89,7 @@ import type {
   PublicQuoteRequestRepository,
   QuoteRequestAnswerInput,
 } from "./quote-request-repository.js";
+import { createPublicProposalPdf, type GeneratedProposalPdf } from "./proposal-pdf.js";
 
 interface PublicQuoteRequestServiceDependencies {
   publicCompanyRepository: PublicCompanyRepository;
@@ -393,6 +401,30 @@ export class PublicQuoteRequestService {
     };
   }
 
+  async getPublicProposalPdf(publicToken: string): Promise<GeneratedProposalPdf> {
+    const context = await this.loadTrackingContext(publicToken);
+    const proposal = await this.findPublicProposal(context);
+    const version = proposal.latestVersion;
+
+    if (!version) {
+      throw new PublicProposalUnavailableError();
+    }
+
+    const appointments = await this.dependencies.quoteRequestRepository.listAppointments({
+      companyId: context.request.companyId,
+      quoteRequestId: context.request.id,
+    });
+
+    return createPublicProposalPdf({
+      company: context.company,
+      request: context.request,
+      service: context.service,
+      proposal,
+      appointment: latestAppointmentForProposalVersion(appointments, version.id),
+      generatedAt: this.now(),
+    });
+  }
+
   async acceptPublicProposal(
     publicToken: string,
     input: PublicProposalAcceptRequest,
@@ -669,6 +701,144 @@ export class PublicQuoteRequestService {
     return {
       proposal: rejected,
       tracking: await this.toTrackingResponse(context),
+    };
+  }
+
+  async createPublicReview(
+    input: PublicReviewCreateRequest,
+    metadata: RequestMetadata,
+  ): Promise<PublicReviewCreateResponse> {
+    const idempotencyKey = input.idempotencyKey ?? metadata.idempotencyKey;
+
+    if (!idempotencyKey) {
+      throw new PublicReviewIdempotencyRequiredError();
+    }
+
+    try {
+      parseIdempotencyKey(idempotencyKey);
+    } catch {
+      throw new PublicReviewIdempotencyRequiredError();
+    }
+
+    const context = await this.loadTrackingContext(input.publicToken);
+    const proposal = await this.findPublicProposal(context);
+    const version = proposal.latestVersion;
+
+    if (!version) {
+      throw new PublicReviewNotEligibleError();
+    }
+
+    const appointments = await this.dependencies.quoteRequestRepository.listAppointments({
+      companyId: context.request.companyId,
+      quoteRequestId: context.request.id,
+    });
+    const appointment = latestAppointmentForProposalVersion(appointments, version.id);
+
+    if (!appointment || !context.request.requestCode) {
+      throw new PublicReviewNotEligibleError();
+    }
+
+    const scope = `review:${appointment.id}`;
+    const comment = input.comment?.trim() || null;
+    const requestHash = hashJson({
+      action: "create_review",
+      appointmentId: appointment.id,
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      rating: input.rating,
+      comment,
+    });
+    const existingIdempotency =
+      await this.dependencies.quoteRequestRepository.findReviewIdempotencyRecord({
+        scope,
+        key: idempotencyKey,
+      });
+    const existingReview =
+      await this.dependencies.quoteRequestRepository.findReviewByAppointmentId(
+        appointment.id,
+      );
+
+    if (existingIdempotency) {
+      if (existingIdempotency.requestHash !== requestHash) {
+        throw new PublicReviewIdempotencyConflictError();
+      }
+
+      if (existingReview) {
+        return { review: existingReview };
+      }
+    }
+
+    try {
+      assertCanCreateReview({
+        proposalAccepted: isAcceptedProposalVersion(proposal, version.id),
+        appointmentConfirmed: Boolean(
+          appointment.confirmedAt || appointment.status === "completed",
+        ),
+        serviceStatus: appointment.serviceStatus,
+        alreadyReviewed: Boolean(existingReview),
+      });
+    } catch (error) {
+      if (error instanceof ServiceLifecycleError) {
+        throw new PublicReviewNotEligibleError(`PUBLIC_${error.code}`);
+      }
+
+      throw error;
+    }
+
+    const now = this.now();
+    const reviewId = randomUUID();
+    const review = await this.dependencies.quoteRequestRepository.createReview({
+      id: reviewId,
+      companyId: context.request.companyId,
+      quoteId: proposal.id,
+      quoteVersionId: version.id,
+      quoteRequestId: context.request.id,
+      appointmentId: appointment.id,
+      customerProfileId: context.request.customerId,
+      customerName: context.request.data.contact.name,
+      customerEmail: context.request.data.contact.email || null,
+      requestCode: context.request.requestCode,
+      proposalCode: version.proposalCode,
+      serviceName: context.service.name,
+      rating: input.rating,
+      comment,
+      metadata: {
+        source: "public_tracking",
+        ipAddress: metadata.ipAddress ?? null,
+        userAgent: metadata.userAgent ?? null,
+      },
+      now,
+      idempotency: {
+        id: randomUUID(),
+        scope,
+        key: idempotencyKey,
+        requestHash,
+        responseBody: {
+          reviewId,
+        },
+        statusCode: 201,
+        expiresAt: addDays(now, 1),
+      },
+    });
+
+    await this.createNotification({
+      companyId: context.request.companyId,
+      type: "review_received",
+      title: "Nova avaliacao recebida",
+      message: `O cliente avaliou ${context.service.name} com ${input.rating} estrela(s).`,
+      entityType: "review",
+      entityId: review.id,
+      metadata: {
+        quoteRequestId: context.request.id,
+        requestCode: context.request.requestCode,
+        appointmentId: appointment.id,
+        rating: input.rating,
+      },
+      now,
+    });
+
+    return {
+      review,
     };
   }
 
@@ -1131,7 +1301,7 @@ export class PublicQuoteRequestService {
         schedulingMode: context.service.schedulingMode,
         estimatedDurationMinutes: context.service.estimatedDurationMinutes,
       },
-      latestProposal: getLatestProposal(proposals),
+      latestProposal: getLatestPublicProposal(proposals),
       appointments,
       whatsappUrl: createWhatsappUrl({
         phone: context.company.profile.contactWhatsapp,
@@ -1529,11 +1699,32 @@ function maskEmail(email: string) {
   return `${visible}${"*".repeat(Math.max(local.length - visible.length, 3))}@${domain}`;
 }
 
+const publicProposalVisibleStatuses: QuoteVersionStatus[] = [
+  "sent",
+  "viewed",
+  "accepted",
+  "rejected",
+  "expired",
+];
+
+function isPublicProposalStatusVisible(status: QuoteVersionStatus | null | undefined) {
+  return Boolean(status && publicProposalVisibleStatuses.includes(status));
+}
+
 function isPublicProposalVisible(proposal: PublicProposalDetail) {
   const status = proposal.latestVersion?.status;
 
+  return isPublicProposalStatusVisible(status);
+}
+
+function isAcceptedProposalVersion(
+  proposal: PublicProposalDetail,
+  quoteVersionId: string,
+) {
   return Boolean(
-    status && ["sent", "viewed", "accepted", "rejected", "expired"].includes(status),
+    proposal.acceptedQuoteVersionId === quoteVersionId ||
+    proposal.acceptance?.quoteVersionId === quoteVersionId ||
+    proposal.latestVersion?.status === "accepted",
   );
 }
 
@@ -1584,9 +1775,10 @@ function createProposalAcceptanceLegalSnapshot(input: {
   };
 }
 
-function getLatestProposal(proposals: CompanyProposalSummary[]) {
+function getLatestPublicProposal(proposals: CompanyProposalSummary[]) {
   return (
     proposals
+      .filter((proposal) => isPublicProposalStatusVisible(proposal.latestVersionStatus))
       .slice()
       .sort(
         (left, right) =>
@@ -1599,6 +1791,20 @@ function latestActionableAppointment(appointments: CompanyAppointment[]) {
   return (
     appointments
       .filter((appointment) => ["proposed", "rescheduled"].includes(appointment.status))
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      )[0] ?? null
+  );
+}
+
+function latestAppointmentForProposalVersion(
+  appointments: CompanyAppointment[],
+  quoteVersionId: string,
+) {
+  return (
+    appointments
+      .filter((appointment) => appointment.quoteVersionId === quoteVersionId)
       .sort(
         (left, right) =>
           new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),

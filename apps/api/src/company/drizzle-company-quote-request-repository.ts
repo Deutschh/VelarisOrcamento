@@ -349,6 +349,7 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
       quoteRequestId: row.appointment.quoteRequestId,
       companyId: row.appointment.companyId,
       status: row.appointment.status as CompanyAppointment["status"],
+      serviceStatus: row.appointment.serviceStatus,
       schedulingMode: row.appointment.schedulingMode,
       proposalVersionStatus: row.version.status,
       startsAt: row.appointment.startsAt.toISOString(),

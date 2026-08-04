@@ -1,8 +1,14 @@
-﻿import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import { AdminCompaniesPage, AdminCompanyDetailPage } from "./pages/admin-pages.js";
-import { LoginPage, RegisterCompanyPage } from "./pages/auth-pages.js";
+import {
+  LoginPage,
+  RegisterChoicePage,
+  RegisterCompanyPage,
+  RegisterCustomerPage,
+} from "./pages/auth-pages.js";
 import { CompanyAreaPage } from "./pages/company-pages.js";
+import { CustomerAreaPage } from "./pages/customer-pages.js";
 import {
   CompaniesSearchPage,
   HomePage,
@@ -24,7 +30,10 @@ export function App() {
       <Route element={<PublicTrackingPage />} path="/acompanhar/:token" />
       <Route element={<PublicRecoveryPage />} path="/recuperar" />
       <Route element={<LoginPage />} path="/login" />
+      <Route element={<RegisterChoicePage />} path="/cadastro" />
+      <Route element={<RegisterCustomerPage />} path="/cadastro/cliente" />
       <Route element={<RegisterCompanyPage />} path="/cadastro/empresa" />
+      <Route element={<CustomerAreaPage />} path="/cliente" />
       <Route element={<CompanyAreaPage />} path="/app" />
       <Route element={<CompanyAreaPage />} path="/app/pendente" />
       <Route element={<AdminCompaniesPage />} path="/admin" />

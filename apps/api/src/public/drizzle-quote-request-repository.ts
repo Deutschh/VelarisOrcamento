@@ -4,6 +4,7 @@ import { and, desc, eq, gt, isNull, lt, ne, or } from "drizzle-orm";
 import {
   appointmentHistory,
   appointments,
+  companyPublicProfiles,
   idempotencyKeys,
   notifications,
   publicAccessTokens,
@@ -17,6 +18,7 @@ import {
   quoteVersionItems,
   quoteVersionEvents,
   recoveryCodes,
+  reviews,
 } from "@velaris/database-schema";
 import {
   quoteDraftDataSchema,
@@ -25,6 +27,7 @@ import {
   type CompanyAppointmentConflict,
   type CompanyAppointmentHistory,
   type CompanyProposalSummary,
+  type PublicCompanyReview,
   type PublicProposalAcceptance,
   type PublicProposalDetail,
   type PublicProposalItem,
@@ -37,6 +40,7 @@ import type {
   CreateNotificationInput,
   CreateDraftRecordInput,
   CreateRecoveryCodeInput,
+  CreateReviewInput,
   IdempotencyRecord,
   PersistedQuoteRequest,
   PublicQuoteRequestRepository,
@@ -49,6 +53,7 @@ import type {
   AcceptProposalInput,
   ProposalActionIdempotencyRecord,
   RejectProposalInput,
+  ReviewIdempotencyRecord,
 } from "./quote-request-repository.js";
 
 type Database = ReturnType<typeof createDatabaseClient>["db"];
@@ -62,6 +67,7 @@ type QuoteRow = typeof quotes.$inferSelect;
 type QuoteVersionRow = typeof quoteVersions.$inferSelect;
 type QuoteVersionItemRow = typeof quoteVersionItems.$inferSelect;
 type QuoteAcceptanceRow = typeof quoteAcceptances.$inferSelect;
+type ReviewRow = typeof reviews.$inferSelect;
 type ProposalRow = {
   quote: QuoteRow;
   version: QuoteVersionRow | null;
@@ -325,6 +331,94 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
           expiresAt: row.expiresAt.toISOString(),
         }
       : null;
+  }
+
+  async findReviewIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ReviewIdempotencyRecord | null> {
+    const [row] = await this.db
+      .select()
+      .from(idempotencyKeys)
+      .where(
+        and(eq(idempotencyKeys.scope, input.scope), eq(idempotencyKeys.key, input.key)),
+      )
+      .limit(1);
+
+    return row
+      ? {
+          id: row.id,
+          scope: row.scope,
+          key: row.key,
+          requestHash: row.requestHash,
+          responseBody:
+            row.responseBody as unknown as ReviewIdempotencyRecord["responseBody"],
+          statusCode: row.statusCode,
+          expiresAt: row.expiresAt.toISOString(),
+        }
+      : null;
+  }
+
+  async findReviewByAppointmentId(
+    appointmentId: string,
+  ): Promise<PublicCompanyReview | null> {
+    const [row] = await this.db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.appointmentId, appointmentId))
+      .limit(1);
+
+    return row ? mapPublicReview(row) : null;
+  }
+
+  async createReview(input: CreateReviewInput): Promise<PublicCompanyReview> {
+    await this.db.transaction(async (tx) => {
+      await tx.insert(reviews).values({
+        id: input.id,
+        companyId: input.companyId,
+        quoteId: input.quoteId,
+        quoteVersionId: input.quoteVersionId,
+        quoteRequestId: input.quoteRequestId,
+        appointmentId: input.appointmentId,
+        customerProfileId: input.customerProfileId,
+        customerName: input.customerName,
+        customerEmail: input.customerEmail,
+        requestCode: input.requestCode,
+        proposalCode: input.proposalCode,
+        serviceName: input.serviceName,
+        rating: input.rating,
+        comment: input.comment,
+        status: "visible",
+        isSuspicious: false,
+        metadata: input.metadata,
+        createdAt: input.now,
+        updatedAt: input.now,
+      });
+
+      await tx.insert(idempotencyKeys).values({
+        id: input.idempotency.id,
+        scope: input.idempotency.scope,
+        key: input.idempotency.key,
+        requestHash: input.idempotency.requestHash,
+        responseBody: input.idempotency.responseBody as unknown as Record<
+          string,
+          unknown
+        >,
+        statusCode: input.idempotency.statusCode,
+        expiresAt: input.idempotency.expiresAt,
+        createdAt: input.now,
+      });
+
+      await refreshCompanyReviewSummary(tx, input.companyId, input.now);
+    });
+
+    const review = await this.findReviewByAppointmentId(input.appointmentId);
+
+    if (!review) {
+      throw new Error("Review could not be reloaded.");
+    }
+
+    return review;
   }
 
   async acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail> {
@@ -801,6 +895,7 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
       quoteRequestId: row.appointment.quoteRequestId,
       companyId: row.appointment.companyId,
       status: row.appointment.status as CompanyAppointment["status"],
+      serviceStatus: row.appointment.serviceStatus,
       schedulingMode: row.appointment.schedulingMode,
       proposalVersionStatus: row.version.status,
       startsAt: row.appointment.startsAt.toISOString(),
@@ -1027,6 +1122,47 @@ function mapPublicProposalAcceptance(row: QuoteAcceptanceRow): PublicProposalAcc
     companyTermsVersion: row.companyTermsVersion,
     acceptedAt: row.acceptedAt.toISOString(),
   };
+}
+
+function mapPublicReview(row: ReviewRow): PublicCompanyReview {
+  return {
+    id: row.id,
+    companyId: row.companyId,
+    quoteRequestId: row.quoteRequestId,
+    appointmentId: row.appointmentId,
+    requestCode: row.requestCode,
+    serviceName: row.serviceName,
+    customerName: row.customerName,
+    rating: row.rating,
+    comment: row.comment,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+async function refreshCompanyReviewSummary(
+  tx: Transaction,
+  companyId: string,
+  now: Date,
+) {
+  const rows = await tx
+    .select({ rating: reviews.rating })
+    .from(reviews)
+    .where(and(eq(reviews.companyId, companyId), eq(reviews.status, "visible")));
+
+  const count = rows.length;
+  const average =
+    count === 0
+      ? null
+      : (rows.reduce((total, row) => total + row.rating, 0) / count).toFixed(2);
+
+  await tx
+    .update(companyPublicProfiles)
+    .set({
+      reviewAverage: average,
+      reviewCount: count,
+      updatedAt: now,
+    })
+    .where(eq(companyPublicProfiles.companyId, companyId));
 }
 
 function decimalMoneyToCents(value: string | null) {

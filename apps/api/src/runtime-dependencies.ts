@@ -16,6 +16,8 @@ import { DrizzleCompanyAppointmentRepository } from "./company/drizzle-company-a
 import { DrizzleCompanyProposalRepository } from "./company/drizzle-company-proposal-repository.js";
 import { DrizzleCompanyQuoteRequestRepository } from "./company/drizzle-company-quote-request-repository.js";
 import { env } from "./config/env.js";
+import { CustomerService } from "./customer/customer-service.js";
+import { DrizzleCustomerRepository } from "./customer/drizzle-customer-repository.js";
 import { createDatabaseClient } from "./db/client.js";
 import { stubEmailAdapter } from "./notifications/email-adapter.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
@@ -36,6 +38,7 @@ export interface RuntimeDependencies {
   publicCompanyService: PublicCompanyService;
   publicQuoteRequestService: PublicQuoteRequestService;
   templateAdminService: TemplateAdminService;
+  customerService: CustomerService;
 }
 
 export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
@@ -51,11 +54,13 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   const companyQuoteRequestRepository = new DrizzleCompanyQuoteRequestRepository(db);
   const companyProposalRepository = new DrizzleCompanyProposalRepository(db);
   const companyAppointmentRepository = new DrizzleCompanyAppointmentRepository(db);
+  const customerRepository = new DrizzleCustomerRepository(db);
   const companyAppointmentService = new CompanyAppointmentService({
     accountRepository: companyAccountRepository,
     quoteRequestRepository: companyQuoteRequestRepository,
     proposalRepository: companyProposalRepository,
     appointmentRepository: companyAppointmentRepository,
+    emailAdapter: stubEmailAdapter,
   });
 
   return {
@@ -91,5 +96,8 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
       emailAdapter: stubEmailAdapter,
     }),
     templateAdminService: new TemplateAdminService(templateRepository),
+    customerService: new CustomerService({
+      repository: customerRepository,
+    }),
   };
 }

@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
-import { companies, companyPublicProfiles } from "@velaris/database-schema";
-import type { CompanyPublicProfileSettings } from "@velaris/shared";
+import { companies, companyPublicProfiles, reviews } from "@velaris/database-schema";
+import type { CompanyPublicProfileSettings, PublicCompanyReview } from "@velaris/shared";
 import type { createDatabaseClient } from "../db/client.js";
 import { createDefaultPublicProfile, toKnownCategoryCode } from "./public-profile.js";
 import type {
@@ -66,6 +66,28 @@ export class DrizzlePublicCompanyRepository implements PublicCompanyRepository {
     return row
       ? mapPublicCompany(row.company, row.profile ? mapPublicProfile(row.profile) : null)
       : null;
+  }
+
+  async listVisibleReviewsByCompany(companyId: string): Promise<PublicCompanyReview[]> {
+    const rows = await this.db
+      .select()
+      .from(reviews)
+      .where(and(eq(reviews.companyId, companyId), eq(reviews.status, "visible")))
+      .orderBy(desc(reviews.createdAt))
+      .limit(12);
+
+    return rows.map((row) => ({
+      id: row.id,
+      companyId: row.companyId,
+      quoteRequestId: row.quoteRequestId,
+      appointmentId: row.appointmentId,
+      requestCode: row.requestCode,
+      serviceName: row.serviceName,
+      customerName: row.customerName,
+      rating: row.rating,
+      comment: row.comment,
+      createdAt: row.createdAt.toISOString(),
+    }));
   }
 }
 

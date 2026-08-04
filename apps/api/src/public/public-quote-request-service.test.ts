@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { PublicProposalDetail } from "@velaris/shared";
+import type { CompanyAppointment, PublicProposalDetail } from "@velaris/shared";
 
 import { TemplateAdminService } from "../templates/template-service.js";
 import type { EmailAdapter, RecoveryOtpMessage } from "../notifications/email-adapter.js";
@@ -29,6 +29,10 @@ class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
 
   async findPublishedCompanyById(companyId: string) {
     return this.companies.find((company) => company.id === companyId) ?? null;
+  }
+
+  async listVisibleReviewsByCompany() {
+    return [];
   }
 }
 
@@ -293,6 +297,64 @@ describe("PublicQuoteRequestService", () => {
     ).toBe(true);
   });
 
+  it("generates a public PDF from the immutable proposal version", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { proposal, publicToken, request } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+      {
+        withAppointment: true,
+      },
+    );
+
+    const pdf = await service.getPublicProposalPdf(publicToken);
+    const content = pdf.buffer.toString("ascii");
+
+    expect(pdf.contentType).toBe("application/pdf");
+    expect(pdf.fileName).toBe(`${proposal.latestProposalCode}.pdf`);
+    expect(content).toContain("%PDF-1.4");
+    expect(content).toContain("Proposta comercial");
+    expect(content).toContain(String(request.requestCode));
+    expect(content).toContain(String(proposal.latestProposalCode));
+    expect(content).toContain("Limpeza de sofa");
+    expect(content).toContain("Termos da proposta: proposal_terms_v1");
+    expect(content).toContain("Status: proposto");
+  });
+
+  it("does not expose draft proposals in public tracking or PDF", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { proposal, publicToken, request } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+    );
+    const draftProposal: PublicProposalDetail = {
+      ...proposal,
+      status: "draft",
+      latestVersionStatus: "draft",
+      sentAt: null,
+      latestVersion: proposal.latestVersion
+        ? {
+            ...proposal.latestVersion,
+            status: "draft",
+            sentAt: null,
+          }
+        : null,
+    };
+
+    quoteRequestRepository.publicProposals.set(request.id, draftProposal);
+    quoteRequestRepository.proposals.set(request.id, [draftProposal]);
+
+    await expect(service.getPublicProposalPdf(publicToken)).rejects.toMatchObject({
+      code: "PUBLIC_PROPOSAL_UNAVAILABLE",
+    });
+    await expect(service.getPublicProposal(publicToken)).rejects.toMatchObject({
+      code: "PUBLIC_PROPOSAL_UNAVAILABLE",
+    });
+    await expect(service.getTracking(publicToken)).resolves.toMatchObject({
+      latestProposal: null,
+    });
+  });
+
   it("does not create a second acceptance for the same idempotency key", async () => {
     const { quoteRequestRepository, service } = await createService();
     const { publicToken } = await submitDraftWithSentProposal(
@@ -385,6 +447,103 @@ describe("PublicQuoteRequestService", () => {
       code: "PUBLIC_PROPOSAL_ALREADY_DECIDED",
     });
   });
+
+  it("creates a public review after accepted proposal and realized service", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { publicToken, request } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+      {
+        withAppointment: true,
+      },
+    );
+
+    await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey: randomUUID(),
+      },
+    );
+    markStoredAppointmentAsRealized(quoteRequestRepository, request.id);
+
+    const result = await service.createPublicReview(
+      {
+        publicToken,
+        rating: 5,
+        comment: "Atendimento muito cuidadoso.",
+      },
+      {
+        idempotencyKey: randomUUID(),
+        ipAddress: "127.0.0.1",
+        userAgent: "vitest",
+      },
+    );
+
+    expect(result.review).toMatchObject({
+      companyId: request.companyId,
+      quoteRequestId: request.id,
+      requestCode: request.requestCode,
+      serviceName: "Higienizacao de estofados",
+      customerName: "Cliente Teste",
+      rating: 5,
+      comment: "Atendimento muito cuidadoso.",
+    });
+    expect(quoteRequestRepository.reviewIdempotencyRecords.size).toBe(1);
+    expect(
+      Array.from(quoteRequestRepository.notifications.values()).some(
+        (notification) => notification.type === "review_received",
+      ),
+    ).toBe(true);
+  });
+
+  it("blocks duplicate public reviews for the same realized service", async () => {
+    const { quoteRequestRepository, service } = await createService();
+    const { publicToken, request } = await submitDraftWithSentProposal(
+      service,
+      quoteRequestRepository,
+      {
+        withAppointment: true,
+      },
+    );
+
+    await service.acceptPublicProposal(
+      publicToken,
+      {
+        acceptedLegalTerms: true,
+      },
+      {
+        idempotencyKey: randomUUID(),
+      },
+    );
+    markStoredAppointmentAsRealized(quoteRequestRepository, request.id);
+
+    await service.createPublicReview(
+      {
+        publicToken,
+        rating: 5,
+      },
+      {
+        idempotencyKey: randomUUID(),
+      },
+    );
+
+    await expect(
+      service.createPublicReview(
+        {
+          publicToken,
+          rating: 4,
+        },
+        {
+          idempotencyKey: randomUUID(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLIC_REVIEW_ALREADY_EXISTS",
+    });
+  });
 });
 
 async function submitValidDraft(service: PublicQuoteRequestService) {
@@ -420,7 +579,7 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
 async function submitDraftWithSentProposal(
   service: PublicQuoteRequestService,
   quoteRequestRepository: InMemoryQuoteRequestRepository,
-  options: { validUntil?: string } = {},
+  options: { validUntil?: string; withAppointment?: boolean } = {},
 ) {
   const submitted = await submitValidDraft(service);
   const request = Array.from(quoteRequestRepository.requests.values()).find(
@@ -497,9 +656,80 @@ async function submitDraftWithSentProposal(
   quoteRequestRepository.publicProposals.set(request.id, proposal);
   quoteRequestRepository.proposals.set(request.id, [proposal]);
 
+  if (options.withAppointment) {
+    quoteRequestRepository.appointments.set(request.id, [
+      createProposalAppointment({
+        quoteId,
+        quoteRequestId: request.id,
+        quoteVersionId,
+        companyId: request.companyId,
+        proposalCode,
+        now: sentAt,
+      }),
+    ]);
+  }
+
   return {
     ...submitted,
     proposal,
     request,
   };
+}
+
+function createProposalAppointment(input: {
+  quoteId: string;
+  quoteVersionId: string;
+  quoteRequestId: string;
+  companyId: string;
+  proposalCode: string;
+  now: string;
+}): CompanyAppointment {
+  return {
+    id: randomUUID(),
+    quoteId: input.quoteId,
+    quoteVersionId: input.quoteVersionId,
+    quoteRequestId: input.quoteRequestId,
+    companyId: input.companyId,
+    status: "proposed",
+    serviceStatus: "not_started",
+    schedulingMode: "required_with_proposal",
+    proposalVersionStatus: "sent",
+    startsAt: "2026-07-30T15:00:00.000Z",
+    endsAt: "2026-07-30T17:00:00.000Z",
+    durationMinutes: 120,
+    timezone: "America/Sao_Paulo",
+    address: "Rua Teste, 123, Sao Paulo",
+    addressSnapshot: null,
+    notes: `Horario da proposta ${input.proposalCode}.`,
+    conflictWarning: [],
+    proposedByUserId: null,
+    confirmedAt: null,
+    completedAt: null,
+    cancelledAt: null,
+    history: [],
+    createdAt: input.now,
+    updatedAt: input.now,
+  };
+}
+
+function markStoredAppointmentAsRealized(
+  quoteRequestRepository: InMemoryQuoteRequestRepository,
+  quoteRequestId: string,
+) {
+  const appointment = quoteRequestRepository.appointments.get(quoteRequestId)?.[0];
+
+  if (!appointment) {
+    throw new Error("Expected stored appointment.");
+  }
+
+  quoteRequestRepository.appointments.set(quoteRequestId, [
+    {
+      ...appointment,
+      status: "completed",
+      serviceStatus: "service_realized",
+      confirmedAt: "2026-07-30T14:55:00.000Z",
+      completedAt: "2026-07-30T17:10:00.000Z",
+      updatedAt: "2026-07-30T17:10:00.000Z",
+    },
+  ]);
 }

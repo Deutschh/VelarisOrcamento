@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PublicCompanyReview } from "./reviews.js";
 
 export const publicCompanyCategorySchema = z.enum([
   "cleaning_upholstery",
@@ -179,6 +180,7 @@ export interface PublicCompanyDetail extends PublicCompanySummary {
   terms: string | null;
   gallery: ProfileGalleryItem[];
   services: ProfileServiceItem[];
+  reviews: PublicCompanyReview[];
 }
 
 export interface PublicCompanyCategoriesResponse {

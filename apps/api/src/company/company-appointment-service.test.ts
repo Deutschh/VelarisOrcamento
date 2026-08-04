@@ -9,6 +9,7 @@ import {
   InMemoryTemplateRepository,
   createTestNicheTemplate,
 } from "../test/in-memory-template-repository.js";
+import type { ReviewInvitationMessage } from "../notifications/email-adapter.js";
 import { TemplateAdminService } from "../templates/template-service.js";
 import type { PersistedCompanyQuoteRequest } from "./company-quote-request-repository.js";
 import { CompanyAppointmentService } from "./company-appointment-service.js";
@@ -101,6 +102,7 @@ async function createFixture(
 
   const proposalRepository = new InMemoryCompanyProposalRepository();
   const appointmentRepository = new InMemoryCompanyAppointmentRepository();
+  const reviewInvitations: ReviewInvitationMessage[] = [];
   const proposalService = new CompanyProposalService({
     accountRepository,
     quoteRequestRepository,
@@ -113,6 +115,13 @@ async function createFixture(
     quoteRequestRepository,
     proposalRepository,
     appointmentRepository,
+    emailAdapter: {
+      async sendEmailVerification() {},
+      async sendCompanyActivation() {},
+      async sendReviewInvitation(message) {
+        reviewInvitations.push(message);
+      },
+    },
     now: () => now,
   });
   const proposal = await proposalService.createProposalVersion(
@@ -127,6 +136,7 @@ async function createFixture(
     proposal: proposal.proposal,
     proposalRepository,
     quoteRequest,
+    reviewInvitations,
   };
 }
 
@@ -274,7 +284,7 @@ describe("CompanyAppointmentService", () => {
   });
 
   it("completes only confirmed appointments", async () => {
-    const { appointmentService, proposal } = await createFixture();
+    const { appointmentService, proposal, reviewInvitations } = await createFixture();
     const proposed = await appointmentService.proposeAppointment(
       companyUserId,
       proposal.id,
@@ -302,7 +312,14 @@ describe("CompanyAppointmentService", () => {
     );
 
     expect(confirmed.appointment.status).toBe("confirmed");
+    expect(confirmed.appointment.serviceStatus).toBe("scheduled");
     expect(completed.appointment.status).toBe("completed");
+    expect(completed.appointment.serviceStatus).toBe("service_realized");
+    expect(reviewInvitations[0]).toMatchObject({
+      to: "cliente@example.com",
+      requestCode: "VEL-260729-TESTE001",
+      recoveryPath: "/recuperar",
+    });
   });
 });
 

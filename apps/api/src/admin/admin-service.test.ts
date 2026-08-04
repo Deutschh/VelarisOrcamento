@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AdminReview } from "@velaris/shared";
 
 import type { EmailAdapter } from "../notifications/email-adapter.js";
 import {
@@ -104,4 +105,48 @@ describe("AdminService", () => {
     expect(company.publicProfile.services[0]?.name).toBe("Sofa");
     expect(company.auditLogs[0]?.action).toBe("company.public_profile.updated");
   });
+
+  it("moderates company reviews", async () => {
+    const repository = new InMemoryAdminRepository();
+    repository.companies.set("company-1", createTestAdminCompany());
+    repository.reviews.set("review-1", createAdminReview());
+    const { service } = createService(repository);
+
+    const hidden = await service.moderateReview("review-1", "admin-1", {
+      action: "hide",
+      reason: "Conteudo ofensivo.",
+    });
+    const restored = await service.moderateReview("review-1", "admin-1", {
+      action: "restore",
+    });
+
+    expect(hidden.status).toBe("hidden");
+    expect(hidden.moderationReason).toBe("Conteudo ofensivo.");
+    expect(restored.status).toBe("visible");
+  });
 });
+
+function createAdminReview(): AdminReview {
+  return {
+    id: "review-1",
+    companyId: "company-1",
+    quoteId: "quote-1",
+    quoteVersionId: "quote-version-1",
+    quoteRequestId: "quote-request-1",
+    appointmentId: "appointment-1",
+    requestCode: "VEL-260729-TESTE001",
+    proposalCode: "ORC-VEL-260729-TESTE001-V1",
+    serviceName: "Limpeza de estofados",
+    customerName: "Cliente Teste",
+    customerEmail: "cliente@example.com",
+    rating: 5,
+    comment: "Excelente atendimento.",
+    status: "visible",
+    isSuspicious: false,
+    moderationReason: null,
+    moderatedByUserId: null,
+    moderatedAt: null,
+    createdAt: "2026-07-30T17:10:00.000Z",
+    updatedAt: "2026-07-30T17:10:00.000Z",
+  };
+}

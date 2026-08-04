@@ -6,6 +6,7 @@ import type {
   PersistedPublicCompany,
   PublicCompanyRepository,
 } from "./public-repository.js";
+import type { PublicQuoteRequestService } from "./public-quote-request-service.js";
 import { PublicCompanyService } from "./public-service.js";
 
 class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
@@ -22,9 +23,13 @@ class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
   async findPublishedCompanyById(companyId: string) {
     return this.companies.find((company) => company.id === companyId) ?? null;
   }
+
+  async listVisibleReviewsByCompany() {
+    return [];
+  }
 }
 
-function createTestApp() {
+function createTestApp(publicQuoteRequestService?: PublicQuoteRequestService) {
   const publicCompanyService = new PublicCompanyService(
     new InMemoryPublicCompanyRepository([
       {
@@ -41,7 +46,10 @@ function createTestApp() {
     ]),
   );
 
-  return createApp({ publicCompanyService });
+  return createApp({
+    publicCompanyService,
+    ...(publicQuoteRequestService ? { publicQuoteRequestService } : {}),
+  });
 }
 
 describe("public routes", () => {
@@ -68,5 +76,28 @@ describe("public routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.company.services[0].name).toBe("Sofa");
+  });
+
+  it("returns public proposal PDF files inline", async () => {
+    const app = createTestApp({
+      async getPublicProposalPdf() {
+        return {
+          fileName: "ORC-RQ-0001-V1.pdf",
+          contentType: "application/pdf",
+          buffer: Buffer.from("%PDF-1.4\n"),
+        };
+      },
+    } as unknown as PublicQuoteRequestService);
+
+    const response = await request(app).get(
+      "/api/public/tracking/public-token/proposal/pdf",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toContain("application/pdf");
+    expect(response.headers["content-disposition"]).toContain(
+      'filename="ORC-RQ-0001-V1.pdf"',
+    );
+    expect(response.body.toString("ascii")).toContain("%PDF-1.4");
   });
 });

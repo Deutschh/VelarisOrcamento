@@ -2,6 +2,7 @@ import { z } from "zod";
 import { companyProfileStatusSchema, companyStatusSchema } from "./auth.js";
 import type { CompanyConfigurationDetail } from "./templates.js";
 import type { CompanyPublicProfileSettings } from "./public.js";
+import type { AdminReview } from "./reviews.js";
 
 export const internalNoteRequestSchema = z.object({
   note: z.string().trim().min(2).max(2000),
@@ -51,6 +52,7 @@ export interface AdminCompanyDetail extends AdminCompanySummary {
   configurations: CompanyConfigurationDetail[];
   notes: AdminCompanyNote[];
   auditLogs: AdminAuditLog[];
+  reviews: AdminReview[];
 }
 
 export interface AdminCompanyNote {

@@ -4,6 +4,7 @@
   adminCompanyPublicProfileRequestSchema,
   adminCreateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
+  adminReviewModerationRequestSchema,
   adminSimulateCompanyConfigurationRequestSchema,
   adminUpdateCompanyConfigurationRequestSchema,
   internalNoteRequestSchema,
@@ -11,6 +12,8 @@
 import type {
   AdminCompanyDetail,
   AdminCompanyPublicProfileRequest,
+  AdminReview,
+  AdminReviewModerationRequest,
   AdminCompanySummary,
   CalculationResult,
   CompanyConfigurationDetail,
@@ -30,7 +33,10 @@ import {
   Ban,
   CheckCircle2,
   CircleSlash2,
+  Eye,
+  EyeOff,
   FileText,
+  Flag,
   Globe2,
   LockKeyhole,
   Play,
@@ -156,6 +162,7 @@ export function AdminCompanyDetailPage() {
   const { companyId } = useParams();
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
+  const [reviewModerationReason, setReviewModerationReason] = useState("");
   const companyQuery = useQuery({
     enabled: Boolean(companyId),
     queryKey: ["admin-company", companyId],
@@ -228,6 +235,33 @@ export function AdminCompanyDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["public-company"] });
     },
   });
+  const reviewModerationMutation = useMutation({
+    mutationFn: async (input: {
+      reviewId: string;
+      action: AdminReviewModerationRequest["action"];
+    }) => {
+      const payload = adminReviewModerationRequestSchema.parse({
+        action: input.action,
+        ...(reviewModerationReason.trim()
+          ? { reason: reviewModerationReason.trim() }
+          : {}),
+      });
+
+      return apiRequest<{ review: AdminReview }>(
+        `/api/admin/reviews/${input.reviewId}/moderation`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+    async onSuccess() {
+      setReviewModerationReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-company", companyId] });
+      await queryClient.invalidateQueries({ queryKey: ["public-companies"] });
+      await queryClient.invalidateQueries({ queryKey: ["public-company"] });
+    },
+  });
 
   const company = companyQuery.data?.company;
   const canPublish = company?.status === "active";
@@ -236,6 +270,12 @@ export function AdminCompanyDetailPage() {
     : null;
   const profileError = profileMutation.error
     ? errorMessage(profileMutation.error, "Nao foi possivel salvar o perfil.")
+    : null;
+  const reviewModerationError = reviewModerationMutation.error
+    ? errorMessage(
+        reviewModerationMutation.error,
+        "Nao foi possivel moderar a avaliacao.",
+      )
     : null;
 
   return (
@@ -293,6 +333,18 @@ export function AdminCompanyDetailPage() {
                         )
                       : null
                   }
+                />
+              </div>
+              <div className="mt-8">
+                <AdminReviewsPanel
+                  error={reviewModerationError}
+                  isLoading={reviewModerationMutation.isPending}
+                  reason={reviewModerationReason}
+                  reviews={company.reviews}
+                  onModerate={(reviewId, action) =>
+                    reviewModerationMutation.mutate({ reviewId, action })
+                  }
+                  onReasonChange={setReviewModerationReason}
                 />
               </div>
               <div className="mt-8">
@@ -387,6 +439,122 @@ export function AdminCompanyDetailPage() {
         ) : null}
       </main>
     </AppShell>
+  );
+}
+
+function AdminReviewsPanel({
+  error,
+  isLoading,
+  onModerate,
+  onReasonChange,
+  reason,
+  reviews,
+}: {
+  error: string | null;
+  isLoading: boolean;
+  onModerate: (reviewId: string, action: AdminReviewModerationRequest["action"]) => void;
+  onReasonChange: (value: string) => void;
+  reason: string;
+  reviews: AdminReview[];
+}) {
+  return (
+    <section>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Avaliacoes</h2>
+          <p className="mt-1 text-sm text-white/50">
+            {reviews.length} avaliacao(oes) registrada(s).
+          </p>
+        </div>
+      </div>
+      <TextAreaField
+        label="Motivo da moderacao"
+        rows={2}
+        value={reason}
+        onChange={(event) => onReasonChange(event.target.value)}
+      />
+      <FormError message={error} />
+      <div className="mt-4 space-y-3">
+        {reviews.length === 0 ? (
+          <p className="rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
+            Nenhuma avaliacao recebida.
+          </p>
+        ) : null}
+        {reviews.map((review) => (
+          <div
+            className="rounded-md border border-white/10 bg-white/[0.03] p-4"
+            key={review.id}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-medium text-white/85">
+                  {review.rating}/5 - {review.customerName}
+                </p>
+                <p className="mt-1 text-xs text-white/45">
+                  {review.serviceName} - {review.requestCode}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md border border-white/10 px-2 py-1 text-white/60">
+                  {review.status === "visible" ? "Visivel" : "Oculta"}
+                </span>
+                {review.isSuspicious ? (
+                  <span className="rounded-md border border-amber-300/25 px-2 py-1 text-amber-100">
+                    Suspeita
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            {review.comment ? (
+              <p className="mt-3 text-sm leading-6 text-white/65">{review.comment}</p>
+            ) : null}
+            {review.moderationReason ? (
+              <p className="mt-3 text-xs text-white/45">
+                Motivo: {review.moderationReason}
+              </p>
+            ) : null}
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              <ActionButton
+                disabled={review.status === "hidden"}
+                icon={EyeOff}
+                isLoading={isLoading}
+                variant="warning"
+                onClick={() => onModerate(review.id, "hide")}
+              >
+                Ocultar
+              </ActionButton>
+              <ActionButton
+                disabled={review.status === "visible"}
+                icon={Eye}
+                isLoading={isLoading}
+                variant="secondary"
+                onClick={() => onModerate(review.id, "restore")}
+              >
+                Restaurar
+              </ActionButton>
+              <ActionButton
+                disabled={review.isSuspicious}
+                icon={Flag}
+                isLoading={isLoading}
+                variant="secondary"
+                onClick={() => onModerate(review.id, "flag_suspicious")}
+              >
+                Suspeita
+              </ActionButton>
+              <ActionButton
+                disabled={!review.isSuspicious}
+                icon={CircleSlash2}
+                isLoading={isLoading}
+                variant="secondary"
+                onClick={() => onModerate(review.id, "clear_suspicious")}
+              >
+                Limpar
+              </ActionButton>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

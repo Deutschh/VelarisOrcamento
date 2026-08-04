@@ -21,6 +21,10 @@ class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
   async findPublishedCompanyById(companyId: string) {
     return this.companies.find((company) => company.id === companyId) ?? null;
   }
+
+  async listVisibleReviewsByCompany() {
+    return [];
+  }
 }
 
 describe("PublicCompanyService", () => {

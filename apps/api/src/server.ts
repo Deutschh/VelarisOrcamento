@@ -15,6 +15,8 @@ import type { CompanyAppointmentService } from "./company/company-appointment-se
 import type { CompanyProposalService } from "./company/company-proposal-service.js";
 import type { CompanyQuoteRequestService } from "./company/company-quote-request-service.js";
 import { env } from "./config/env.js";
+import { createCustomerRouter } from "./customer/customer-router.js";
+import type { CustomerService } from "./customer/customer-service.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { authorizeAdmin } from "./middleware/authorize-admin.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -38,6 +40,7 @@ export interface AppDependencies {
   publicCompanyService?: PublicCompanyService;
   publicQuoteRequestService?: PublicQuoteRequestService;
   templateAdminService?: TemplateAdminService;
+  customerService?: CustomerService;
 }
 
 export function createApp(dependencies: AppDependencies = {}) {
@@ -60,6 +63,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use("/api/auth", createAuthRouterIfAvailable(runtimeDependencies.authService));
   app.use("/api/admin", createProtectedAdminRouterIfAvailable(runtimeDependencies));
   app.use("/api/company", createProtectedCompanyRouterIfAvailable(runtimeDependencies));
+  app.use("/api/customer", createProtectedCustomerRouterIfAvailable(runtimeDependencies));
   app.use(errorHandler);
 
   return app;
@@ -76,7 +80,8 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     dependencies.companyAppointmentService ||
     dependencies.publicCompanyService ||
     dependencies.publicQuoteRequestService ||
-    dependencies.templateAdminService
+    dependencies.templateAdminService ||
+    dependencies.customerService
   ) {
     return dependencies;
   }
@@ -123,6 +128,17 @@ function createProtectedCompanyRouterIfAvailable(dependencies: AppDependencies) 
         dependencies.companyProposalService,
         dependencies.companyAppointmentService,
       ),
+    ];
+  }
+
+  return createUnavailableAuthRouter();
+}
+
+function createProtectedCustomerRouterIfAvailable(dependencies: AppDependencies) {
+  if (dependencies.tokenService && dependencies.customerService) {
+    return [
+      authenticate(dependencies.tokenService),
+      createCustomerRouter(dependencies.customerService),
     ];
   }
 

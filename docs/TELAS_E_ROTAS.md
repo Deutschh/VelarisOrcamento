@@ -30,9 +30,10 @@
 | Publica | `/acompanhar/:token`       | Acompanhamento publico seguro               | Implementado Sprint 14 |
 | Publica | `/recuperar`               | Recuperacao por codigo + e-mail/WhatsApp    | Implementado Sprint 14 |
 | Auth    | `/login`                   | Login                                       | Requisito confirmado   |
-| Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Requisito confirmado   |
+| Auth    | `/cadastro`                | Escolha do tipo de cadastro                 | Implementado Sprint 17 |
+| Auth    | `/cadastro/cliente`        | Cadastro de cliente                         | Implementado Sprint 17 |
 | Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3  |
-| Cliente | `/cliente`                 | Home personalizada do cliente               | Requisito confirmado   |
+| Cliente | `/cliente`                 | Home personalizada do cliente               | Implementado Sprint 17 |
 | Empresa | `/app`                     | Painel da empresa                           | Implementado Sprint 11 |
 | Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3  |
 | Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado   |
@@ -71,30 +72,25 @@
 ## Telas posteriores da V1 completa
 
 - Descoberta completa por localizacao.
-- Area autenticada completa do cliente.
-- Favoritos.
-- Historico completo.
 - Templates e fluxos de vidraçaria.
 - Templates e fluxos de marmoraria.
-- PDF.
 - Metricas completas.
 - PWA.
-- Moderacao.
 - Seguranca e refinamentos de producao.
 
 ## Telas do cliente autenticado
 
-- Home personalizada.
-- Solicitacoes em andamento.
-- Propostas aguardando confirmacao.
-- Proximos agendamentos.
-- Historico.
-- Empresas proximas.
-- Categorias.
-- Empresas utilizadas recentemente.
-- Favoritos.
-- Avaliacoes pendentes.
-- Notificacoes.
+- Home personalizada. Implementado Sprint 17 em `/cliente`.
+- Solicitacoes em andamento. Implementado Sprint 17.
+- Propostas aguardando confirmacao. Implementado Sprint 17.
+- Proximos agendamentos. Implementado Sprint 17.
+- Historico. Implementado Sprint 17.
+- Empresas proximas por atalho para busca publica. Implementado Sprint 17.
+- Categorias por atalho para busca publica. Implementado Sprint 17.
+- Empresas utilizadas recentemente. Implementado Sprint 17.
+- Favoritos. Implementado Sprint 17.
+- Avaliacoes pendentes. Implementado Sprint 17.
+- Notificacoes. Implementado Sprint 17.
 
 ## Telas da empresa
 
@@ -126,7 +122,7 @@
 - Solicitacoes de alteracao de preco.
 - Auditoria.
 - Metricas gerais.
-- Moderacao de avaliacoes.
+- Moderacao de avaliacoes. Implementado Sprint 16 no detalhe Admin da empresa.
 
 ## Rotas de API previstas
 
@@ -157,10 +153,11 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 - `POST /api/public/tracking/:token/appointment`. Implementado Sprint 14 para confirmar horario ou pedir outro horario.
 - `POST /api/public/recovery/request`. Implementado Sprint 14.
 - `POST /api/public/recovery/verify`. Implementado Sprint 14.
-- `GET /api/public/tracking/:token/proposal`. Implementado parcialmente na Sprint 15.
-- `POST /api/public/tracking/:token/proposal/accept`. Implementado parcialmente na Sprint 15 com `Idempotency-Key`.
-- `POST /api/public/tracking/:token/proposal/reject`. Implementado parcialmente na Sprint 15 com `Idempotency-Key`.
-- `POST /api/public/reviews`. Previsto Sprint 16.
+- `GET /api/public/tracking/:token/proposal`. Implementado Sprint 15.
+- `GET /api/public/tracking/:token/proposal/pdf`. Implementado Sprint 15 para abrir o PDF publico da proposta por versao.
+- `POST /api/public/tracking/:token/proposal/accept`. Implementado Sprint 15 com `Idempotency-Key`.
+- `POST /api/public/tracking/:token/proposal/reject`. Implementado Sprint 15 com `Idempotency-Key`.
+- `POST /api/public/reviews`. Implementado Sprint 16 com elegibilidade e `Idempotency-Key`.
 
 ### Autenticacao
 
@@ -172,6 +169,13 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 - `POST /api/auth/verify-email`
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
+
+### Cliente
+
+- `GET /api/customer/me`. Implementado Sprint 17.
+- `POST /api/customer/link-visitor-requests`. Implementado Sprint 17.
+- `POST /api/customer/favorites`. Implementado Sprint 17.
+- `DELETE /api/customer/favorites/:companyId`. Implementado Sprint 17.
 
 ### Empresa
 
@@ -208,6 +212,7 @@ Status Sprint 11: rotas de dashboard, lista, detalhe, revisao e recusa implement
 - `PATCH /api/admin/company-configurations/:id`
 - `POST /api/admin/company-configurations/:id/simulate`
 - `POST /api/admin/company-configurations/:id/publish`
+- `PATCH /api/admin/reviews/:reviewId/moderation`. Implementado Sprint 16.
 
 Status Sprint 7: rotas Admin de templates/configuracoes implementadas; `POST /api/admin/company-configurations/:id/simulate` retorna `preview` e `calculation` usando o template completo de limpeza quando aplicavel.
 

@@ -1,6 +1,7 @@
 import type {
   CompanyAppointment,
   CompanyProposalSummary,
+  PublicCompanyReview,
   PublicProposalDetail,
   QuoteDraftData,
   QuoteDraftFileSummary,
@@ -186,6 +187,18 @@ export interface ProposalActionIdempotencyRecord {
   expiresAt: string;
 }
 
+export interface ReviewIdempotencyRecord {
+  id: string;
+  scope: string;
+  key: string;
+  requestHash: string;
+  responseBody: {
+    reviewId: string;
+  };
+  statusCode: number;
+  expiresAt: string;
+}
+
 export interface AcceptProposalInput {
   id: string;
   quoteId: string;
@@ -250,6 +263,36 @@ export interface RejectProposalInput {
   };
 }
 
+export interface CreateReviewInput {
+  id: string;
+  companyId: string;
+  quoteId: string;
+  quoteVersionId: string;
+  quoteRequestId: string;
+  appointmentId: string;
+  customerProfileId: string | null;
+  customerName: string;
+  customerEmail: string | null;
+  requestCode: string;
+  proposalCode: string;
+  serviceName: string;
+  rating: number;
+  comment: string | null;
+  metadata: Record<string, unknown>;
+  now: Date;
+  idempotency: {
+    id: string;
+    scope: string;
+    key: string;
+    requestHash: string;
+    responseBody: {
+      reviewId: string;
+    };
+    statusCode: number;
+    expiresAt: Date;
+  };
+}
+
 export interface PublicQuoteRequestRepository {
   createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest>;
   findByDraftTokenHash(draftTokenHash: string): Promise<PersistedQuoteRequest | null>;
@@ -275,6 +318,14 @@ export interface PublicQuoteRequestRepository {
     scope: string;
     key: string;
   }): Promise<ProposalActionIdempotencyRecord | null>;
+  findReviewIdempotencyRecord(input: {
+    scope: string;
+    key: string;
+  }): Promise<ReviewIdempotencyRecord | null>;
+
+  findReviewByAppointmentId(appointmentId: string): Promise<PublicCompanyReview | null>;
+
+  createReview(input: CreateReviewInput): Promise<PublicCompanyReview>;
 
   acceptProposal(input: AcceptProposalInput): Promise<PublicProposalDetail>;
 

@@ -9,4 +9,5 @@ export * from "./money.js";
 export * from "./proposal-lifecycle.js";
 export * from "./quote-request-calculation.js";
 export * from "./quote-request-lifecycle.js";
+export * from "./service-lifecycle.js";
 export * from "./timezone.js";

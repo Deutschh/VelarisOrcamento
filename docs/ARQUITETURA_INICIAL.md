@@ -157,9 +157,29 @@ Requisito implementado: recuperacao publica usa `recovery_codes` com token de re
 
 Requisito implementado: a confirmacao publica de horario e o pedido de outro horario usam `POST /api/public/tracking/:token/appointment`, mas ainda passam pelo mesmo `CompanyAppointmentService` e pelas transicoes de `packages/domain`.
 
-Requisito implementado: notificacoes internas iniciais ficam em `notifications` para nova solicitacao e acoes publicas de horario. A leitura/central de notificacoes ainda nao foi exposta na interface.
+Requisito implementado: notificacoes internas iniciais ficam em `notifications` para nova solicitacao, acoes publicas de horario, avaliacoes e vinculacao de solicitacoes. A Sprint 17 expoe notificacoes do cliente na home autenticada `/cliente`.
 
-Limitacao registrada: visualizacao publica completa da proposta, aceite/rejeicao formal do cliente, PDF e documentos legais versionados seguem nas sprints posteriores da especificacao.
+Requisito implementado: a visualizacao publica completa da proposta usa `GET /api/public/tracking/:token/proposal`, o aceite e a recusa usam rotas publicas idempotentes, e o PDF por versao e gerado sob demanda no backend em `GET /api/public/tracking/:token/proposal/pdf`.
+
+Limitacao registrada: textos juridicos definitivos e armazenamento privado definitivo de arquivos seguem como decisoes futuras; o PDF atual e gerado sob demanda a partir da versao imutavel da proposta.
+
+Requisito implementado: servico realizado e avaliacoes usam regra pura em `packages/domain/src/service-lifecycle.ts`, contratos em `packages/shared/src/reviews.ts`, coluna `appointments.service_status` e tabela `reviews`.
+
+Requisito implementado: a empresa marca atendimento confirmado como realizado pelo servico de aplicacao de agendamento; o status de servico nao e atualizado livremente por controller.
+
+Requisito implementado: avaliacao publica e criada somente por `POST /api/public/reviews`, com token publico, `Idempotency-Key`, proposta aceita, horario confirmado/concluido, servico realizado e ausencia de avaliacao anterior para o mesmo agendamento.
+
+Requisito implementado: avaliacoes visiveis aparecem no perfil publico, atualizam media/contagem em `company_public_profiles` e podem ser moderadas pelo Admin em `PATCH /api/admin/reviews/:reviewId/moderation`.
+
+Requisito implementado: a area autenticada do cliente fica em `apps/api/src/customer` e `apps/web/src/pages/customer-pages.tsx`, com contratos em `packages/shared/src/customer.ts`. A API protegida `/api/customer/*` exige usuario autenticado com papel `customer`.
+
+Requisito implementado: favoritos de cliente ficam em `customer_favorite_companies`, com unicidade por par cliente/empresa e acesso sempre pelo backend. O perfil publico da empresa chama `POST /api/customer/favorites` para favoritar sem expor acesso direto ao banco.
+
+Requisito implementado: a home `/cliente` organiza solicitacoes em andamento, propostas aguardando confirmacao, proximos agendamentos, historico, empresas recentes, favoritos, avaliacoes pendentes, notificacoes e atalhos de descoberta/categorias.
+
+Requisito implementado: a vinculacao de solicitacoes de visitante ocorre por `POST /api/customer/link-visitor-requests`, comparando o contato da solicitacao com o e-mail verificado da conta autenticada e mantendo rascunhos fora da area do cliente.
+
+Limitacao registrada: a especificacao permite e-mail ou telefone verificado para vinculo de visitante; a implementacao atual usa e-mail verificado porque ainda nao existe verificacao de telefone.
 
 Recomendacao tecnica: usar adapters/interfaces no backend para e-mail e armazenamento privado, sem escolher fornecedor definitivo nesta etapa. O adapter de e-mail existe em modo `stub`; fornecedor, remetente e templates seguem pendentes.
 

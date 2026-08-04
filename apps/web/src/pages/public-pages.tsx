@@ -1,10 +1,12 @@
 ﻿import {
   PUBLIC_COMPANY_CATEGORIES,
   createQuoteDraftRequestSchema,
+  customerFavoriteCompanyRequestSchema,
   customerAppointmentActionRequestSchema,
   publicCompanySearchQuerySchema,
   publicTrackingRecoveryRequestSchema,
   publicTrackingRecoveryVerifyRequestSchema,
+  publicReviewCreateRequestSchema,
   quoteDraftFileMetadataRequestSchema,
   submitQuoteDraftRequestSchema,
   updateQuoteDraftRequestSchema,
@@ -14,6 +16,7 @@
 import type {
   CompanyAppointment,
   CreateQuoteDraftResponse,
+  CustomerFavoriteResponse,
   PublicCompanyCategoryCode,
   PublicCompanyDetail,
   PublicCompanySummary,
@@ -29,6 +32,7 @@ import type {
   QuoteSubmitResponse,
   PublicProposalDetail,
   PublicProposalRejectRequest,
+  PublicReviewCreateResponse,
   PublicTrackingProposalActionResponse,
   PublicTrackingProposalDetailResponse,
 } from "@velaris/shared";
@@ -53,6 +57,7 @@ import {
   Trash2,
   Upload,
   FileText,
+  Heart,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -1239,6 +1244,9 @@ export function PublicTrackingPage() {
   const { token } = useParams();
   const queryClient = useQueryClient();
   const [rescheduleReason, setRescheduleReason] = useState("");
+  const [reviewRating, setReviewRating] = useState("5");
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [proposalRejectReasonCode, setProposalRejectReasonCode] =
     useState<PublicProposalRejectRequest["reasonCode"]>("price");
   const [proposalRejectReason, setProposalRejectReason] = useState("");
@@ -1267,9 +1275,14 @@ export function PublicTrackingPage() {
     },
   });
   const tracking = trackingQuery.data;
+  const canLoadPublicProposal = Boolean(
+    token &&
+    tracking?.latestProposal &&
+    isPublicProposalStatusVisible(tracking.latestProposal.latestVersionStatus),
+  );
 
   const proposalQuery = useQuery({
-    enabled: Boolean(token && tracking?.latestProposal),
+    enabled: canLoadPublicProposal,
     queryKey: ["public-proposal", token],
     queryFn: () =>
       apiRequest<PublicTrackingProposalDetailResponse>(
@@ -1322,6 +1335,28 @@ export function PublicTrackingPage() {
       queryClient.setQueryData(["public-proposal", token], {
         proposal: response.proposal,
       });
+    },
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<PublicReviewCreateResponse>("/api/public/reviews", {
+        method: "POST",
+        headers: createIdempotencyHeaders(),
+        body: JSON.stringify(
+          publicReviewCreateRequestSchema.parse({
+            publicToken: String(token),
+            rating: Number(reviewRating),
+            ...(reviewComment.trim() ? { comment: reviewComment.trim() } : {}),
+          }),
+        ),
+      }),
+    onSuccess() {
+      setReviewSubmitted(true);
+      setReviewComment("");
+      void queryClient.invalidateQueries({ queryKey: ["public-company"] });
+      void queryClient.invalidateQueries({ queryKey: ["public-companies"] });
+      void queryClient.invalidateQueries({ queryKey: ["public-companies-home"] });
     },
   });
 
@@ -1401,6 +1436,9 @@ export function PublicTrackingPage() {
                   isRejecting={rejectProposalMutation.isPending}
                   proposal={tracking.latestProposal}
                   proposalDetail={proposalQuery.data?.proposal ?? null}
+                  proposalPdfUrl={`/api/public/tracking/${encodeURIComponent(
+                    String(token),
+                  )}/proposal/pdf`}
                   rejectReason={proposalRejectReason}
                   rejectReasonCode={proposalRejectReasonCode}
                   onAccept={() => acceptProposalMutation.mutate()}
@@ -1428,6 +1466,25 @@ export function PublicTrackingPage() {
                       reason: rescheduleReason,
                     })
                   }
+                />
+                <PublicReviewPanel
+                  appointment={latestAppointment}
+                  error={
+                    reviewMutation.error
+                      ? errorMessage(
+                          reviewMutation.error,
+                          "Nao foi possivel enviar a avaliacao.",
+                        )
+                      : null
+                  }
+                  isLoading={reviewMutation.isPending}
+                  proposal={tracking.latestProposal}
+                  rating={reviewRating}
+                  reviewSubmitted={reviewSubmitted}
+                  comment={reviewComment}
+                  onCommentChange={setReviewComment}
+                  onRatingChange={setReviewRating}
+                  onSubmit={() => reviewMutation.mutate()}
                 />
               </section>
               <aside className="space-y-6">
@@ -1481,6 +1538,7 @@ function PublicProposalPanel({
   onRejectReasonCodeChange,
   proposal,
   proposalDetail,
+  proposalPdfUrl,
   rejectReason,
   rejectReasonCode,
 }: {
@@ -1494,11 +1552,13 @@ function PublicProposalPanel({
   onRejectReasonCodeChange: (value: PublicProposalRejectRequest["reasonCode"]) => void;
   proposal: PublicTrackingResponse["latestProposal"];
   proposalDetail: PublicProposalDetail | null;
+  proposalPdfUrl: string;
   rejectReason: string;
   rejectReasonCode: PublicProposalRejectRequest["reasonCode"];
 }) {
   const version = proposalDetail?.latestVersion;
   const status = proposalDetail?.latestVersionStatus ?? proposal?.latestVersionStatus;
+  const hasPublicProposal = Boolean(proposal && isPublicProposalStatusVisible(status));
   const canDecide = status === "sent" || status === "viewed";
   const isAccepted = status === "accepted";
   const isRejected = status === "rejected";
@@ -1512,18 +1572,20 @@ function PublicProposalPanel({
             Confira o valor final, os itens e as condicoes antes de confirmar.
           </p>
         </div>
-        <button
-          className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm text-white/35"
-          disabled
-          type="button"
-          title="O PDF sera liberado na proxima etapa."
-        >
-          <FileText size={16} />
-          PDF em breve
-        </button>
+        {hasPublicProposal ? (
+          <a
+            className="inline-flex items-center gap-2 rounded-md border border-emerald-300/35 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-300/10"
+            href={proposalPdfUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <FileText size={16} />
+            Abrir PDF
+          </a>
+        ) : null}
       </div>
 
-      {proposal ? (
+      {hasPublicProposal && proposal ? (
         <div className="mt-4 space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <InfoBlock label="Codigo" value={proposal.latestProposalCode ?? "Pendente"} />
@@ -1666,6 +1728,85 @@ function PublicProposalPanel({
         <p className="mt-4 text-sm text-white/55">
           A empresa ainda nao enviou uma proposta.
         </p>
+      )}
+    </section>
+  );
+}
+
+function PublicReviewPanel({
+  appointment,
+  comment,
+  error,
+  isLoading,
+  onCommentChange,
+  onRatingChange,
+  onSubmit,
+  proposal,
+  rating,
+  reviewSubmitted,
+}: {
+  appointment: CompanyAppointment | null | undefined;
+  comment: string;
+  error: string | null;
+  isLoading: boolean;
+  onCommentChange: (value: string) => void;
+  onRatingChange: (value: string) => void;
+  onSubmit: () => void;
+  proposal: PublicTrackingResponse["latestProposal"];
+  rating: string;
+  reviewSubmitted: boolean;
+}) {
+  const canReview =
+    proposal?.latestVersionStatus === "accepted" &&
+    appointment?.status === "completed" &&
+    appointment.serviceStatus === "service_realized";
+
+  return (
+    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Avaliacao</h2>
+        {canReview ? (
+          <span className="rounded-md border border-emerald-300/25 px-2 py-1 text-xs text-emerald-100">
+            Disponivel
+          </span>
+        ) : null}
+      </div>
+      {!canReview ? (
+        <p className="mt-4 text-sm leading-6 text-white/55">
+          A avaliacao fica disponivel depois que a proposta aceita tiver horario
+          confirmado e a empresa marcar o atendimento como realizado.
+        </p>
+      ) : reviewSubmitted ? (
+        <div className="mt-4 rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+          Obrigado pela avaliacao. Ela ja pode aparecer no perfil publico da empresa.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <label className="block text-sm text-white/70">
+            Nota
+            <select
+              className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
+              value={rating}
+              onChange={(event) => onRatingChange(event.target.value)}
+            >
+              <option value="5">5 - Excelente</option>
+              <option value="4">4 - Muito bom</option>
+              <option value="3">3 - Bom</option>
+              <option value="2">2 - Regular</option>
+              <option value="1">1 - Ruim</option>
+            </select>
+          </label>
+          <TextAreaField
+            label="Comentario opcional"
+            rows={4}
+            value={comment}
+            onChange={(event) => onCommentChange(event.target.value)}
+          />
+          <ActionButton icon={Star} isLoading={isLoading} onClick={onSubmit}>
+            Enviar avaliacao
+          </ActionButton>
+          <FormError message={error} />
+        </div>
       )}
     </section>
   );
@@ -1998,6 +2139,12 @@ function removeStoredQuoteDraft(slug: string) {
   window.localStorage.removeItem(quoteDraftStorageKey(slug));
 }
 
+function isPublicProposalStatusVisible(status: string | null | undefined) {
+  return Boolean(
+    status && ["sent", "viewed", "accepted", "rejected", "expired"].includes(status),
+  );
+}
+
 const quoteStepItems: Array<{
   code: QuoteDraftData["currentStep"];
   label: string;
@@ -2094,7 +2241,35 @@ function CompanyCard({ company }: { company: PublicCompanySummary }) {
 }
 
 function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
+  const queryClient = useQueryClient();
+  const [favoriteMessage, setFavoriteMessage] = useState<string | null>(null);
   const accentColor = company.primaryColor ?? "#6ee7b7";
+  const favoriteMutation = useMutation({
+    mutationFn: () => {
+      const payload = customerFavoriteCompanyRequestSchema.parse({
+        companyId: company.id,
+      });
+
+      return apiRequest<CustomerFavoriteResponse>("/api/customer/favorites", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess() {
+      setFavoriteMessage("Empresa adicionada aos favoritos.");
+      void queryClient.invalidateQueries({ queryKey: ["customer-dashboard"] });
+    },
+    onError() {
+      setFavoriteMessage(null);
+    },
+  });
+  const favoriteError =
+    favoriteMutation.error instanceof ApiError &&
+    (favoriteMutation.error.status === 401 || favoriteMutation.error.status === 403)
+      ? "Entre como cliente para favoritar empresas."
+      : favoriteMutation.error
+        ? errorMessage(favoriteMutation.error, "Nao foi possivel favoritar.")
+        : null;
 
   return (
     <article>
@@ -2129,9 +2304,26 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
                 </p>
               </div>
             </div>
-            <PrimaryLink icon={PlusCircle} to={`/empresa/${company.slug}/orcamento`}>
-              Solicitar orcamento
-            </PrimaryLink>
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/15 px-5 py-3 font-medium text-white/85 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-70"
+                  disabled={favoriteMutation.isPending}
+                  type="button"
+                  onClick={() => favoriteMutation.mutate()}
+                >
+                  <Heart size={18} />
+                  {favoriteMutation.isPending ? "Salvando" : "Favoritar"}
+                </button>
+                <PrimaryLink icon={PlusCircle} to={`/empresa/${company.slug}/orcamento`}>
+                  Solicitar orcamento
+                </PrimaryLink>
+              </div>
+              {favoriteMessage ? (
+                <p className="text-sm text-emerald-100">{favoriteMessage}</p>
+              ) : null}
+              <FormError message={favoriteError} />
+            </div>
           </div>
           <p className="mt-6 max-w-3xl text-base leading-7 text-white/70">
             {company.description ?? company.headline ?? "Perfil publico da empresa."}
@@ -2175,6 +2367,37 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
               </div>
             ) : (
               <p className="text-sm text-white/55">Galeria ainda nao informada.</p>
+            )}
+          </ProfileSection>
+          <ProfileSection title="Avaliacoes">
+            {company.reviews.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {company.reviews.map((review) => (
+                  <div
+                    className="rounded-md border border-white/10 bg-white/[0.03] p-4"
+                    key={review.id}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-white/90">
+                          {review.rating}/5 - {review.customerName}
+                        </p>
+                        <p className="mt-1 text-xs text-white/45">
+                          {review.serviceName} - {formatDate(review.createdAt)}
+                        </p>
+                      </div>
+                      <Star className="text-emerald-200" size={17} />
+                    </div>
+                    {review.comment ? (
+                      <p className="mt-3 text-sm leading-6 text-white/65">
+                        {review.comment}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/55">Sem avaliacoes publicas ainda.</p>
             )}
           </ProfileSection>
         </section>

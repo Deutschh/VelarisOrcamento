@@ -14,7 +14,7 @@ O conteudo da especificacao nao deve ser alterado sem pedido explicito.
 
 ## Estado atual
 
-O projeto concluiu tecnicamente a Sprint 14. Ja existe fundacao tecnica, schema multiempresa,
+O projeto concluiu tecnicamente a Sprint 17. Ja existe fundacao tecnica, schema multiempresa,
 migrations aplicadas no Neon, autenticacao propria, cadastro empresarial,
 status de conta pendente, painel Admin, descoberta publica, perfil publico,
 templates fixos, configuracao por empresa com preview/publicacao imutavel e
@@ -41,10 +41,28 @@ adapter de e-mail e substituindo o token publico apos sucesso. A tela publica
 tambem permite confirmar horario ou pedir outro horario quando houver agendamento
 ativo e exibe link assistido `wa.me`.
 
-Ainda nao ha aceite/rejeicao publico formal da proposta, PDF, documentos legais
-versionados, armazenamento binario definitivo ou deploy. Vidracaria e marmoraria
-seguem adiadas ate a validacao do MVP piloto; a proxima etapa recomendada para o
-MVP e a Sprint 15, PDF, aceite e documentos legais.
+O tracking publico tambem exibe a proposta completa, abre o PDF da proposta por
+versao gerado sob demanda pelo backend, permite aceite formal idempotente,
+permite recusa formal e registra o aceite em `quote_acceptances` com versoes
+legais iniciais, IP e user agent quando disponiveis.
+
+O fluxo de servico realizado e avaliacoes tambem esta implementado tecnicamente:
+ao concluir um horario confirmado, a empresa marca o atendimento como realizado,
+o backend dispara convite por adapter de e-mail `stub`, o cliente pode avaliar
+pelo acompanhamento publico quando elegivel, a avaliacao aparece no perfil
+publico, a media da empresa e recalculada e o Admin pode moderar avaliacoes.
+
+A area autenticada do cliente esta disponivel em `/cliente`. Clientes podem
+criar conta em `/cadastro/cliente`, entrar pelo login comum, ver solicitacoes,
+propostas aguardando confirmacao, proximos agendamentos, historico, favoritos,
+empresas recentes, avaliacoes pendentes e notificacoes. Tambem e possivel
+favoritar empresas pelo perfil publico e vincular solicitacoes de visitante
+quando o contato da solicitacao corresponde ao e-mail ou telefone da conta.
+
+Ainda nao ha textos juridicos definitivos, armazenamento binario definitivo,
+metricas, PWA ou deploy. Vidracaria e marmoraria seguem adiadas ate a validacao
+do MVP piloto; a proxima etapa recomendada para o MVP e a Sprint 18, metricas e
+administracao operacional.
 
 ## Stack planejada
 

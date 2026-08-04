@@ -85,6 +85,7 @@ export class InMemoryCompanyAppointmentRepository implements CompanyAppointmentR
       quoteRequestId: input.quoteRequestId,
       companyId: input.companyId,
       status: "proposed",
+      serviceStatus: "not_started",
       schedulingMode: input.schedulingMode,
       proposalVersionStatus: input.proposalVersionStatus,
       startsAt: input.startsAt.toISOString(),
@@ -135,6 +136,7 @@ export class InMemoryCompanyAppointmentRepository implements CompanyAppointmentR
     const next: CompanyAppointment = {
       ...current,
       status: input.toStatus,
+      serviceStatus: input.serviceStatus ?? current.serviceStatus,
       startsAt: input.startsAt?.toISOString() ?? current.startsAt,
       endsAt: input.endsAt?.toISOString() ?? current.endsAt,
       durationMinutes: input.durationMinutes ?? current.durationMinutes,

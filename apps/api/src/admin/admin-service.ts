@@ -10,13 +10,19 @@ import type {
   AdminCompanyDetail,
   AdminCompanyListQuery,
   AdminCompanySummary,
+  AdminReview,
+  AdminReviewModerationRequest,
   AdminPublishCompanyRequest,
   InternalNoteRequest,
 } from "@velaris/shared";
 
 import type { EmailAdapter } from "../notifications/email-adapter.js";
 import { createDefaultPublicProfile } from "../public/public-profile.js";
-import { CompanyLifecycleRuleError, CompanyNotFoundError } from "./admin-errors.js";
+import {
+  CompanyLifecycleRuleError,
+  CompanyNotFoundError,
+  ReviewNotFoundError,
+} from "./admin-errors.js";
 import type {
   AdminRepository,
   PersistCompanyActionInput,
@@ -44,6 +50,7 @@ export class AdminService {
       this.dependencies.repository.listCompanyNotes(id),
       this.dependencies.repository.listCompanyAuditLogs(id),
     ]);
+    const reviews = await this.dependencies.repository.listCompanyReviews(id);
     const publicProfile =
       (await this.dependencies.repository.findCompanyPublicProfile(id)) ??
       createDefaultPublicProfile();
@@ -57,6 +64,7 @@ export class AdminService {
       configurations: [],
       notes: notes.map(toNote),
       auditLogs: auditLogs.map(toAuditLog),
+      reviews,
     };
   }
 
@@ -162,6 +170,24 @@ export class AdminService {
     });
 
     return this.getCompany(id);
+  }
+
+  async moderateReview(
+    reviewId: string,
+    actorUserId: string,
+    input: AdminReviewModerationRequest,
+  ): Promise<AdminReview> {
+    const review = await this.dependencies.repository.moderateReview({
+      reviewId,
+      actorUserId,
+      input,
+    });
+
+    if (!review) {
+      throw new ReviewNotFoundError();
+    }
+
+    return review;
   }
 
   private async getPersistedCompany(id: string): Promise<PersistedAdminCompany> {

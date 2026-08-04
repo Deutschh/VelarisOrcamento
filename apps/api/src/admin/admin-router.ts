@@ -8,6 +8,7 @@ import {
   adminSimulateCompanyConfigurationRequestSchema,
   adminUpdateCompanyConfigurationRequestSchema,
   adminPublishCompanyRequestSchema,
+  adminReviewModerationRequestSchema,
   internalNoteRequestSchema,
 } from "@velaris/shared";
 
@@ -175,6 +176,20 @@ export function createAdminRouter(
     }),
   );
 
+  router.patch(
+    "/reviews/:reviewId/moderation",
+    asyncHandler(async (request, response) => {
+      const body = adminReviewModerationRequestSchema.parse(request.body);
+      const review = await adminService.moderateReview(
+        getReviewId(request.params),
+        getActorUserId(request),
+        body,
+      );
+
+      response.json({ review });
+    }),
+  );
+
   return router;
 }
 
@@ -212,6 +227,17 @@ function getConfigurationId(params: Record<string, string | string[] | undefined
   }
 
   return configurationId;
+}
+
+function getReviewId(params: Record<string, string | string[] | undefined>) {
+  const rawReviewId = params.reviewId;
+  const reviewId = Array.isArray(rawReviewId) ? rawReviewId[0] : rawReviewId;
+
+  if (!reviewId) {
+    throw new AppError("Review id is required.", 400, "REVIEW_ID_REQUIRED");
+  }
+
+  return reviewId;
 }
 
 function getTemplateAdminService(templateAdminService?: TemplateAdminService) {

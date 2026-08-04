@@ -85,6 +85,20 @@
       "when": 1785474413079,
       "tag": "0011_skinny_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785810404230,
+      "tag": "0012_stiff_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785816073260,
+      "tag": "0013_needy_frightful_four",
+      "breakpoints": true
     }
   ]
 }

@@ -54,7 +54,8 @@ export class PublicCompanyService {
       throw new PublicCompanyNotFoundError();
     }
 
-    return toCompanyDetail(company, null);
+    const reviews = await this.repository.listVisibleReviewsByCompany(company.id);
+    return toCompanyDetail(company, null, reviews);
   }
 
   async listCompanyServices(slug: string) {
@@ -156,6 +157,7 @@ function toCompanySummary(
 function toCompanyDetail(
   company: PersistedPublicCompany,
   distanceKm: number | null,
+  reviews: PublicCompanyDetail["reviews"],
 ): PublicCompanyDetail {
   return {
     ...toCompanySummary(company, distanceKm),
@@ -175,6 +177,7 @@ function toCompanyDetail(
     terms: company.profile.terms,
     gallery: company.profile.gallery,
     services: company.profile.services,
+    reviews,
   };
 }
 

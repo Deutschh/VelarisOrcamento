@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { QuoteVersionStatus } from "./proposals.js";
+import type { ServiceStatus } from "./reviews.js";
 import type { SchedulingMode } from "./templates.js";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
@@ -87,6 +88,7 @@ export interface CompanyAppointment {
   quoteRequestId: string;
   companyId: string;
   status: Exclude<AppointmentStatus, "none">;
+  serviceStatus: ServiceStatus;
   schedulingMode: SchedulingMode;
   proposalVersionStatus: QuoteVersionStatus;
   startsAt: string;

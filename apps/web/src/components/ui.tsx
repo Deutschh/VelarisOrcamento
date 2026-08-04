@@ -21,6 +21,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link className="rounded-md px-3 py-2 hover:bg-white/10" to="/recuperar">
               Recuperar
             </Link>
+            <Link className="rounded-md px-3 py-2 hover:bg-white/10" to="/cliente">
+              Cliente
+            </Link>
+            <Link className="rounded-md px-3 py-2 hover:bg-white/10" to="/cadastro">
+              Cadastro
+            </Link>
             <Link
               className="rounded-md px-3 py-2 hover:bg-white/10"
               to="/cadastro/empresa"

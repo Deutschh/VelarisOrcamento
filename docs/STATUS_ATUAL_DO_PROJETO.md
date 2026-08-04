@@ -1,6 +1,6 @@
 # Status Atual do Projeto - Velaris Orcamentos
 
-Atualizado em: 2026-07-30.
+Atualizado em: 2026-08-04.
 
 Este documento descreve o estado atual do projeto para uma pessoa que ja conhece
 os arquivos de planejamento em `docs/`, mas ainda nao conhece a implementacao.
@@ -26,8 +26,7 @@ O projeto e um monorepo TypeScript com um web app React/Vite e uma API
 Express/Node. O banco e PostgreSQL no Neon, acessado somente pelo backend via
 Drizzle ORM. O frontend nunca acessa o banco diretamente.
 
-O produto ja possui implementacao tecnica ate a Sprint 14 e uma parte importante
-da Sprint 15:
+O produto ja possui implementacao tecnica ate a Sprint 17:
 
 - base tecnica do monorepo;
 - autenticacao propria;
@@ -48,12 +47,22 @@ da Sprint 15:
 - acoes publicas de horario;
 - notificacoes internas iniciais no banco;
 - aceite e recusa formal de proposta pelo acompanhamento publico;
-- registro auditavel de aceite em `quote_acceptances`.
+- registro auditavel de aceite em `quote_acceptances`;
+- PDF publico da proposta gerado por versao no backend.
+- status de servico realizado;
+- convite de avaliacao por adapter de e-mail `stub`;
+- avaliacao publica elegivel pelo acompanhamento;
+- exibicao de avaliacoes visiveis no perfil publico;
+- recalculo de media/contagem da empresa;
+- moderacao Admin de avaliacoes;
+- area autenticada do cliente em `/cliente`;
+- favoritos de empresas;
+- empresas recentes, historico, avaliacoes pendentes e notificacoes para cliente;
+- vinculacao de solicitacoes feitas como visitante a uma conta criada depois.
 
-A Sprint 15 esta parcialmente implementada. Os principais blocos pendentes sao
-PDF da proposta, rota de visualizacao/download do PDF, validacao do PDF contra a
-versao da proposta, textos legais definitivos, servico realizado, avaliacoes,
-area completa do cliente, metricas, PWA, deploy e refinamentos de producao.
+Os principais blocos pendentes apos a Sprint 17 sao metricas, PWA, deploy,
+textos legais definitivos, armazenamento privado definitivo e refinamentos de
+producao.
 
 Sprints 8 e 9, vidracaria e marmoraria, seguem adiadas por decisao de produto
 ate a validacao do MVP piloto de limpeza de estofados.
@@ -86,9 +95,9 @@ ate a validacao do MVP piloto de limpeza de estofados.
 | Sprint 12 | Propostas, versoes e valor final          | Implementado tecnicamente. Propostas versionadas, valor final, validade, termos, preview e envio idempotente existem. O aceite publico formal foi iniciado posteriormente na Sprint 15.                                                                            |
 | Sprint 13 | Agendamento assistido                     | Implementado tecnicamente. Agendamentos, historico, modos, timezone, aviso de conflito, cancelamento, reagendamento pela empresa e conclusao existem.                                                                                                              |
 | Sprint 14 | Acompanhamento, recuperacao e comunicacao | Implementado tecnicamente. Tracking por token, recuperacao por OTP, `wa.me`, acoes publicas de horario e notificacoes internas iniciais existem. E-mail real segue pendente.                                                                                       |
-| Sprint 15 | PDF, aceite e documentos legais           | Parcialmente implementado. Aceite/recusa formal, idempotencia, versoes legais iniciais, IP/user agent, bloqueio de expirada, eventos e frontend publico existem. PDF por versao ainda falta.                                                                       |
-| Sprint 16 | Servico realizado e avaliacoes            | Nao iniciado.                                                                                                                                                                                                                                                      |
-| Sprint 17 | Area do cliente                           | Nao iniciado. Ha cadastro de cliente na API, mas nao existe area completa do cliente no frontend.                                                                                                                                                                  |
+| Sprint 15 | PDF, aceite e documentos legais           | Implementado tecnicamente. PDF por versao gerado sob demanda no backend, rota publica segura, botao no tracking, aceite/recusa formal, idempotencia, versoes legais iniciais, IP/user agent, bloqueio de expirada, eventos e frontend publico existem.             |
+| Sprint 16 | Servico realizado e avaliacoes            | Implementado tecnicamente. Status de servico, marcacao como realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil, media atualizada e moderacao Admin existem.                                               |
+| Sprint 17 | Area do cliente                           | Implementado tecnicamente. Cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de visitante existem.     |
 | Sprint 18 | Metricas e administracao operacional      | Nao iniciado.                                                                                                                                                                                                                                                      |
 | Sprint 19 | PWA, seguranca, desempenho e deploy       | Nao iniciado.                                                                                                                                                                                                                                                      |
 
@@ -118,19 +127,24 @@ ate a validacao do MVP piloto de limpeza de estofados.
 - Envio de proposta idempotente.
 - Agendamento assistido.
 - Aceite/recusa formal da proposta no acompanhamento publico.
+- PDF publico da proposta por versao.
+- Servico realizado.
+- Avaliacoes publicas elegiveis.
+- Media e contagem de avaliacoes no perfil publico.
+- Moderacao Admin de avaliacoes.
+- Area autenticada do cliente.
+- Favoritos.
+- Empresas recentes e notificacoes do cliente.
+- Vinculacao de solicitacoes de visitante a conta de cliente.
 - Recuperacao de acompanhamento por OTP.
 - WhatsApp assistido.
 
 ### Ainda faltando para fechar melhor o MVP piloto
 
 - Validacao comercial real com uma empresa de limpeza de estofados.
-- PDF da proposta.
 - Textos legais definitivos.
 - Armazenamento binario privado para fotos/PDF.
 - Provedor real de e-mail.
-- Servico realizado.
-- Avaliacoes e exibicao no perfil.
-- Area autenticada do cliente.
 - Deploy/homologacao/producao.
 
 ## Visao geral da arquitetura
@@ -397,8 +411,9 @@ Tabelas:
 - `quote_version_events`: auditoria/eventos.
 
 O envio exige `Idempotency-Key`. Propostas aceitas devem ser imutaveis, mas o
-aceite publico formal ainda nao foi implementado. Por enquanto a empresa
-consegue criar/enviar proposta e o publico consegue ver um resumo no tracking.
+aceite publico formal, a recusa publica e o PDF por versao foram implementados
+na Sprint 15. A empresa consegue criar/enviar proposta e o publico consegue ver
+detalhe, PDF, aceite e recusa no tracking.
 
 ### 10. Agendamento assistido
 
@@ -432,7 +447,42 @@ O cliente publico pode confirmar horario ou pedir outro horario pela tela de
 acompanhamento. A empresa pode propor novo horario quando houver pedido de
 reagendamento.
 
-### 11. Acompanhamento publico e recuperacao
+### 11. Servico realizado e avaliacoes
+
+A Sprint 16 adicionou um status de servico separado do status do agendamento.
+Quando a empresa conclui um horario confirmado, o agendamento passa para
+`completed` e o servico passa para `service_realized`. Essa transicao fica em
+regra pura de dominio e e chamada pelo servico de aplicacao, nao por update livre
+em rota/controller.
+
+Arquivos principais:
+
+- `packages/domain/src/service-lifecycle.ts`: estados do servico e elegibilidade
+  de avaliacao;
+- `packages/shared/src/reviews.ts`: contratos de avaliacao, status de servico e
+  moderacao;
+- `apps/api/src/company/company-appointment-service.ts`: marca atendimento como
+  realizado e dispara convite via adapter de e-mail `stub`;
+- `apps/api/src/public/public-quote-request-service.ts`: cria avaliacao publica
+  elegivel e idempotente;
+- `apps/api/src/admin/admin-service.ts`: moderacao de avaliacoes;
+- `apps/web/src/pages/public-pages.tsx`: painel de avaliacao no tracking e
+  exibicao no perfil publico;
+- `apps/web/src/pages/admin-pages.tsx`: painel Admin de moderacao.
+
+Tabelas/campos:
+
+- `appointments.service_status`: status operacional do servico;
+- `reviews`: avaliacao vinculada a empresa, solicitacao, proposta, versao e
+  agendamento.
+
+Uma avaliacao publica exige proposta aceita, horario confirmado/concluido,
+servico realizado e ausencia de avaliacao anterior para o mesmo agendamento. A
+criacao exige `Idempotency-Key`. Avaliacoes visiveis atualizam
+`company_public_profiles.review_average` e `review_count`; o Admin pode ocultar,
+restaurar, marcar como suspeita ou limpar suspeita.
+
+### 12. Acompanhamento publico e recuperacao
 
 O token publico e gerado na submissao. A tela `/acompanhar/:token` mostra:
 
@@ -468,11 +518,31 @@ Recuperacao:
 No ambiente atual, o adapter de e-mail e `stub`; ele registra log, mas nao envia
 e-mail real.
 
-### 12. Notificacoes internas iniciais
+### 13. Notificacoes e area do cliente
 
 A Sprint 14 criou a tabela `notifications` e o backend registra notificacoes
-para nova solicitacao e acoes publicas de horario. Ainda nao existe central de
-notificacoes no frontend.
+para nova solicitacao e acoes publicas de horario. A Sprint 16 adicionou
+notificacao de avaliacao recebida e a Sprint 17 passou a exibir notificacoes do
+cliente na home autenticada `/cliente`.
+
+A area do cliente usa:
+
+- `apps/web/src/pages/customer-pages.tsx`: home personalizada do cliente;
+- `apps/api/src/customer/customer-router.ts`: endpoints protegidos do cliente;
+- `apps/api/src/customer/customer-service.ts`: regras de acesso, vinculo de
+  visitante e favoritos;
+- `apps/api/src/customer/drizzle-customer-repository.ts`: consultas do dashboard
+  e persistencia de favoritos;
+- `packages/shared/src/customer.ts`: contratos compartilhados da area do cliente;
+- `database/schemas/index.ts`: tabela `customer_favorite_companies` e relacoes
+  com usuarios, empresas, solicitacoes, propostas, agendamentos e notificacoes.
+
+O dashboard retorna solicitacoes, propostas publicas aguardando confirmacao,
+proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes
+pendentes e notificacoes. A acao de vincular busca solicitacoes de visitante sem
+`customer_id`, ja submetidas, cujo e-mail corresponde ao e-mail verificado da
+conta autenticada. Vinculo por telefone fica pendente ate existir verificacao de
+telefone.
 
 ## Mapa de arquivos por area
 
@@ -494,23 +564,24 @@ notificacoes no frontend.
 
 ### Frontend: `apps/web`
 
-| Caminho                                     | Funcao                                                                                          |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `apps/web/src/main.tsx`                     | Inicializa React, QueryClient e BrowserRouter.                                                  |
-| `apps/web/src/App.tsx`                      | Declara as rotas da aplicacao.                                                                  |
-| `apps/web/src/styles.css`                   | Tailwind e estilos globais.                                                                     |
-| `apps/web/src/pages/public-pages.tsx`       | Home, onboarding, busca, perfil publico, solicitacao, acompanhamento e recuperacao.             |
-| `apps/web/src/pages/auth-pages.tsx`         | Login e cadastro empresarial.                                                                   |
-| `apps/web/src/pages/company-pages.tsx`      | Area da empresa: pendente, dashboard, solicitacoes, revisao, proposta e agendamento.            |
-| `apps/web/src/pages/admin-pages.tsx`        | Area Admin: empresas, detalhe, perfil publico, templates, configuracao, simulacao e publicacao. |
-| `apps/web/src/components/ui.tsx`            | Shell, titulos, campos, botoes, timeline, loading e erros comuns.                               |
-| `apps/web/src/components/form-controls.tsx` | Select e checkbox reutilizaveis.                                                                |
-| `apps/web/src/components/status-badges.tsx` | Labels e badges para status de empresa, perfil, solicitacao, proposta e agendamento.            |
-| `apps/web/src/lib/api.ts`                   | Wrapper `apiRequest`, `ApiError` e mensagens padronizadas de erro.                              |
-| `apps/web/src/lib/formatters.ts`            | Formatacao de dinheiro, datas, horarios, arquivos, enderecos e helpers de proposta/agendamento. |
-| `apps/web/src/lib/quote-form-options.ts`    | Opcoes de fallback e helpers do formulario de limpeza de estofados.                             |
-| `apps/web/vite.config.ts`                   | Vite, aliases para packages e proxy `/api` para a API local.                                    |
-| `apps/web/tailwind.config.js`               | Configuracao Tailwind.                                                                          |
+| Caminho                                     | Funcao                                                                                                                     |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/main.tsx`                     | Inicializa React, QueryClient e BrowserRouter.                                                                             |
+| `apps/web/src/App.tsx`                      | Declara as rotas da aplicacao.                                                                                             |
+| `apps/web/src/styles.css`                   | Tailwind e estilos globais.                                                                                                |
+| `apps/web/src/pages/public-pages.tsx`       | Home, onboarding, busca, perfil publico, solicitacao, acompanhamento, recuperacao, avaliacao e favoritar empresa.          |
+| `apps/web/src/pages/auth-pages.tsx`         | Login, escolha de cadastro, cadastro de cliente e cadastro empresarial.                                                    |
+| `apps/web/src/pages/customer-pages.tsx`     | Area do cliente: dashboard, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes e notificacoes. |
+| `apps/web/src/pages/company-pages.tsx`      | Area da empresa: pendente, dashboard, solicitacoes, revisao, proposta e agendamento.                                       |
+| `apps/web/src/pages/admin-pages.tsx`        | Area Admin: empresas, detalhe, perfil publico, templates, configuracao, simulacao, publicacao e moderacao de avaliacoes.   |
+| `apps/web/src/components/ui.tsx`            | Shell, titulos, campos, botoes, timeline, loading e erros comuns.                                                          |
+| `apps/web/src/components/form-controls.tsx` | Select e checkbox reutilizaveis.                                                                                           |
+| `apps/web/src/components/status-badges.tsx` | Labels e badges para status de empresa, perfil, solicitacao, proposta e agendamento.                                       |
+| `apps/web/src/lib/api.ts`                   | Wrapper `apiRequest`, `ApiError` e mensagens padronizadas de erro.                                                         |
+| `apps/web/src/lib/formatters.ts`            | Formatacao de dinheiro, datas, horarios, arquivos, enderecos e helpers de proposta/agendamento.                            |
+| `apps/web/src/lib/quote-form-options.ts`    | Opcoes de fallback e helpers do formulario de limpeza de estofados.                                                        |
+| `apps/web/vite.config.ts`                   | Vite, aliases para packages e proxy `/api` para a API local.                                                               |
+| `apps/web/tailwind.config.js`               | Configuracao Tailwind.                                                                                                     |
 
 Observacao: depois da refatoracao recente, `App.tsx` deixou de concentrar a
 interface inteira. As telas agora estao separadas por area em `pages/`.
@@ -551,57 +622,69 @@ interface inteira. As telas agora estao separadas por area em `pages/`.
 
 ### Backend: Admin e templates
 
-| Caminho                                                 | Funcao                                                              |
-| ------------------------------------------------------- | ------------------------------------------------------------------- |
-| `apps/api/src/admin/admin-router.ts`                    | Endpoints Admin.                                                    |
-| `apps/api/src/admin/admin-service.ts`                   | Ativacao, suspensao, publicacao, perfil publico, notas e auditoria. |
-| `apps/api/src/admin/admin-repository.ts`                | Interface de persistencia Admin.                                    |
-| `apps/api/src/admin/drizzle-admin-repository.ts`        | Consultas Drizzle para Admin.                                       |
-| `apps/api/src/templates/template-service.ts`            | Templates, configuracao por empresa, simulacao e publicacao.        |
-| `apps/api/src/templates/template-repository.ts`         | Interface de persistencia de templates/configuracoes.               |
-| `apps/api/src/templates/drizzle-template-repository.ts` | Persistencia Drizzle de templates, configuracoes e regras de preco. |
-| `apps/api/src/templates/template-errors.ts`             | Erros de templates/configuracao.                                    |
+| Caminho                                                 | Funcao                                                                                       |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/api/src/admin/admin-router.ts`                    | Endpoints Admin.                                                                             |
+| `apps/api/src/admin/admin-service.ts`                   | Ativacao, suspensao, publicacao, perfil publico, notas, auditoria e moderacao de avaliacoes. |
+| `apps/api/src/admin/admin-repository.ts`                | Interface de persistencia Admin.                                                             |
+| `apps/api/src/admin/drizzle-admin-repository.ts`        | Consultas Drizzle para Admin.                                                                |
+| `apps/api/src/templates/template-service.ts`            | Templates, configuracao por empresa, simulacao e publicacao.                                 |
+| `apps/api/src/templates/template-repository.ts`         | Interface de persistencia de templates/configuracoes.                                        |
+| `apps/api/src/templates/drizzle-template-repository.ts` | Persistencia Drizzle de templates, configuracoes e regras de preco.                          |
+| `apps/api/src/templates/template-errors.ts`             | Erros de templates/configuracao.                                                             |
 
 ### Backend: area publica
 
-| Caminho                                                    | Funcao                                                                                      |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `apps/api/src/public/public-router.ts`                     | Endpoints publicos de descoberta, rascunho, tracking e recuperacao.                         |
-| `apps/api/src/public/public-service.ts`                    | Busca/listagem/perfil publico de empresas.                                                  |
-| `apps/api/src/public/public-profile.ts`                    | Defaults de perfil publico e labels de categoria.                                           |
-| `apps/api/src/public/public-repository.ts`                 | Interface de persistencia da descoberta publica.                                            |
-| `apps/api/src/public/drizzle-public-company-repository.ts` | Consultas de empresas publicadas.                                                           |
-| `apps/api/src/public/public-quote-request-service.ts`      | Rascunho, estimativa, submissao, acompanhamento, recuperacao e acoes publicas de horario.   |
-| `apps/api/src/public/quote-request-repository.ts`          | Interface de persistencia para solicitacoes publicas.                                       |
-| `apps/api/src/public/drizzle-quote-request-repository.ts`  | Persistencia real de rascunhos, solicitacoes, tokens, calculos, recuperacao e notificacoes. |
-| `apps/api/src/public/public-errors.ts`                     | Erros publicos.                                                                             |
-| `apps/api/src/public/unavailable-public-router.ts`         | Resposta quando public quote requests nao estao configuradas.                               |
+| Caminho                                                    | Funcao                                                                                                                              |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/public/public-router.ts`                     | Endpoints publicos de descoberta, rascunho, tracking, recuperacao e avaliacao.                                                      |
+| `apps/api/src/public/public-service.ts`                    | Busca/listagem/perfil publico de empresas, incluindo avaliacoes visiveis.                                                           |
+| `apps/api/src/public/public-profile.ts`                    | Defaults de perfil publico e labels de categoria.                                                                                   |
+| `apps/api/src/public/public-repository.ts`                 | Interface de persistencia da descoberta publica.                                                                                    |
+| `apps/api/src/public/drizzle-public-company-repository.ts` | Consultas de empresas publicadas e avaliacoes visiveis.                                                                             |
+| `apps/api/src/public/public-quote-request-service.ts`      | Rascunho, estimativa, submissao, acompanhamento, recuperacao, acoes publicas de horario e avaliacao.                                |
+| `apps/api/src/public/quote-request-repository.ts`          | Interface de persistencia para solicitacoes publicas.                                                                               |
+| `apps/api/src/public/drizzle-quote-request-repository.ts`  | Persistencia real de rascunhos, solicitacoes, tokens, calculos, recuperacao, propostas publicas, aceite, avaliacoes e notificacoes. |
+| `apps/api/src/public/proposal-pdf.ts`                      | Geracao sob demanda do PDF publico por versao da proposta.                                                                          |
+| `apps/api/src/public/public-errors.ts`                     | Erros publicos.                                                                                                                     |
+| `apps/api/src/public/unavailable-public-router.ts`         | Resposta quando public quote requests nao estao configuradas.                                                                       |
+
+### Backend: cliente
+
+| Caminho                                                | Funcao                                                                                  |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `apps/api/src/customer/customer-router.ts`             | Endpoints protegidos da area do cliente.                                                |
+| `apps/api/src/customer/customer-service.ts`            | Dashboard, vinculo de solicitacoes de visitante e favoritos.                            |
+| `apps/api/src/customer/customer-repository.ts`         | Interface de persistencia da area do cliente.                                           |
+| `apps/api/src/customer/drizzle-customer-repository.ts` | Consultas Drizzle para solicitacoes, propostas, agendamentos, favoritos e notificacoes. |
+| `apps/api/src/customer/customer-errors.ts`             | Erros especificos da area do cliente.                                                   |
+| `apps/api/src/test/in-memory-customer-repository.ts`   | Repositorio em memoria para testes do servico de cliente.                               |
 
 ### Backend: empresa, propostas e agendamentos
 
-| Caminho                                                            | Funcao                                                                           |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `apps/api/src/company/company-router.ts`                           | Endpoints autenticados da empresa.                                               |
-| `apps/api/src/company/company-account-service.ts`                  | Status da conta empresarial.                                                     |
-| `apps/api/src/company/company-account-repository.ts`               | Interface da conta empresarial.                                                  |
-| `apps/api/src/company/drizzle-company-account-repository.ts`       | Persistencia da conta empresarial.                                               |
-| `apps/api/src/company/company-quote-request-service.ts`            | Dashboard, lista, detalhe, revisao, aceite para proposta e recusa.               |
-| `apps/api/src/company/company-quote-request-repository.ts`         | Interface de solicitacoes da empresa.                                            |
-| `apps/api/src/company/drizzle-company-quote-request-repository.ts` | Persistencia de solicitacoes, revisoes, eventos e calculos.                      |
-| `apps/api/src/company/company-proposal-service.ts`                 | Criacao/envio de proposta versionada.                                            |
-| `apps/api/src/company/company-proposal-repository.ts`              | Interface de propostas.                                                          |
-| `apps/api/src/company/drizzle-company-proposal-repository.ts`      | Persistencia de propostas, versoes, itens e idempotencia.                        |
-| `apps/api/src/company/company-appointment-service.ts`              | Agendamento, cancelamento, reagendamento, conclusao e acoes publicas de cliente. |
-| `apps/api/src/company/company-appointment-repository.ts`           | Interface de agendamento.                                                        |
-| `apps/api/src/company/drizzle-company-appointment-repository.ts`   | Persistencia de agendamento e historico.                                         |
-| `apps/api/src/company/*-errors.ts`                                 | Erros especificos por modulo.                                                    |
+| Caminho                                                            | Funcao                                                                                              |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `apps/api/src/company/company-router.ts`                           | Endpoints autenticados da empresa.                                                                  |
+| `apps/api/src/company/company-account-service.ts`                  | Status da conta empresarial.                                                                        |
+| `apps/api/src/company/company-account-repository.ts`               | Interface da conta empresarial.                                                                     |
+| `apps/api/src/company/drizzle-company-account-repository.ts`       | Persistencia da conta empresarial.                                                                  |
+| `apps/api/src/company/company-quote-request-service.ts`            | Dashboard, lista, detalhe, revisao, aceite para proposta e recusa.                                  |
+| `apps/api/src/company/company-quote-request-repository.ts`         | Interface de solicitacoes da empresa.                                                               |
+| `apps/api/src/company/drizzle-company-quote-request-repository.ts` | Persistencia de solicitacoes, revisoes, eventos e calculos.                                         |
+| `apps/api/src/company/company-proposal-service.ts`                 | Criacao/envio de proposta versionada.                                                               |
+| `apps/api/src/company/company-proposal-repository.ts`              | Interface de propostas.                                                                             |
+| `apps/api/src/company/drizzle-company-proposal-repository.ts`      | Persistencia de propostas, versoes, itens e idempotencia.                                           |
+| `apps/api/src/company/company-appointment-service.ts`              | Agendamento, cancelamento, reagendamento, conclusao, servico realizado e acoes publicas de cliente. |
+| `apps/api/src/company/company-appointment-repository.ts`           | Interface de agendamento.                                                                           |
+| `apps/api/src/company/drizzle-company-appointment-repository.ts`   | Persistencia de agendamento e historico.                                                            |
+| `apps/api/src/company/*-errors.ts`                                 | Erros especificos por modulo.                                                                       |
 
 ### Backend: calculo e notificacoes
 
-| Caminho                                                    | Funcao                                                                              |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `apps/api/src/quote-requests/quote-request-calculation.ts` | Converte dados do rascunho/revisao para o motor de dominio e cria resumo por item.  |
-| `apps/api/src/notifications/email-adapter.ts`              | Interface de e-mail e adapter `stub` para verificacao, ativacao, confirmacao e OTP. |
+| Caminho                                                    | Funcao                                                                                                    |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/quote-requests/quote-request-calculation.ts` | Converte dados do rascunho/revisao para o motor de dominio e cria resumo por item.                        |
+| `apps/api/src/notifications/email-adapter.ts`              | Interface de e-mail e adapter `stub` para verificacao, ativacao, confirmacao, OTP e convite de avaliacao. |
 
 ### Packages compartilhados
 
@@ -611,32 +694,35 @@ interface inteira. As telas agora estao separadas por area em `pages/`.
 | `packages/shared/src/auth.ts`           | Schemas/tipos de usuario, empresa, login, cadastro e refresh.       |
 | `packages/shared/src/admin.ts`          | Contratos Admin.                                                    |
 | `packages/shared/src/company.ts`        | Status da conta empresarial.                                        |
+| `packages/shared/src/customer.ts`       | Contratos da area autenticada do cliente e favoritos.               |
 | `packages/shared/src/public.ts`         | Categorias, busca e perfil publico.                                 |
 | `packages/shared/src/templates.ts`      | Templates, campos, opcoes, configuracoes e simulacao.               |
 | `packages/shared/src/pricing.ts`        | Regras de preco, medidas, calculo e snapshots.                      |
 | `packages/shared/src/quote-requests.ts` | Rascunho, solicitacao, estimativa, tracking, revisao e recuperacao. |
 | `packages/shared/src/proposals.ts`      | Propostas, versoes, itens e eventos.                                |
 | `packages/shared/src/appointments.ts`   | Agendamentos e acoes de empresa/cliente.                            |
+| `packages/shared/src/reviews.ts`        | Status de servico, avaliacoes publicas e moderacao Admin.           |
 | `packages/shared/src/constants.ts`      | Defaults e headers compartilhados.                                  |
 | `packages/shared/src/env.ts`            | Schema das variaveis de ambiente.                                   |
 | `packages/shared/src/contracts.ts`      | Contratos de health/readiness.                                      |
 
 ### Regras puras de dominio
 
-| Caminho                                            | Funcao                                                 |
-| -------------------------------------------------- | ------------------------------------------------------ |
-| `packages/domain/src/company-lifecycle.ts`         | Ativacao/suspensao/publicacao de empresa.              |
-| `packages/domain/src/configuration-lifecycle.ts`   | Rascunho publicado/imutavel e condicoes de campos.     |
-| `packages/domain/src/calculation-engine.ts`        | Motor deterministico de calculo.                       |
-| `packages/domain/src/quote-request-calculation.ts` | Calculo agregado por itens de solicitacao.             |
-| `packages/domain/src/quote-request-lifecycle.ts`   | Estados e transicoes de solicitacao.                   |
-| `packages/domain/src/proposal-lifecycle.ts`        | Estados de proposta, validade e valor final.           |
-| `packages/domain/src/appointment-lifecycle.ts`     | Estados, modos e restricoes de agendamento.            |
-| `packages/domain/src/money.ts`                     | Conversao e formatacao segura de dinheiro em centavos. |
-| `packages/domain/src/measurements.ts`              | Normalizacao de medidas.                               |
-| `packages/domain/src/geo.ts`                       | Distancia e raio de atendimento.                       |
-| `packages/domain/src/idempotency.ts`               | Validacao de UUID para idempotencia.                   |
-| `packages/domain/src/timezone.ts`                  | Timezone padrao e validacao.                           |
+| Caminho                                            | Funcao                                                     |
+| -------------------------------------------------- | ---------------------------------------------------------- |
+| `packages/domain/src/company-lifecycle.ts`         | Ativacao/suspensao/publicacao de empresa.                  |
+| `packages/domain/src/configuration-lifecycle.ts`   | Rascunho publicado/imutavel e condicoes de campos.         |
+| `packages/domain/src/calculation-engine.ts`        | Motor deterministico de calculo.                           |
+| `packages/domain/src/quote-request-calculation.ts` | Calculo agregado por itens de solicitacao.                 |
+| `packages/domain/src/quote-request-lifecycle.ts`   | Estados e transicoes de solicitacao.                       |
+| `packages/domain/src/proposal-lifecycle.ts`        | Estados de proposta, validade e valor final.               |
+| `packages/domain/src/appointment-lifecycle.ts`     | Estados, modos e restricoes de agendamento.                |
+| `packages/domain/src/service-lifecycle.ts`         | Estados de servico realizado e elegibilidade de avaliacao. |
+| `packages/domain/src/money.ts`                     | Conversao e formatacao segura de dinheiro em centavos.     |
+| `packages/domain/src/measurements.ts`              | Normalizacao de medidas.                                   |
+| `packages/domain/src/geo.ts`                       | Distancia e raio de atendimento.                           |
+| `packages/domain/src/idempotency.ts`               | Validacao de UUID para idempotencia.                       |
+| `packages/domain/src/timezone.ts`                  | Timezone padrao e validacao.                               |
 
 ### Banco de dados
 
@@ -667,7 +753,8 @@ Grupos de tabelas atuais:
 - revisao: `quote_request_answer_revisions`, `quote_request_events`;
 - propostas: `quotes`, `quote_versions`, `quote_version_items`,
   `quote_version_events`;
-- agendamentos: `appointments`, `appointment_history`;
+- agendamentos e servico: `appointments`, `appointment_history`;
+- avaliacoes: `reviews`;
 - comunicacao: `recovery_codes`, `notifications`.
 
 Resumo das migrations:
@@ -685,6 +772,9 @@ Resumo das migrations:
 | `0008_classy_millenium_guard.sql`     | Propostas, versoes, itens e eventos.                                         |
 | `0009_white_wilson_fisk.sql`          | Agendamentos e historico.                                                    |
 | `0010_overjoyed_storm.sql`            | Recuperacao publica e notificacoes internas.                                 |
+| `0011_skinny_namor.sql`               | Aceite formal, recusa formal e documentos legais iniciais de proposta.       |
+| `0012_stiff_prima.sql`                | Status de servico e avaliacoes.                                              |
+| `0013_needy_frightful_four.sql`       | Favoritos de empresas por cliente.                                           |
 
 ### Testes
 
@@ -695,7 +785,7 @@ Resumo das migrations:
 | `apps/api/src/test/*`           | Repositorios em memoria para testes da API.                                                     |
 | `tests/e2e/sprint4.spec.ts`     | E2E Playwright basico de home, cadastro e admin.                                                |
 
-Atencao: ainda nao existem testes E2E completos cobrindo Sprints 10 a 14 de ponta
+Atencao: ainda nao existem testes E2E completos cobrindo Sprints 10 a 17 de ponta
 a ponta no navegador. A cobertura principal dessas sprints esta em testes de
 dominio/API.
 
@@ -716,9 +806,11 @@ dominio/API.
 - `POST /api/public/quote-requests/drafts/:draftToken/submit`
 - `GET /api/public/tracking/:token`
 - `GET /api/public/tracking/:token/proposal`
+- `GET /api/public/tracking/:token/proposal/pdf`
 - `POST /api/public/tracking/:token/proposal/accept`
 - `POST /api/public/tracking/:token/proposal/reject`
 - `POST /api/public/tracking/:token/appointment`
+- `POST /api/public/reviews`
 - `POST /api/public/recovery/request`
 - `POST /api/public/recovery/verify`
 
@@ -732,6 +824,13 @@ dominio/API.
 - `POST /api/auth/verify-email`
 - `POST /api/auth/forgot-password` responde 501 ate provedor de e-mail.
 - `POST /api/auth/reset-password` responde 501 ate provedor de e-mail.
+
+### Cliente
+
+- `GET /api/customer/me`
+- `POST /api/customer/link-visitor-requests`
+- `POST /api/customer/favorites`
+- `DELETE /api/customer/favorites/:companyId`
 
 ### Empresa
 
@@ -761,34 +860,33 @@ dominio/API.
 - `PATCH /api/admin/company-configurations/:configurationId`
 - `POST /api/admin/company-configurations/:configurationId/simulate`
 - `POST /api/admin/company-configurations/:configurationId/publish`
+- `PATCH /api/admin/reviews/:reviewId/moderation`
 
 ## Telas implementadas
 
-| Rota                         | Arquivo                                | Status        |
-| ---------------------------- | -------------------------------------- | ------------- |
-| `/`                          | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/onboarding`                | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/empresas`                  | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/empresa/:slug`             | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/empresa/:slug/orcamento`   | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/acompanhar/:token`         | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/recuperar`                 | `apps/web/src/pages/public-pages.tsx`  | Implementada. |
-| `/login`                     | `apps/web/src/pages/auth-pages.tsx`    | Implementada. |
-| `/cadastro/empresa`          | `apps/web/src/pages/auth-pages.tsx`    | Implementada. |
-| `/app`                       | `apps/web/src/pages/company-pages.tsx` | Implementada. |
-| `/app/pendente`              | `apps/web/src/pages/company-pages.tsx` | Implementada. |
-| `/admin`                     | `apps/web/src/pages/admin-pages.tsx`   | Implementada. |
-| `/admin/empresas/:companyId` | `apps/web/src/pages/admin-pages.tsx`   | Implementada. |
+| Rota                         | Arquivo                                 | Status        |
+| ---------------------------- | --------------------------------------- | ------------- |
+| `/`                          | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/onboarding`                | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/empresas`                  | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/empresa/:slug`             | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/empresa/:slug/orcamento`   | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/acompanhar/:token`         | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/recuperar`                 | `apps/web/src/pages/public-pages.tsx`   | Implementada. |
+| `/login`                     | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
+| `/cadastro`                  | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
+| `/cadastro/cliente`          | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
+| `/cadastro/empresa`          | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
+| `/cliente`                   | `apps/web/src/pages/customer-pages.tsx` | Implementada. |
+| `/app`                       | `apps/web/src/pages/company-pages.tsx`  | Implementada. |
+| `/app/pendente`              | `apps/web/src/pages/company-pages.tsx`  | Implementada. |
+| `/admin`                     | `apps/web/src/pages/admin-pages.tsx`    | Implementada. |
+| `/admin/empresas/:companyId` | `apps/web/src/pages/admin-pages.tsx`    | Implementada. |
 
 Rotas ainda previstas, mas nao implementadas como telas completas:
 
-- `/cliente`;
-- area completa do cliente;
-- favoritos;
 - metricas;
-- auditoria visual completa;
-- moderacao de avaliacoes;
-- telas de aceite/rejeicao formal e PDF.
+- auditoria visual completa.
 
 ## Estados principais
 
@@ -858,6 +956,24 @@ Transicoes ficam em `packages/domain/src/proposal-lifecycle.ts`.
 
 Transicoes ficam em `packages/domain/src/appointment-lifecycle.ts`.
 
+### Servico
+
+- `not_started`;
+- `scheduled`;
+- `in_progress`;
+- `service_realized`;
+- `closed`.
+
+Transicoes ficam em `packages/domain/src/service-lifecycle.ts`.
+
+### Avaliacao
+
+- `visible`;
+- `hidden`.
+
+A moderacao tambem pode marcar a avaliacao como suspeita sem necessariamente
+oculta-la.
+
 ## Regras importantes que ja aparecem no codigo
 
 - O frontend consome somente a API.
@@ -873,9 +989,11 @@ Transicoes ficam em `packages/domain/src/appointment-lifecycle.ts`.
   termos, regras e metadados historicos.
 - Tokens brutos de rascunho, acompanhamento e recuperacao nao sao salvos em
   texto puro; o banco armazena hashes.
-- Acoes criticas usam idempotencia onde ja implementado: submissao publica e
-  envio de proposta.
+- Acoes criticas usam idempotencia onde ja implementado: submissao publica,
+  envio de proposta, aceite publico e avaliacao publica.
 - Configuracoes publicadas e versoes comerciais sao preservadas por snapshot.
+- Avaliacoes so sao permitidas para atendimentos realizados e sem avaliacao
+  anterior para o mesmo agendamento.
 - Arquivos publicos ainda sao metadados; armazenamento binario real esta
   pendente.
 
@@ -936,39 +1054,33 @@ Por padrao:
 - Validar precos, margens, nomes de campos e regras com empresa real de limpeza
   de estofados.
 - Definir textos legais finais.
-- Definir politica de aceite/rejeicao de proposta.
-- Definir fluxo completo de area do cliente.
 - Definir estrategia comercial para vidracaria e marmoraria apos MVP.
 
 ### Sprint 15
 
-- Implementado parcialmente: aceite formal da proposta, recusa formal, rotas
+- Concluida tecnicamente: aceite formal da proposta, recusa formal, rotas
   publicas de proposta no tracking, registro de IP/user agent, versoes legais
-  iniciais, idempotencia, eventos, notificacao interna e frontend publico.
-- Gerar PDF por versao da proposta.
-- Exibir PDF/versao publica da proposta.
-- Criar template visual do PDF.
-- Incluir codigo da solicitacao, codigo da proposta, versao, itens, valor final,
-  validade, termos e agendamento quando existir.
-- Criar rota para visualizar/baixar PDF.
-- Conectar botao de PDF no frontend.
-- Validar se o PDF corresponde exatamente a versao da proposta.
+  iniciais, idempotencia, eventos, notificacao interna, frontend publico, PDF por
+  versao gerado sob demanda, rota publica de PDF e botao de PDF no tracking.
+- Pendente operacional: textos juridicos definitivos e armazenamento privado
+  definitivo para arquivos quando essa decisao for tomada.
 
 ### Sprint 16
 
-- Marcar servico realizado.
-- Convidar cliente para avaliar.
-- Criar avaliacoes elegiveis e sem duplicacao.
-- Exibir media no perfil publico.
-- Moderar avaliacoes.
+- Concluida tecnicamente: status de servico realizado, convite por adapter de
+  e-mail `stub`, avaliacao publica elegivel, bloqueio de duplicidade, exibicao
+  no perfil publico, media atualizada e moderacao Admin.
+- Pendente operacional: provedor real de e-mail e criterios operacionais finais
+  de moderacao, caso a Velaris queira politicas mais detalhadas.
 
 ### Sprint 17
 
-- Area autenticada do cliente.
-- Historico de solicitacoes/propostas/agendamentos.
-- Favoritos e empresas recentes.
-- Vinculacao de solicitacoes feitas como visitante a uma conta criada depois.
-- Notificacoes para cliente.
+- Concluida tecnicamente: area autenticada do cliente, historico de
+  solicitacoes/propostas/agendamentos, favoritos, empresas recentes, vinculacao
+  de solicitacoes feitas como visitante a uma conta criada depois e notificacoes
+  para cliente.
+- Pendente operacional: refinamento futuro da descoberta por geolocalizacao
+  completa e criterios finais de UX apos validacao com usuarios reais.
 
 ### Sprint 18
 
@@ -1004,12 +1116,13 @@ Por padrao:
 
 ## Limitacoes atuais importantes
 
-- `EMAIL_PROVIDER=stub`: e-mails nao sao enviados de verdade.
+- `EMAIL_PROVIDER=stub`: e-mails nao sao enviados de verdade, incluindo OTPs e
+  convites de avaliacao.
 - `FILE_STORAGE_PROVIDER=stub`: arquivos ainda sao apenas metadados.
 - A recuperacao publica depende de e-mail cadastrado na solicitacao; sem e-mail,
   o OTP automatico nao pode ser entregue.
-- O tracking publico ja permite aceitar/recusar proposta, mas ainda nao gera PDF
-  por versao.
+- O tracking publico ja permite aceitar/recusar proposta, abrir o PDF gerado por
+  versao e avaliar quando o servico estiver realizado.
 - `awaiting_information` existe como status, mas ainda nao possui fluxo publico
   de complemento.
 - `notifications` ja existe no banco, mas nao ha central visual de notificacoes.
@@ -1024,6 +1137,8 @@ Por padrao:
 
 - Quero mudar uma tela publica: `apps/web/src/pages/public-pages.tsx`.
 - Quero mudar tela de login/cadastro: `apps/web/src/pages/auth-pages.tsx`.
+- Quero mudar area do cliente: `apps/web/src/pages/customer-pages.tsx` e
+  `apps/api/src/customer`.
 - Quero mudar painel da empresa: `apps/web/src/pages/company-pages.tsx`.
 - Quero mudar Admin: `apps/web/src/pages/admin-pages.tsx`.
 - Quero mudar estilos/componentes comuns: `apps/web/src/components`.
@@ -1031,8 +1146,11 @@ Por padrao:
 - Quero mudar formatacao de datas/dinheiro: `apps/web/src/lib/formatters.ts`.
 - Quero mudar contrato de API: `packages/shared/src/*`.
 - Quero mudar regra de estado: `packages/domain/src/*-lifecycle.ts`.
+- Quero mudar elegibilidade de avaliacao/servico realizado:
+  `packages/domain/src/service-lifecycle.ts`.
 - Quero mudar calculo: `packages/domain/src/calculation-engine.ts` e
   `packages/domain/src/quote-request-calculation.ts`.
+- Quero mudar contratos de avaliacao: `packages/shared/src/reviews.ts`.
 - Quero mudar persistencia: repositorio Drizzle correspondente em `apps/api/src`.
 - Quero mudar schema de banco: `database/schemas/index.ts` e gerar migration.
 - Quero mudar endpoints: router correspondente em `apps/api/src/*/*-router.ts`.
@@ -1043,16 +1161,16 @@ Por padrao:
 
 ## Estado recomendado para a proxima etapa
 
-A proxima etapa funcional recomendada e concluir a parte de PDF da Sprint 15.
-Antes dela, vale revisar:
+A proxima etapa funcional recomendada e Sprint 18: metricas e administracao
+operacional. Antes dela, vale revisar:
 
-- conteudo esperado do PDF;
-- quais textos/termos entram no PDF enquanto os textos juridicos definitivos
-  seguem pendentes;
-- se o PDF sera gerado sob demanda ou persistido;
-- como o PDF sera exposto na rota publica sem vazar dados para terceiros;
-- como validar que o PDF corresponde exatamente a versao aceita/enviada;
-- quais testes E2E minimos devem cobrir visualizacao/download do PDF.
+- quais metricas entram primeiro no painel da empresa;
+- quais metricas entram primeiro no Admin Velaris;
+- quais filtros por periodo, nicho e empresa sao indispensaveis;
+- como apresentar conversao, tempo de resposta, valores e ranking sem prometer
+  analytics externo definitivo;
+- se solicitacoes de alteracao de preco entram no primeiro recorte da Sprint 18
+  ou ficam apenas preparadas.
 
 Nao e recomendado iniciar vidracaria ou marmoraria antes da validacao comercial
 do MVP piloto de limpeza de estofados.

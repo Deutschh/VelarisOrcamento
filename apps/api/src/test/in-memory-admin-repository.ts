@@ -1,8 +1,9 @@
-import type { AdminCompanyListQuery } from "@velaris/shared";
+import type { AdminCompanyListQuery, AdminReview } from "@velaris/shared";
 import type { CompanyPublicProfileSettings } from "@velaris/shared";
 import type {
   AdminRepository,
   CreateInternalNoteInput,
+  ModerateReviewInput,
   PersistCompanyActionInput,
   PersistedAdminAuditLog,
   PersistedAdminCompany,
@@ -13,6 +14,7 @@ import type {
 export class InMemoryAdminRepository implements AdminRepository {
   readonly companies = new Map<string, PersistedAdminCompany>();
   readonly publicProfiles = new Map<string, CompanyPublicProfileSettings>();
+  readonly reviews = new Map<string, AdminReview>();
   readonly notes: PersistedAdminCompanyNote[] = [];
   readonly auditLogs: PersistedAdminAuditLog[] = [];
 
@@ -40,6 +42,44 @@ export class InMemoryAdminRepository implements AdminRepository {
 
   async listCompanyAuditLogs(companyId: string): Promise<PersistedAdminAuditLog[]> {
     return this.auditLogs.filter((auditLog) => auditLog.id.startsWith(`${companyId}:`));
+  }
+
+  async listCompanyReviews(companyId: string): Promise<AdminReview[]> {
+    return Array.from(this.reviews.values()).filter(
+      (review) => review.companyId === companyId,
+    );
+  }
+
+  async moderateReview(input: ModerateReviewInput): Promise<AdminReview | null> {
+    const current = this.reviews.get(input.reviewId);
+
+    if (!current) {
+      return null;
+    }
+
+    const now = new Date("2026-01-01T12:00:00.000Z").toISOString();
+    const next: AdminReview = {
+      ...current,
+      status:
+        input.input.action === "hide"
+          ? "hidden"
+          : input.input.action === "restore"
+            ? "visible"
+            : current.status,
+      isSuspicious:
+        input.input.action === "flag_suspicious"
+          ? true
+          : input.input.action === "clear_suspicious"
+            ? false
+            : current.isSuspicious,
+      moderationReason: input.input.reason ?? null,
+      moderatedByUserId: input.actorUserId,
+      moderatedAt: now,
+      updatedAt: now,
+    };
+
+    this.reviews.set(next.id, next);
+    return next;
   }
 
   async persistCompanyAction(input: PersistCompanyActionInput): Promise<void> {

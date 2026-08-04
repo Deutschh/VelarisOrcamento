@@ -12,6 +12,12 @@ export class CompanyNotFoundError extends AppError {
   }
 }
 
+export class ReviewNotFoundError extends AppError {
+  constructor() {
+    super("Review not found.", 404, "REVIEW_NOT_FOUND");
+  }
+}
+
 export class CompanyLifecycleRuleError extends AppError {
   constructor(code: string, message: string) {
     super(message, 409, code);
