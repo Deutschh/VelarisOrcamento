@@ -1,9 +1,7 @@
 import type {
   CompanyAppointment,
   CompanyProposalSummary,
-  PublicProposalAcceptance,
   PublicProposalDetail,
-  PublicProposalVersion,
   QuoteDraftData,
   QuoteDraftFileSummary,
   QuoteRequestStatus,

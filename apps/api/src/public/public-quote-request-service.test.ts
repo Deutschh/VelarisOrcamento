@@ -17,7 +17,7 @@ import type {
 import { PublicQuoteRequestService } from "./public-quote-request-service.js";
 
 class InMemoryPublicCompanyRepository implements PublicCompanyRepository {
-  constructor(private readonly companies: PersistedPublicCompany[]) { }
+  constructor(private readonly companies: PersistedPublicCompany[]) {}
 
   async listPublishedCompanies() {
     return this.companies;
@@ -54,9 +54,9 @@ async function createService(options: { now?: () => Date } = {}) {
   const quoteRequestRepository = new InMemoryQuoteRequestRepository();
   const recoveryMessages: RecoveryOtpMessage[] = [];
   const emailAdapter: EmailAdapter = {
-    async sendEmailVerification() { },
-    async sendCompanyActivation() { },
-    async sendQuoteRequestConfirmation() { },
+    async sendEmailVerification() {},
+    async sendCompanyActivation() {},
+    async sendQuoteRequestConfirmation() {},
     async sendRecoveryOtp(message) {
       recoveryMessages.push(message);
     },
@@ -385,7 +385,6 @@ describe("PublicQuoteRequestService", () => {
       code: "PUBLIC_PROPOSAL_ALREADY_DECIDED",
     });
   });
-
 });
 
 async function submitValidDraft(service: PublicQuoteRequestService) {
@@ -417,7 +416,6 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
 
   return { publicToken, response };
 }
-
 
 async function submitDraftWithSentProposal(
   service: PublicQuoteRequestService,

@@ -261,10 +261,11 @@ export function OnboardingPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {steps.map((step, index) => (
             <button
-              className={`rounded-md border p-4 text-left text-sm ${index === stepIndex
-                ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-100"
-                : "border-white/10 bg-white/[0.03] text-white/55"
-                }`}
+              className={`rounded-md border p-4 text-left text-sm ${
+                index === stepIndex
+                  ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-100"
+                  : "border-white/10 bg-white/[0.03] text-white/55"
+              }`}
               key={step.title}
               type="button"
               onClick={() => setStepIndex(index)}
@@ -301,7 +302,7 @@ export function CompaniesSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [category, setCategory] = useState<PublicCompanyCategoryCode>(
     (searchParams.get("category") as PublicCompanyCategoryCode | null) ??
-    "cleaning_upholstery",
+      "cleaning_upholstery",
   );
   const [location, setLocation] = useState(searchParams.get("location") ?? "");
   const companiesQuery = useQuery({
@@ -563,9 +564,9 @@ export function QuoteRequestPage() {
       setDraftData((current) =>
         current
           ? {
-            ...current,
-            currentStep: "submitted",
-          }
+              ...current,
+              currentStep: "submitted",
+            }
           : current,
       );
       if (draftEnvelope) {
@@ -584,9 +585,9 @@ export function QuoteRequestPage() {
     setDraftEnvelope((current) =>
       current
         ? {
-          ...current,
-          draft,
-        }
+            ...current,
+            draft,
+          }
         : current,
     );
     setDraftData(draft.data);
@@ -609,9 +610,9 @@ export function QuoteRequestPage() {
       items: current.items.map((item) =>
         item.id === itemId
           ? {
-            ...item,
-            ...patch,
-          }
+              ...item,
+              ...patch,
+            }
           : item,
       ),
     }));
@@ -770,10 +771,11 @@ export function QuoteRequestPage() {
                 <div className="mt-6 grid gap-2 sm:grid-cols-4">
                   {quoteStepItems.map((step) => (
                     <button
-                      className={`rounded-md border px-3 py-2 text-left text-sm ${draftData.currentStep === step.code
-                        ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
-                        : "border-white/10 bg-[#15171d] text-white/60 hover:bg-white/10"
-                        }`}
+                      className={`rounded-md border px-3 py-2 text-left text-sm ${
+                        draftData.currentStep === step.code
+                          ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
+                          : "border-white/10 bg-[#15171d] text-white/60 hover:bg-white/10"
+                      }`}
                       key={step.code}
                       type="button"
                       onClick={() =>
@@ -1368,10 +1370,10 @@ export function PublicTrackingPage() {
                   value={
                     tracking.quoteRequest.estimate
                       ? `${formatMoneyCents(
-                        tracking.quoteRequest.estimate.estimateMinCents,
-                      )} a ${formatMoneyCents(
-                        tracking.quoteRequest.estimate.estimateMaxCents,
-                      )}`
+                          tracking.quoteRequest.estimate.estimateMinCents,
+                        )} a ${formatMoneyCents(
+                          tracking.quoteRequest.estimate.estimateMaxCents,
+                        )}`
                       : "Pendente"
                   }
                 />
@@ -1384,14 +1386,14 @@ export function PublicTrackingPage() {
                   actionError={
                     acceptProposalMutation.error
                       ? errorMessage(
-                        acceptProposalMutation.error,
-                        "Nao foi possivel aceitar a proposta.",
-                      )
+                          acceptProposalMutation.error,
+                          "Nao foi possivel aceitar a proposta.",
+                        )
                       : rejectProposalMutation.error
                         ? errorMessage(
-                          rejectProposalMutation.error,
-                          "Nao foi possivel recusar a proposta.",
-                        )
+                            rejectProposalMutation.error,
+                            "Nao foi possivel recusar a proposta.",
+                          )
                         : null
                   }
                   isAccepting={acceptProposalMutation.isPending}
@@ -1411,9 +1413,9 @@ export function PublicTrackingPage() {
                   error={
                     appointmentMutation.error
                       ? errorMessage(
-                        appointmentMutation.error,
-                        "Nao foi possivel atualizar o horario.",
-                      )
+                          appointmentMutation.error,
+                          "Nao foi possivel atualizar o horario.",
+                        )
                       : null
                   }
                   isLoading={appointmentMutation.isPending}
@@ -1641,9 +1643,7 @@ function PublicProposalPanel({
                     <option value="price">Valor</option>
                     <option value="deadline">Prazo</option>
                     <option value="schedule">Horario</option>
-                    <option value="hired_another_company">
-                      Contratei outra empresa
-                    </option>
+                    <option value="hired_another_company">Contratei outra empresa</option>
                     <option value="gave_up">Desisti</option>
                     <option value="other">Outro</option>
                   </select>
@@ -1826,9 +1826,9 @@ export function PublicRecoveryPage() {
               message={
                 requestMutation.error
                   ? errorMessage(
-                    requestMutation.error,
-                    "Nao foi possivel iniciar a recuperacao.",
-                  )
+                      requestMutation.error,
+                      "Nao foi possivel iniciar a recuperacao.",
+                    )
                   : null
               }
             />
@@ -1857,9 +1857,9 @@ export function PublicRecoveryPage() {
                 message={
                   verifyMutation.error
                     ? errorMessage(
-                      verifyMutation.error,
-                      "Nao foi possivel validar o codigo.",
-                    )
+                        verifyMutation.error,
+                        "Nao foi possivel validar o codigo.",
+                      )
                     : null
                 }
               />
@@ -2002,11 +2002,11 @@ const quoteStepItems: Array<{
   code: QuoteDraftData["currentStep"];
   label: string;
 }> = [
-    { code: "items", label: "Itens" },
-    { code: "details", label: "Atendimento" },
-    { code: "contact", label: "Contato" },
-    { code: "review", label: "Revisao" },
-  ];
+  { code: "items", label: "Itens" },
+  { code: "details", label: "Atendimento" },
+  { code: "contact", label: "Contato" },
+  { code: "review", label: "Revisao" },
+];
 
 function CompanyGrid({ companies }: { companies: PublicCompanySummary[] }) {
   if (companies.length === 0) {

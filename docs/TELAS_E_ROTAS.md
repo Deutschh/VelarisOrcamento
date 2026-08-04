@@ -157,9 +157,9 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 - `POST /api/public/tracking/:token/appointment`. Implementado Sprint 14 para confirmar horario ou pedir outro horario.
 - `POST /api/public/recovery/request`. Implementado Sprint 14.
 - `POST /api/public/recovery/verify`. Implementado Sprint 14.
-- `POST /api/public/proposals/:token/accept`. Previsto Sprint 15.
-- `POST /api/public/proposals/:token/reject`. Previsto Sprint 15.
-- `POST /api/public/proposals/:token/reschedule`. Previsto Sprint 15 como acao ligada ao fluxo formal de proposta; o pedido publico de outro horario ja existe via tracking na Sprint 14.
+- `GET /api/public/tracking/:token/proposal`. Implementado parcialmente na Sprint 15.
+- `POST /api/public/tracking/:token/proposal/accept`. Implementado parcialmente na Sprint 15 com `Idempotency-Key`.
+- `POST /api/public/tracking/:token/proposal/reject`. Implementado parcialmente na Sprint 15 com `Idempotency-Key`.
 - `POST /api/public/reviews`. Previsto Sprint 16.
 
 ### Autenticacao

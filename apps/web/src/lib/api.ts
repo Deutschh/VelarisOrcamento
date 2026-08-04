@@ -58,7 +58,6 @@ export function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-
 export function createIdempotencyHeaders(): HeadersInit {
   return {
     "Idempotency-Key": crypto.randomUUID(),

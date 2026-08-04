@@ -17,7 +17,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 13 concluida tecnicamente: agendamento assistido, tabelas de agendamento/historico, modos configuraveis, timezone da empresa, aviso de conflito sem bloqueio, painel da empresa e testes.
 - Pendencia operacional: validacao comercial com empresa real.
 - Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por OTP de e-mail, `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
-- Proxima etapa recomendada para o MVP piloto: Sprint 15, PDF, aceite e documentos legais.
+- Sprint 15 parcialmente concluida: aceite formal, recusa formal, rotas publicas de proposta no tracking, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna, frontend publico e migration `quote_acceptances`.
+- Proxima etapa recomendada para o MVP piloto: concluir o PDF por versao da proposta na Sprint 15.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -155,6 +156,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 ## Sprint 15 - PDF, aceite e documentos legais
 
 - Requisito confirmado: template PDF, PDF por versao, codigos, validade, itens, agendamento quando existir, termos e versoes, aceite idempotente, IP, user agent, versao da proposta, versoes legais, expiracao e clique duplicado.
+- Implementado parcialmente: tabela `quote_acceptances`, contratos compartilhados de proposta publica, regras de dominio para aceitar/recusar, rotas `GET /api/public/tracking/:token/proposal`, `POST /api/public/tracking/:token/proposal/accept` e `POST /api/public/tracking/:token/proposal/reject`, service publico, repositorios real/em memoria, testes de aceite, frontend publico de detalhe/aceite/recusa e idempotencia no frontend.
+- Pendente para fechar a sprint: template do PDF, geracao do PDF por versao, inclusao de itens/validade/termos/agendamento quando existir, rota de download/visualizacao, conexao do botao de PDF e validacao de correspondencia entre PDF e proposta.
 - Decisao adiada: textos juridicos definitivos.
 - Estimativa da especificacao: 14 a 20 horas.
 

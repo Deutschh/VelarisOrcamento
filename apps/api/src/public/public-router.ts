@@ -1,7 +1,6 @@
 import { Router, type Request } from "express";
 import {
   HTTP_HEADERS,
-  PUBLIC_COMPANY_CATEGORIES,
   createQuoteDraftRequestSchema,
   customerAppointmentActionRequestSchema,
   publicCompanySearchQuerySchema,

@@ -21,7 +21,8 @@
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente, migration e bloqueio de versao aceita.
 - Sprint 13 concluida tecnicamente: agendamento assistido, `appointments`, historico, modos de agendamento, aviso de conflito sem bloqueio, painel da empresa e bloqueio de envio quando o horario e obrigatorio.
 - Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por codigo + contato + OTP por e-mail, substituicao/revogacao de token, link `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
-- Proxima etapa recomendada para o MVP piloto: Sprint 15, PDF, aceite e documentos legais.
+- Sprint 15 parcialmente concluida: aceite formal, recusa formal, rotas publicas de proposta no tracking, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna, frontend publico e migration `quote_acceptances`.
+- Proxima etapa recomendada para o MVP piloto: concluir PDF por versao da proposta na Sprint 15.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Nao iniciar a proxima sprint sem nova autorizacao do usuario.
 - Nao criar arquivos com credenciais.
@@ -150,4 +151,4 @@
 - Sprint 12 cria propostas, versoes e valor final.
 - Sprint 13 cria agendamento assistido.
 - Sprint 14 cria acompanhamento publico, recuperacao e comunicacao inicial.
-- Sprint 15 deve iniciar PDF, aceite e documentos legais somente apos nova autorizacao do usuario.
+- Sprint 15 esta em andamento parcial; concluir PDF, aceite/documentos legais restantes somente apos nova autorizacao do usuario.

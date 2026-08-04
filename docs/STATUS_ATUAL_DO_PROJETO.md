@@ -26,7 +26,8 @@ O projeto e um monorepo TypeScript com um web app React/Vite e uma API
 Express/Node. O banco e PostgreSQL no Neon, acessado somente pelo backend via
 Drizzle ORM. O frontend nunca acessa o banco diretamente.
 
-O produto ja possui implementacao tecnica ate a Sprint 14:
+O produto ja possui implementacao tecnica ate a Sprint 14 e uma parte importante
+da Sprint 15:
 
 - base tecnica do monorepo;
 - autenticacao propria;
@@ -45,12 +46,14 @@ O produto ja possui implementacao tecnica ate a Sprint 14:
 - acompanhamento publico por token;
 - recuperacao publica por OTP de e-mail via adapter `stub`;
 - acoes publicas de horario;
-- notificacoes internas iniciais no banco.
+- notificacoes internas iniciais no banco;
+- aceite e recusa formal de proposta pelo acompanhamento publico;
+- registro auditavel de aceite em `quote_acceptances`.
 
-Ainda nao existe implementacao de Sprint 15 em diante. Os principais blocos
-pendentes sao PDF, aceite/rejeicao formal de proposta pelo cliente, documentos
-legais versionados do aceite, servico realizado, avaliacoes, area completa do
-cliente, metricas, PWA, deploy e refinamentos de producao.
+A Sprint 15 esta parcialmente implementada. Os principais blocos pendentes sao
+PDF da proposta, rota de visualizacao/download do PDF, validacao do PDF contra a
+versao da proposta, textos legais definitivos, servico realizado, avaliacoes,
+area completa do cliente, metricas, PWA, deploy e refinamentos de producao.
 
 Sprints 8 e 9, vidracaria e marmoraria, seguem adiadas por decisao de produto
 ate a validacao do MVP piloto de limpeza de estofados.
@@ -80,10 +83,10 @@ ate a validacao do MVP piloto de limpeza de estofados.
 | Sprint 9  | Template marmoraria                       | Adiado. Deve aguardar validacao do MVP piloto.                                                                                                                                                                                                                     |
 | Sprint 10 | Fluxo publico, rascunho e solicitacao     | Implementado tecnicamente. Rascunho seguro no servidor, multiplos itens, arquivos como metadados, estimativa, submissao idempotente, codigo e token publico existem.                                                                                               |
 | Sprint 11 | Painel da empresa e revisao               | Implementado tecnicamente. Dashboard, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa e historico existem.                                                                                                  |
-| Sprint 12 | Propostas, versoes e valor final          | Implementado tecnicamente. Propostas versionadas, valor final, validade, termos, preview e envio idempotente existem. Aceite publico formal ainda nao existe.                                                                                                      |
+| Sprint 12 | Propostas, versoes e valor final          | Implementado tecnicamente. Propostas versionadas, valor final, validade, termos, preview e envio idempotente existem. O aceite publico formal foi iniciado posteriormente na Sprint 15.                                                                            |
 | Sprint 13 | Agendamento assistido                     | Implementado tecnicamente. Agendamentos, historico, modos, timezone, aviso de conflito, cancelamento, reagendamento pela empresa e conclusao existem.                                                                                                              |
 | Sprint 14 | Acompanhamento, recuperacao e comunicacao | Implementado tecnicamente. Tracking por token, recuperacao por OTP, `wa.me`, acoes publicas de horario e notificacoes internas iniciais existem. E-mail real segue pendente.                                                                                       |
-| Sprint 15 | PDF, aceite e documentos legais           | Nao iniciado. Proxima etapa recomendada.                                                                                                                                                                                                                           |
+| Sprint 15 | PDF, aceite e documentos legais           | Parcialmente implementado. Aceite/recusa formal, idempotencia, versoes legais iniciais, IP/user agent, bloqueio de expirada, eventos e frontend publico existem. PDF por versao ainda falta.                                                                       |
 | Sprint 16 | Servico realizado e avaliacoes            | Nao iniciado.                                                                                                                                                                                                                                                      |
 | Sprint 17 | Area do cliente                           | Nao iniciado. Ha cadastro de cliente na API, mas nao existe area completa do cliente no frontend.                                                                                                                                                                  |
 | Sprint 18 | Metricas e administracao operacional      | Nao iniciado.                                                                                                                                                                                                                                                      |
@@ -114,6 +117,7 @@ ate a validacao do MVP piloto de limpeza de estofados.
 - Proposta final versionada.
 - Envio de proposta idempotente.
 - Agendamento assistido.
+- Aceite/recusa formal da proposta no acompanhamento publico.
 - Recuperacao de acompanhamento por OTP.
 - WhatsApp assistido.
 
@@ -121,8 +125,6 @@ ate a validacao do MVP piloto de limpeza de estofados.
 
 - Validacao comercial real com uma empresa de limpeza de estofados.
 - PDF da proposta.
-- Aceite/rejeicao formal da proposta pelo cliente.
-- Registro juridico do aceite, com IP, user agent e versao dos documentos.
 - Textos legais definitivos.
 - Armazenamento binario privado para fotos/PDF.
 - Provedor real de e-mail.
@@ -713,6 +715,9 @@ dominio/API.
 - `POST /api/public/quote-requests/drafts/:draftToken/estimate`
 - `POST /api/public/quote-requests/drafts/:draftToken/submit`
 - `GET /api/public/tracking/:token`
+- `GET /api/public/tracking/:token/proposal`
+- `POST /api/public/tracking/:token/proposal/accept`
+- `POST /api/public/tracking/:token/proposal/reject`
 - `POST /api/public/tracking/:token/appointment`
 - `POST /api/public/recovery/request`
 - `POST /api/public/recovery/verify`
@@ -937,12 +942,17 @@ Por padrao:
 
 ### Sprint 15
 
+- Implementado parcialmente: aceite formal da proposta, recusa formal, rotas
+  publicas de proposta no tracking, registro de IP/user agent, versoes legais
+  iniciais, idempotencia, eventos, notificacao interna e frontend publico.
 - Gerar PDF por versao da proposta.
 - Exibir PDF/versao publica da proposta.
-- Implementar aceite idempotente.
-- Registrar IP, user agent, versao da proposta e versoes legais.
-- Expirar proposta por validade.
-- Tratar clique duplicado de aceite.
+- Criar template visual do PDF.
+- Incluir codigo da solicitacao, codigo da proposta, versao, itens, valor final,
+  validade, termos e agendamento quando existir.
+- Criar rota para visualizar/baixar PDF.
+- Conectar botao de PDF no frontend.
+- Validar se o PDF corresponde exatamente a versao da proposta.
 
 ### Sprint 16
 
@@ -998,8 +1008,8 @@ Por padrao:
 - `FILE_STORAGE_PROVIDER=stub`: arquivos ainda sao apenas metadados.
 - A recuperacao publica depende de e-mail cadastrado na solicitacao; sem e-mail,
   o OTP automatico nao pode ser entregue.
-- O tracking publico mostra resumo de proposta, mas ainda nao possui aceite ou
-  rejeicao formal.
+- O tracking publico ja permite aceitar/recusar proposta, mas ainda nao gera PDF
+  por versao.
 - `awaiting_information` existe como status, mas ainda nao possui fluxo publico
   de complemento.
 - `notifications` ja existe no banco, mas nao ha central visual de notificacoes.
@@ -1033,17 +1043,16 @@ Por padrao:
 
 ## Estado recomendado para a proxima etapa
 
-A proxima etapa funcional recomendada e Sprint 15: PDF, aceite e documentos
-legais. Antes dela, vale revisar:
+A proxima etapa funcional recomendada e concluir a parte de PDF da Sprint 15.
+Antes dela, vale revisar:
 
-- texto legal minimo que aparecera no aceite;
 - conteudo esperado do PDF;
-- se o aceite sera feito via token publico atual ou novo token especifico de
-  proposta;
-- quais dados de auditoria serao obrigatorios;
-- como o cliente visualizara o valor final e itens da proposta;
-- como tratar proposta expirada;
-- quais testes E2E minimos devem cobrir o aceite.
+- quais textos/termos entram no PDF enquanto os textos juridicos definitivos
+  seguem pendentes;
+- se o PDF sera gerado sob demanda ou persistido;
+- como o PDF sera exposto na rota publica sem vazar dados para terceiros;
+- como validar que o PDF corresponde exatamente a versao aceita/enviada;
+- quais testes E2E minimos devem cobrir visualizacao/download do PDF.
 
 Nao e recomendado iniciar vidracaria ou marmoraria antes da validacao comercial
 do MVP piloto de limpeza de estofados.
