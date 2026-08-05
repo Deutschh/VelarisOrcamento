@@ -52,7 +52,7 @@ export function createAuthRouter(authService: AuthService) {
       const body = loginRequestSchema.parse(request.body);
       const session = await authService.login(body, getRequestContext(request));
 
-      setAuthCookies(response, session);
+      setAuthCookies(response, session, { persistent: body.rememberMe ?? true });
       response.json({ user: session.user });
     }),
   );

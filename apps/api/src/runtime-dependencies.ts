@@ -19,7 +19,12 @@ import { env } from "./config/env.js";
 import { CustomerService } from "./customer/customer-service.js";
 import { DrizzleCustomerRepository } from "./customer/drizzle-customer-repository.js";
 import { createDatabaseClient } from "./db/client.js";
-import { createEmailAdapterFromEnv } from "./notifications/email-adapter.js";
+import {
+  createEmailAdapterFromEnv,
+  stubEmailAdapter,
+} from "./notifications/email-adapter.js";
+import type { EmailAdapter } from "./notifications/email-adapter.js";
+import { logger } from "./lib/logger.js";
 import { DrizzleOperationalMetricsRepository } from "./operational/drizzle-operational-metrics-repository.js";
 import { OperationalMetricsService } from "./operational/operational-metrics-service.js";
 import { DrizzlePublicCompanyRepository } from "./public/drizzle-public-company-repository.js";
@@ -50,7 +55,7 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
   }
 
   const { db } = createDatabaseClient(env.DATABASE_URL);
-  const emailAdapter = createEmailAdapterFromEnv();
+  const emailAdapter = createRuntimeEmailAdapter();
   const tokenService = createTokenServiceFromEnv();
   const publicCompanyRepository = new DrizzlePublicCompanyRepository(db);
   const templateRepository = new DrizzleTemplateRepository(db);
@@ -109,4 +114,16 @@ export function createRuntimeDependenciesFromEnv(): RuntimeDependencies {
       repository: operationalMetricsRepository,
     }),
   };
+}
+
+function createRuntimeEmailAdapter(): EmailAdapter {
+  try {
+    return createEmailAdapterFromEnv();
+  } catch (error) {
+    logger.error(
+      { error },
+      "Email adapter could not be configured; falling back to stub provider.",
+    );
+    return stubEmailAdapter;
+  }
 }

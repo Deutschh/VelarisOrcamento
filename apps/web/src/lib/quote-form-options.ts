@@ -1,4 +1,8 @@
-import type { CompanyFieldConfiguration, SchedulingMode } from "@velaris/shared";
+import type {
+  CompanyFieldConfiguration,
+  QuoteDraftItem,
+  SchedulingMode,
+} from "@velaris/shared";
 
 type SelectOptions = Array<[string, string]>;
 
@@ -33,6 +37,12 @@ export const cleaningSimulationSelectOptions: {
     ["armchair", "Poltrona"],
     ["chair", "Cadeira"],
     ["mattress", "Colchao"],
+    ["headboard", "Cabeceira"],
+    ["puff", "Puff"],
+    ["car_seat", "Banco automotivo"],
+    ["rug", "Tapete"],
+    ["carpet", "Carpete"],
+    ["other", "Outro"],
   ],
   size: [
     ["small", "Pequeno"],
@@ -98,6 +108,32 @@ export function fieldOptions(
   return options.length > 0 ? options : fallback;
 }
 
+export function isQuoteFieldRequired(
+  draft: { service: { fields: CompanyFieldConfiguration[] } },
+  fieldCode: string,
+) {
+  return Boolean(
+    draft.service.fields.find((field) => field.code === fieldCode)?.isRequired,
+  );
+}
+
+export function isQuoteItemFieldVisible(
+  draft: { service: { fields: CompanyFieldConfiguration[] } },
+  fieldCode: string,
+  item: QuoteDraftItem,
+) {
+  const field = draft.service.fields.find((candidate) => candidate.code === fieldCode);
+
+  if (!field?.condition) {
+    return true;
+  }
+
+  return matchesQuoteFieldCondition(
+    field.condition,
+    quoteItemConditionValue(item, field.condition.sourceFieldCode),
+  );
+}
+
 export function parseIntegerInput(value: string) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -106,4 +142,48 @@ export function parseIntegerInput(value: string) {
 export function parseNumberInput(value: string) {
   const parsed = Number(value.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function matchesQuoteFieldCondition(
+  condition: NonNullable<CompanyFieldConfiguration["condition"]>,
+  sourceValue: unknown,
+) {
+  if (condition.operator === "equals") {
+    return valuesMatch(sourceValue, condition.value);
+  }
+
+  if (condition.operator === "not_equals") {
+    return !valuesMatch(sourceValue, condition.value);
+  }
+
+  if (condition.operator === "includes") {
+    return Array.isArray(sourceValue)
+      ? sourceValue.some((item) => valuesMatch(item, condition.value))
+      : false;
+  }
+
+  return true;
+}
+
+function quoteItemConditionValue(item: QuoteDraftItem, fieldCode: string) {
+  const values: Record<string, unknown> = {
+    dirt_level: item.dirtLevel,
+    fabric_type: item.fabricType,
+    has_stains: item.hasStains,
+    item_type: item.itemType,
+    odor: item.odor,
+    pet_hair: item.petHair,
+    pets_present: item.petsPresent,
+    quantity: item.quantity,
+    seats: item.seats,
+    size: item.size,
+    stain_type: item.stainTypes,
+    waterproofing: item.waterproofing,
+  };
+
+  return values[fieldCode];
+}
+
+function valuesMatch(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }

@@ -75,6 +75,7 @@ import {
 import {
   cleaningSimulationSelectOptions,
   fieldOptions,
+  isQuoteItemFieldVisible,
   parseIntegerInput,
   parseNumberInput,
   schedulingModeLabels,
@@ -1039,12 +1040,26 @@ function CompanyReviewItemEditor({
   onUpdate: (patch: Partial<QuoteDraftItem>) => void;
 }) {
   const stainOptions = fieldOptions(quoteRequest, "stain_type", []);
+  const showSeats = isQuoteItemFieldVisible(quoteRequest, "seats", item);
 
   function toggleStainType(value: string, checked: boolean) {
     const next = checked
       ? Array.from(new Set([...item.stainTypes, value]))
       : item.stainTypes.filter((candidate) => candidate !== value);
     onUpdate({ stainTypes: next });
+  }
+
+  function updateItemType(itemType: string) {
+    const nextItem = {
+      ...item,
+      itemType,
+    };
+    const seatsVisible = isQuoteItemFieldVisible(quoteRequest, "seats", nextItem);
+
+    onUpdate({
+      itemType,
+      ...(seatsVisible ? { seats: Math.max(1, item.seats) } : { seats: 0 }),
+    });
   }
 
   return (
@@ -1071,7 +1086,7 @@ function CompanyReviewItemEditor({
             cleaningSimulationSelectOptions.itemType,
           )}
           value={item.itemType}
-          onChange={(itemType) => onUpdate({ itemType })}
+          onChange={updateItemType}
         />
         <TextField
           disabled={disabled}
@@ -1093,13 +1108,17 @@ function CompanyReviewItemEditor({
           value={item.size}
           onChange={(size) => onUpdate({ size })}
         />
-        <TextField
-          disabled={disabled}
-          inputMode="numeric"
-          label="Lugares"
-          value={item.seats}
-          onChange={(event) => onUpdate({ seats: parseIntegerInput(event.target.value) })}
-        />
+        {showSeats ? (
+          <TextField
+            disabled={disabled}
+            inputMode="numeric"
+            label="Lugares"
+            value={item.seats}
+            onChange={(event) =>
+              onUpdate({ seats: parseIntegerInput(event.target.value) })
+            }
+          />
+        ) : null}
         <SelectField
           disabled={disabled}
           label="Tecido"

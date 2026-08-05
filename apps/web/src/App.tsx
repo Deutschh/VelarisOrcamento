@@ -18,6 +18,7 @@ import {
   PublicRecoveryPage,
   PublicTrackingPage,
   QuoteRequestPage,
+  ServiceDiscoveryPage,
 } from "./pages/public-pages.js";
 
 export function App() {
@@ -25,6 +26,7 @@ export function App() {
     <Routes>
       <Route element={<HomePage />} path="/" />
       <Route element={<OnboardingPage />} path="/onboarding" />
+      <Route element={<ServiceDiscoveryPage />} path="/servicos" />
       <Route element={<CompaniesSearchPage />} path="/empresas" />
       <Route element={<PublicCompanyProfilePage />} path="/empresa/:slug" />
       <Route element={<QuoteRequestPage />} path="/empresa/:slug/orcamento" />

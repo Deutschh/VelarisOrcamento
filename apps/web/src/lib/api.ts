@@ -6,6 +6,11 @@ interface ApiErrorBody {
 }
 
 const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+let refreshPromise: Promise<boolean> | null = null;
+
+interface ApiRequestOptions {
+  retryOnUnauthorized?: boolean;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -18,8 +23,30 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(apiUrl(path), {
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  options: ApiRequestOptions = {},
+): Promise<T> {
+  const response = await makeApiFetch(path, init);
+
+  if (
+    response.status === 401 &&
+    options.retryOnUnauthorized !== false &&
+    !isAuthEndpoint(path)
+  ) {
+    const refreshed = await refreshAuthFromCookie();
+
+    if (refreshed) {
+      return handleApiResponse<T>(await makeApiFetch(path, init));
+    }
+  }
+
+  return handleApiResponse<T>(response);
+}
+
+async function makeApiFetch(path: string, init: RequestInit) {
+  return fetch(apiUrl(path), {
     ...init,
     credentials: "include",
     headers: {
@@ -27,7 +54,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       ...init.headers,
     },
   });
+}
 
+async function handleApiResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiErrorBody | null;
     throw new ApiError(
@@ -42,6 +71,24 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   }
 
   return (await response.json()) as T;
+}
+
+export async function refreshAuthFromCookie(): Promise<boolean> {
+  refreshPromise ??= fetch(apiUrl("/api/auth/refresh"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
 }
 
 export function apiUrl(path: string) {
@@ -82,4 +129,8 @@ function normalizeApiBaseUrl(value: unknown) {
 
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function isAuthEndpoint(path: string) {
+  return apiUrl(path).includes("/api/auth/");
 }

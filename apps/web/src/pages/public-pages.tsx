@@ -53,6 +53,7 @@ import {
   Save,
   Search,
   Send,
+  Sparkles,
   Star,
   Trash2,
   Upload,
@@ -62,7 +63,13 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 import { CheckboxField, SelectField } from "../components/form-controls.js";
 import {
@@ -73,6 +80,8 @@ import {
   InfoBlock,
   LoadingLine,
   PrimaryLink,
+  RequiredFieldsLegend,
+  RequiredLabel,
   SecondaryLink,
   SectionTitle,
   SubmitButton,
@@ -102,9 +111,13 @@ import {
 import {
   cleaningSimulationSelectOptions,
   fieldOptions,
+  isQuoteFieldRequired,
+  isQuoteItemFieldVisible,
   parseIntegerInput,
   parseNumberInput,
 } from "../lib/quote-form-options.js";
+import { formatBrazilianPhoneInput } from "../lib/input-formatters.js";
+import { useSession } from "../lib/session.js";
 async function fetchPublicCompanies(input: {
   category?: PublicCompanyCategoryCode;
   location?: string;
@@ -130,6 +143,111 @@ async function fetchPublicCompanies(input: {
 }
 
 export function HomePage() {
+  const session = useSession();
+
+  if (session.status === "loading") {
+    return (
+      <AppShell>
+        <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+          <LoadingLine />
+        </main>
+      </AppShell>
+    );
+  }
+
+  if (session.user?.role === "admin") {
+    return <Navigate replace to="/admin" />;
+  }
+
+  if (session.user?.role === "company") {
+    return <Navigate replace to="/app" />;
+  }
+
+  if (session.user?.role === "customer") {
+    return <Navigate replace to="/servicos" />;
+  }
+
+  return (
+    <AppShell>
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+        <section className="grid min-h-[calc(100vh-132px)] items-center gap-10 lg:grid-cols-[1fr_420px] lg:gap-16">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)] backdrop-blur-xl">
+              <Sparkles className="h-3.5 w-3.5" />
+              Velaris Orçamentos
+            </p>
+
+            <h1 className="mt-7 max-w-4xl font-serif text-[46px] font-normal leading-[0.94] tracking-[-0.055em] text-[var(--color-text-primary)] sm:text-[68px] lg:text-[86px]">
+              Orçamentos de serviços com caminho claro para clientes e empresas.
+            </h1>
+
+            <p className="mt-7 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)] sm:text-lg">
+              Clientes encontram empresas, enviam fotos e acompanham propostas. Empresas
+              recebem solicitações organizadas, revisam dados e conduzem o atendimento em
+              um só lugar.
+            </p>
+
+            <div className="mt-9 flex flex-wrap gap-3">
+              <PrimaryLink icon={Search} to="/login?perfil=cliente">
+                Procurar serviços
+              </PrimaryLink>
+              <SecondaryLink icon={Building2} to="/cadastro/empresa">
+                Cadastrar empresa
+              </SecondaryLink>
+              <SecondaryLink icon={ArrowRight} to="/servicos">
+                Continuar como visitante
+              </SecondaryLink>
+            </div>
+          </div>
+
+          <aside className="relative overflow-hidden rounded-[36px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+            <div className="relative">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                Fluxo inicial
+              </p>
+              <div className="mt-7 space-y-4">
+                {[
+                  [
+                    "01",
+                    "Cliente escolhe o caminho",
+                    "Pode criar conta para ter área do cliente ou seguir como visitante.",
+                  ],
+                  [
+                    "02",
+                    "Pedido nasce com fotos",
+                    "A solicitação chega à empresa com dados e anexos para análise.",
+                  ],
+                  [
+                    "03",
+                    "Empresa revisa e envia proposta",
+                    "O cliente acompanha status, proposta, horário e decisão pelo sistema.",
+                  ],
+                ].map(([number, title, body]) => (
+                  <div
+                    className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5"
+                    key={number}
+                  >
+                    <p className="font-serif text-3xl text-[var(--color-text-muted)]">
+                      {number}
+                    </p>
+                    <h2 className="mt-3 text-sm font-semibold text-[var(--color-text-primary)]">
+                      {title}
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </AppShell>
+  );
+}
+
+export function ServiceDiscoveryPage() {
   const navigate = useNavigate();
   const [location, setLocation] = useState("");
   const [category, setCategory] =
@@ -773,7 +891,10 @@ export function QuoteRequestPage() {
     }
 
     setFormError(null);
-    const validationMessage = validateQuoteSubmissionDraft(draftData);
+    const validationMessage = validateQuoteSubmissionDraft(
+      draftData,
+      draft?.files.length ?? 0,
+    );
 
     if (validationMessage) {
       setFormError(validationMessage);
@@ -782,7 +903,9 @@ export function QuoteRequestPage() {
         currentStep:
           validationMessage === "Informe o endereço do atendimento."
             ? "details"
-            : "contact",
+            : validationMessage === "Anexe pelo menos uma foto ou arquivo do serviço."
+              ? "items"
+              : "contact",
       });
       return;
     }
@@ -893,6 +1016,7 @@ export function QuoteRequestPage() {
                       Você pode salvar, revisar a estimativa e enviar quando tudo estiver
                       claro. O rascunho expira em {formatDate(draft.expiresAt)}.
                     </p>
+                    <RequiredFieldsLegend />
                   </div>
 
                   <SecondaryLink icon={ArrowRight} to={`/empresa/${String(slug)}`}>
@@ -1066,6 +1190,7 @@ export function QuoteRequestPage() {
                     className="md:col-span-2"
                     label="Endereço do atendimento"
                     placeholder="Rua, número, bairro, cidade e algum ponto de referência."
+                    requiredMarker
                     rows={3}
                     value={draftData.address.fullAddress}
                     onChange={(event) =>
@@ -1108,6 +1233,7 @@ export function QuoteRequestPage() {
                   <TextField
                     label="Nome"
                     placeholder="Seu nome"
+                    required
                     value={draftData.contact.name}
                     onChange={(event) =>
                       updateDraftData((current) => ({
@@ -1121,15 +1247,17 @@ export function QuoteRequestPage() {
                   />
 
                   <TextField
+                    inputMode="tel"
                     label="WhatsApp"
                     placeholder="(11) 99999-9999"
+                    required
                     value={draftData.contact.whatsapp}
                     onChange={(event) =>
                       updateDraftData((current) => ({
                         ...current,
                         contact: {
                           ...current.contact,
-                          whatsapp: event.target.value,
+                          whatsapp: formatBrazilianPhoneInput(event.target.value),
                         },
                       }))
                     }
@@ -1306,6 +1434,21 @@ function QuoteItemEditor({
   onRemove: () => void;
   onUpdate: (patch: Partial<QuoteDraftItem>) => void;
 }) {
+  const showSeats = isQuoteItemFieldVisible(draft, "seats", item);
+
+  function updateItemType(itemType: string) {
+    const nextItem = {
+      ...item,
+      itemType,
+    };
+    const seatsVisible = isQuoteItemFieldVisible(draft, "seats", nextItem);
+
+    onUpdate({
+      itemType,
+      ...(seatsVisible ? { seats: Math.max(1, item.seats) } : { seats: 0 }),
+    });
+  }
+
   return (
     <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 shadow-[var(--shadow-soft)]">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -1344,13 +1487,15 @@ function QuoteItemEditor({
             "item_type",
             cleaningSimulationSelectOptions.itemType,
           )}
+          requiredMarker={isQuoteFieldRequired(draft, "item_type")}
           value={item.itemType}
-          onChange={(value) => onUpdate({ itemType: value })}
+          onChange={updateItemType}
         />
 
         <TextField
           inputMode="numeric"
           label="Quantidade idêntica"
+          requiredMarker={isQuoteFieldRequired(draft, "quantity")}
           value={item.quantity}
           onChange={(event) =>
             onUpdate({ quantity: Math.max(1, parseIntegerInput(event.target.value)) })
@@ -1360,16 +1505,22 @@ function QuoteItemEditor({
         <SelectField
           label="Tamanho"
           options={fieldOptions(draft, "size", cleaningSimulationSelectOptions.size)}
+          requiredMarker={isQuoteFieldRequired(draft, "size")}
           value={item.size}
           onChange={(value) => onUpdate({ size: value })}
         />
 
-        <TextField
-          inputMode="numeric"
-          label="Lugares"
-          value={item.seats}
-          onChange={(event) => onUpdate({ seats: parseIntegerInput(event.target.value) })}
-        />
+        {showSeats ? (
+          <TextField
+            inputMode="numeric"
+            label="Lugares"
+            requiredMarker={isQuoteFieldRequired(draft, "seats")}
+            value={item.seats}
+            onChange={(event) =>
+              onUpdate({ seats: parseIntegerInput(event.target.value) })
+            }
+          />
+        ) : null}
 
         <SelectField
           label="Tecido"
@@ -1378,6 +1529,7 @@ function QuoteItemEditor({
             "fabric_type",
             cleaningSimulationSelectOptions.fabricType,
           )}
+          requiredMarker={isQuoteFieldRequired(draft, "fabric_type")}
           value={item.fabricType}
           onChange={(value) => onUpdate({ fabricType: value })}
         />
@@ -1389,6 +1541,7 @@ function QuoteItemEditor({
             "dirt_level",
             cleaningSimulationSelectOptions.dirtLevel,
           )}
+          requiredMarker={isQuoteFieldRequired(draft, "dirt_level")}
           value={item.dirtLevel}
           onChange={(value) => onUpdate({ dirtLevel: value })}
         />
@@ -1427,7 +1580,7 @@ function QuoteItemEditor({
 
         <label className="group inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]">
           <Upload size={16} />
-          Fotos ou PDF
+          <RequiredLabel isRequired>Fotos ou PDF</RequiredLabel>
           <input
             accept="image/jpeg,image/png,image/webp,application/pdf"
             className="hidden"
@@ -2377,7 +2530,7 @@ function requireDraftEnvelope(
   return envelope;
 }
 
-function validateQuoteSubmissionDraft(data: QuoteDraftData) {
+function validateQuoteSubmissionDraft(data: QuoteDraftData, fileCount: number) {
   if (!data.contact.name.trim()) {
     return "Informe o nome para contato.";
   }
@@ -2388,6 +2541,10 @@ function validateQuoteSubmissionDraft(data: QuoteDraftData) {
 
   if (!hasQuoteSubmissionAddress(data)) {
     return "Informe o endereço do atendimento.";
+  }
+
+  if (fileCount === 0) {
+    return "Anexe pelo menos uma foto ou arquivo do serviço.";
   }
 
   return null;

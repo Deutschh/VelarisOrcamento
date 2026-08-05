@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App.js";
+import { SessionProvider } from "./lib/session.js";
 import { registerServiceWorker } from "./pwa.js";
 import "./styles.css";
 
@@ -18,7 +19,9 @@ createRoot(rootElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <SessionProvider>
+          <App />
+        </SessionProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

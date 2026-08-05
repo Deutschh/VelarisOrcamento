@@ -141,7 +141,8 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
 
   try {
     return createRuntimeDependenciesFromEnv();
-  } catch {
+  } catch (error) {
+    logger.error({ error }, "Runtime dependencies could not be created.");
     return {};
   }
 }

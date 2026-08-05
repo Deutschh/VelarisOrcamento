@@ -8,7 +8,7 @@ export function createUnavailableAuthRouter() {
       error: {
         code: "AUTH_NOT_CONFIGURED",
         message:
-          "Authentication requires DATABASE_URL and JWT_ACCESS_TOKEN_SECRET in the local environment.",
+          "Authentication is not configured for this environment. Check DATABASE_URL, JWT_ACCESS_TOKEN_SECRET and runtime dependency logs.",
       },
     });
   });

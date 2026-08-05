@@ -1,19 +1,23 @@
+import { RequiredLabel } from "./ui.js";
+
 export function SelectField({
   disabled,
   label,
   options,
+  requiredMarker,
   value,
   onChange,
 }: {
   disabled?: boolean;
   label: string;
   options: Array<[string, string]>;
+  requiredMarker?: boolean;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-      {label}
+      <RequiredLabel isRequired={Boolean(requiredMarker)}>{label}</RequiredLabel>
       <select
         className="mt-2 h-12 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)] disabled:cursor-not-allowed disabled:opacity-55"
         disabled={disabled}

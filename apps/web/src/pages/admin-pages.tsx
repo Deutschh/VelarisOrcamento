@@ -858,7 +858,13 @@ function AdminConfigurationPanel({
   }
 
   function updateCleaningSimulation(patch: Partial<CleaningSimulationState>) {
-    setCleaningSimulation((current) => ({ ...current, ...patch }));
+    setCleaningSimulation((current) => {
+      const next = { ...current, ...patch };
+      return {
+        ...next,
+        seats: next.itemType === "sofa" ? Math.max(1, next.seats) : 0,
+      };
+    });
   }
 
   const panelError =
@@ -1236,12 +1242,14 @@ function AdminConfigurationPanel({
                 value={cleaningSimulation.size}
                 onChange={(value) => updateCleaningSimulation({ size: value })}
               />
-              <SimulationNumberInput
-                label="Lugares"
-                min={1}
-                value={cleaningSimulation.seats}
-                onChange={(value) => updateCleaningSimulation({ seats: value })}
-              />
+              {cleaningSimulation.itemType === "sofa" ? (
+                <SimulationNumberInput
+                  label="Lugares"
+                  min={1}
+                  value={cleaningSimulation.seats}
+                  onChange={(value) => updateCleaningSimulation({ seats: value })}
+                />
+              ) : null}
               <SimulationSelect
                 label="Tecido"
                 options={cleaningSimulationSelectOptions.fabricType}

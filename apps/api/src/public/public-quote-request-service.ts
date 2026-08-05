@@ -317,7 +317,7 @@ export class PublicQuoteRequestService {
       throw error;
     }
 
-    validateSubmissionData(context.request.data);
+    validateSubmissionData(context.request.data, context.request.files.length);
 
     const now = this.now();
     const { calculation, summary } = this.calculateDraft(context, now);
@@ -1567,7 +1567,7 @@ function isEstimateSummary(value: unknown): value is QuoteEstimateSummary {
   );
 }
 
-function validateSubmissionData(data: QuoteDraftData) {
+function validateSubmissionData(data: QuoteDraftData, fileCount: number) {
   if (data.items.length === 0) {
     throw new PublicQuoteSubmissionValidationError("Add at least one item.");
   }
@@ -1582,6 +1582,12 @@ function validateSubmissionData(data: QuoteDraftData) {
 
   if (!hasAddress(data)) {
     throw new PublicQuoteSubmissionValidationError("Service address is required.");
+  }
+
+  if (fileCount === 0) {
+    throw new PublicQuoteSubmissionValidationError(
+      "At least one photo or file is required.",
+    );
   }
 }
 

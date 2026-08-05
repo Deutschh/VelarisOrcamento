@@ -12,11 +12,13 @@ import type {
 } from "@velaris/shared";
 import { useMutation } from "@tanstack/react-query";
 import {
+  ArrowRight,
   Building2,
   CheckCircle2,
   LogIn,
   MailCheck,
   PlusCircle,
+  Search,
   UserRound,
 } from "lucide-react";
 import { useState } from "react";
@@ -30,15 +32,20 @@ import {
   SubmitButton,
   TextField,
 } from "../components/ui.js";
-import { apiRequest } from "../lib/api.js";
+import { apiRequest, errorMessage } from "../lib/api.js";
 import { slugify } from "../lib/formatters.js";
+import { formatBrazilianPhoneInput } from "../lib/input-formatters.js";
+import { useSession } from "../lib/session.js";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const session = useSession();
+  const [searchParams] = useSearchParams();
   const { register, handleSubmit, formState } = useForm<LoginRequest>({
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: true,
     },
   });
   const [formError, setFormError] = useState<string | null>(null);
@@ -56,6 +63,8 @@ export function LoginPage() {
       });
     },
     onSuccess(response) {
+      session.setAuthenticatedUser(response.user);
+
       if (response.user.role === "admin") {
         navigate("/admin");
         return;
@@ -66,7 +75,7 @@ export function LoginPage() {
         return;
       }
 
-      navigate("/cliente");
+      navigate(searchParams.get("redirect") || "/servicos");
     },
   });
 
@@ -76,7 +85,7 @@ export function LoginPage() {
     try {
       await loginMutation.mutateAsync(values);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Falha no login.");
+      setFormError(errorMessage(error, "Falha no login."));
     }
   }
 
@@ -88,21 +97,40 @@ export function LoginPage() {
           <TextField
             autoComplete="email"
             label="E-mail"
+            placeholder="voce@email.com"
+            required
             type="email"
             {...register("email", { required: true })}
           />
           <TextField
             autoComplete="current-password"
             label="Senha"
+            placeholder="Sua senha"
+            required
             type="password"
             {...register("password", { required: true })}
           />
+          <label className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">
+            <input
+              className="h-4 w-4 accent-[var(--color-accent)]"
+              type="checkbox"
+              {...register("rememberMe")}
+            />
+            Manter-me conectado neste dispositivo
+          </label>
           <SubmitButton
             icon={LogIn}
             isLoading={formState.isSubmitting || loginMutation.isPending}
           >
             Entrar
           </SubmitButton>
+          <Link
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+            to="/servicos"
+          >
+            <Search size={18} />
+            Continuar como visitante
+          </Link>
           <FormError message={formError} />
         </form>
         <div className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-4 text-sm text-white/60">
@@ -152,14 +180,16 @@ export function RegisterChoicePage() {
 
 export function RegisterCustomerPage() {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState } = useForm<RegisterCustomerRequest>({
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      password: "",
-    },
-  });
+  const session = useSession();
+  const { register, handleSubmit, formState, setValue } =
+    useForm<RegisterCustomerRequest>({
+      defaultValues: {
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+      },
+    });
   const [formError, setFormError] = useState<string | null>(null);
   const registerMutation = useMutation({
     mutationFn: async (values: RegisterCustomerRequest) => {
@@ -177,8 +207,9 @@ export function RegisterCustomerPage() {
         body: JSON.stringify(parsed.data),
       });
     },
-    onSuccess() {
-      navigate("/cliente");
+    onSuccess(response) {
+      session.setAuthenticatedUser(response.user);
+      navigate("/servicos");
     },
   });
 
@@ -188,7 +219,7 @@ export function RegisterCustomerPage() {
     try {
       await registerMutation.mutateAsync(values);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Falha no cadastro.");
+      setFormError(errorMessage(error, "Falha no cadastro."));
     }
   }
 
@@ -204,19 +235,37 @@ export function RegisterCustomerPage() {
             autoComplete="name"
             className="md:col-span-2"
             label="Nome"
+            placeholder="Seu nome completo"
+            required
             {...register("name")}
           />
           <TextField
             autoComplete="email"
             label="E-mail"
+            placeholder="voce@email.com"
+            required
             type="email"
             {...register("email")}
           />
-          <TextField autoComplete="tel" label="Telefone" {...register("phone")} />
+          <TextField
+            autoComplete="tel"
+            inputMode="tel"
+            label="Telefone"
+            placeholder="(11) 98147-9715"
+            {...register("phone")}
+            onChange={(event) =>
+              setValue("phone", formatBrazilianPhoneInput(event.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+          />
           <TextField
             autoComplete="new-password"
             className="md:col-span-2"
             label="Senha"
+            placeholder="Mínimo de 8 caracteres"
+            required
             type="password"
             {...register("password")}
           />
@@ -237,6 +286,7 @@ export function RegisterCustomerPage() {
 
 export function RegisterCompanyPage() {
   const navigate = useNavigate();
+  const session = useSession();
   const { register, handleSubmit, formState, setValue, watch } =
     useForm<RegisterCompanyRequest>({
       defaultValues: {
@@ -270,7 +320,8 @@ export function RegisterCompanyPage() {
         },
       );
     },
-    onSuccess() {
+    onSuccess(response) {
+      session.setAuthenticatedUser(response.user);
       navigate("/app/pendente");
     },
   });
@@ -288,7 +339,7 @@ export function RegisterCompanyPage() {
     try {
       await registerMutation.mutateAsync(values);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Falha no cadastro.");
+      setFormError(errorMessage(error, "Falha no cadastro."));
     }
   }
 
@@ -300,13 +351,46 @@ export function RegisterCompanyPage() {
           className="mt-6 grid gap-4 md:grid-cols-2"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <TextField label="Nome do responsavel" {...register("name")} />
-          <TextField label="E-mail" type="email" {...register("email")} />
-          <TextField label="Telefone" {...register("phone")} />
-          <TextField label="Senha" type="password" {...register("password")} />
+          <TextField
+            label="Nome do responsavel"
+            placeholder="Nome de quem administrará a conta"
+            required
+            {...register("name")}
+          />
+          <TextField
+            autoComplete="email"
+            label="E-mail"
+            placeholder="empresa@email.com"
+            required
+            type="email"
+            {...register("email")}
+          />
+          <TextField
+            autoComplete="tel"
+            inputMode="tel"
+            label="Telefone"
+            placeholder="(11) 98147-9715"
+            {...register("phone")}
+            onChange={(event) =>
+              setValue("phone", formatBrazilianPhoneInput(event.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+          />
+          <TextField
+            autoComplete="new-password"
+            label="Senha"
+            placeholder="Mínimo de 8 caracteres"
+            required
+            type="password"
+            {...register("password")}
+          />
           <TextField
             className="md:col-span-2"
             label="Nome comercial"
+            placeholder="Nome da sua empresa, ex: Velaris Studio"
+            required
             {...register("companyName")}
           />
           <div className="md:col-span-2">
@@ -314,6 +398,8 @@ export function RegisterCompanyPage() {
               <TextField
                 className="flex-1"
                 label="Slug publico"
+                placeholder="velaris-studio"
+                required
                 {...register("companySlug")}
               />
               <button
@@ -332,6 +418,13 @@ export function RegisterCompanyPage() {
             >
               Criar cadastro
             </SubmitButton>
+            <Link
+              className="ml-3 inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+              to="/login"
+            >
+              <ArrowRight size={18} />
+              Já tenho login
+            </Link>
             <FormError message={formError} />
           </div>
         </form>

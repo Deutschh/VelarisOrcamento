@@ -1,10 +1,21 @@
 ﻿import { forwardRef, useEffect, useMemo, useState } from "react";
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
-import { Moon, Sparkles, Sun, type LucideIcon } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  Asterisk,
+  LogOut,
+  Menu,
+  Moon,
+  Sparkles,
+  Sun,
+  UserCircle,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { errorMessage } from "../lib/api.js";
 import { formatDate } from "../lib/formatters.js";
+import { useSession } from "../lib/session.js";
 
 type ThemeMode = "dark" | "light";
 
@@ -20,13 +31,7 @@ function readInitialTheme(): ThemeMode {
   return stored === "light" ? "light" : "dark";
 }
 
-function ThemeToggle({
-  theme,
-  onToggle,
-}: {
-  theme: ThemeMode;
-  onToggle: () => void;
-}) {
+function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => void }) {
   const isLight = theme === "light";
   const Icon = isLight ? Moon : Sun;
 
@@ -44,6 +49,10 @@ function ThemeToggle({
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeMode>(() => readInitialTheme());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const session = useSession();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -51,8 +60,64 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   function toggleTheme() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
+  }
+
+  async function logout() {
+    await session.logout();
+    navigate("/");
+  }
+
+  const role = session.status === "authenticated" ? session.user?.role : null;
+  const homePath =
+    role === "admin"
+      ? "/admin"
+      : role === "company"
+        ? "/app"
+        : role === "customer"
+          ? "/servicos"
+          : "/";
+  const navItems =
+    role === "admin"
+      ? [{ label: "Admin", to: "/admin" }]
+      : role === "company"
+        ? [{ label: "Área da empresa", to: "/app" }]
+        : role === "customer"
+          ? [
+              { label: "Encontrar empresas", to: "/servicos" },
+              { label: "Acompanhar pedido", to: "/recuperar" },
+              { label: "Área do cliente", to: "/cliente" },
+            ]
+          : [
+              { label: "Encontrar empresas", to: "/servicos" },
+              { label: "Acompanhar pedido", to: "/recuperar" },
+            ];
+
+  const userName = session.user?.name?.trim();
+  const mobileButtonIcon = mobileMenuOpen ? X : Menu;
+  const MobileButtonIcon = mobileButtonIcon;
+
+  function renderNavLinks(className = "") {
+    return (
+      <nav
+        className={`flex max-w-full shrink-0 gap-1 overflow-x-auto rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] backdrop-blur-2xl ${className}`}
+      >
+        {navItems.map((item) => (
+          <Link
+            className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+            key={item.to}
+            to={item.to}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    );
   }
 
   return (
@@ -65,12 +130,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]/78 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-          <Link className="group flex items-center gap-3" to="/">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <Link className="group flex min-w-0 items-center gap-3" to={homePath}>
             <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold tracking-[-0.08em] text-[var(--color-text-primary)] shadow-[var(--shadow-soft)]">
               VS
             </span>
-            <span>
+            <span className="min-w-0">
               <span className="block font-serif text-2xl font-normal tracking-[0.22em] text-[var(--color-text-primary)]">
                 VELARIS
               </span>
@@ -80,50 +145,78 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3 overflow-x-auto">
-            <nav className="flex max-w-full shrink-0 gap-1 overflow-x-auto rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+          <div className="hidden items-center gap-3 lg:flex">
+            {renderNavLinks()}
+            {role ? (
+              <>
+                <span className="inline-flex min-h-11 max-w-[210px] shrink-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
+                  <UserCircle className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{userName || "Perfil"}</span>
+                </span>
+                <button
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
+                  type="button"
+                  onClick={logout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              </>
+            ) : (
               <Link
-                className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                to="/empresas"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:scale-[1.015]"
+                to="/login"
               >
-                Encontrar empresas
+                Entrar
               </Link>
-              <Link
-                className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                to="/recuperar"
-              >
-                Acompanhar pedido
-              </Link>
-              <Link
-                className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                to="/cliente"
-              >
-                Área do cliente
-              </Link>
-              <Link
-                className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                to="/cadastro/empresa"
-              >
-                Para empresas
-              </Link>
-              <Link
-                className="whitespace-nowrap rounded-full px-4 py-2 transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                to="/admin"
-              >
-                Admin
-              </Link>
-            </nav>
-
-            <Link
-              className="hidden min-h-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:scale-[1.015] md:inline-flex"
-              to="/login"
-            >
-              Entrar
-            </Link>
-
+            )}
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
+
+          <div className="flex items-center gap-2 lg:hidden">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <button
+              aria-expanded={mobileMenuOpen}
+              aria-label="Abrir menu"
+              className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+              type="button"
+              onClick={() => setMobileMenuOpen((current) => !current)}
+            >
+              <MobileButtonIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
+
+        {mobileMenuOpen ? (
+          <div className="border-t border-[var(--color-border)] px-4 pb-4 sm:px-6 lg:hidden">
+            <div className="mx-auto flex max-w-7xl flex-col gap-3 pt-4">
+              {renderNavLinks("flex-col rounded-3xl p-2")}
+              {role ? (
+                <>
+                  <div className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">
+                    <UserCircle className="h-4 w-4" />
+                    <span className="truncate">{userName || "Perfil"}</span>
+                  </div>
+                  <button
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
+                    type="button"
+                    onClick={logout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <Link
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)]"
+                  to="/login"
+                >
+                  Entrar
+                </Link>
+              )}
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <div className="relative z-10">{children}</div>
@@ -149,10 +242,15 @@ export const TextField = forwardRef<
   HTMLInputElement,
   InputHTMLAttributes<HTMLInputElement> & {
     label: string;
+    requiredMarker?: boolean;
   }
->(({ className = "", label, ...props }, ref) => (
-  <label className={`block text-sm font-medium text-[var(--color-text-secondary)] ${className}`}>
-    {label}
+>(({ className = "", label, requiredMarker, ...props }, ref) => (
+  <label
+    className={`block text-sm font-medium text-[var(--color-text-secondary)] ${className}`}
+  >
+    <RequiredLabel isRequired={requiredMarker || Boolean(props.required)}>
+      {label}
+    </RequiredLabel>
     <input
       className="mt-2 h-12 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
       ref={ref}
@@ -166,10 +264,15 @@ export const TextAreaField = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement> & {
     label: string;
+    requiredMarker?: boolean;
   }
->(({ className = "", label, ...props }, ref) => (
-  <label className={`block text-sm font-medium text-[var(--color-text-secondary)] ${className}`}>
-    {label}
+>(({ className = "", label, requiredMarker, ...props }, ref) => (
+  <label
+    className={`block text-sm font-medium text-[var(--color-text-secondary)] ${className}`}
+  >
+    <RequiredLabel isRequired={requiredMarker || Boolean(props.required)}>
+      {label}
+    </RequiredLabel>
     <textarea
       className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-strong)] focus:bg-[var(--color-surface-strong)] focus:ring-4 focus:ring-[var(--color-accent-soft)]"
       ref={ref}
@@ -178,6 +281,40 @@ export const TextAreaField = forwardRef<
   </label>
 ));
 TextAreaField.displayName = "TextAreaField";
+
+export function RequiredLabel({
+  children,
+  isRequired,
+}: {
+  children: ReactNode;
+  isRequired?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{children}</span>
+      {isRequired ? (
+        <span
+          aria-label="Campo obrigatório"
+          className="grid h-4 w-4 place-items-center rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverted)]"
+          title="Campo obrigatório"
+        >
+          <Asterisk className="h-2.5 w-2.5" />
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+export function RequiredFieldsLegend() {
+  return (
+    <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
+      <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverted)]">
+        <Asterisk className="h-2.5 w-2.5" />
+      </span>
+      Campos marcados são obrigatórios.
+    </p>
+  );
+}
 
 export function PrimaryLink({
   children,
@@ -301,7 +438,9 @@ export function Timeline({
   items: Array<{ id: string; title: string; detail: string; date: string }>;
 }) {
   if (items.length === 0) {
-    return <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">{empty}</p>;
+    return (
+      <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">{empty}</p>
+    );
   }
 
   return (

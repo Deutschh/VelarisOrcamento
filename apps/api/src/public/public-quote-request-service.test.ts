@@ -151,6 +151,7 @@ describe("PublicQuoteRequestService", () => {
         fullAddress: "Rua Teste, 123, Sao Paulo",
       },
     });
+    await addTestDraftFile(service, created.draftToken);
 
     const idempotencyKey = randomUUID();
     const first = await service.submitDraft(
@@ -175,6 +176,35 @@ describe("PublicQuoteRequestService", () => {
     expect(Array.from(quoteRequestRepository.requests.values())[0]?.status).toBe(
       "submitted",
     );
+  });
+
+  it("requires at least one photo or file before submission", async () => {
+    const { service } = await createService();
+    const created = await service.createDraft({ companySlug: "limpa-sofa" });
+
+    await service.updateDraft(created.draftToken, {
+      contact: {
+        name: "Cliente Teste",
+        whatsapp: "11999990000",
+      },
+      address: {
+        fullAddress: "Rua Teste, 123, Sao Paulo",
+      },
+    });
+
+    await expect(
+      service.submitDraft(
+        created.draftToken,
+        {
+          acceptedLegalTerms: true,
+          idempotencyKey: randomUUID(),
+        },
+        {},
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLIC_QUOTE_SUBMISSION_VALIDATION_ERROR",
+      message: "At least one photo or file is required.",
+    });
   });
 
   it("opens public tracking with the token generated on submission", async () => {
@@ -558,6 +588,7 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
       fullAddress: "Rua Teste, 123, Sao Paulo",
     },
   });
+  await addTestDraftFile(service, created.draftToken);
 
   const response = await service.submitDraft(
     created.draftToken,
@@ -574,6 +605,15 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
   }
 
   return { publicToken, response };
+}
+
+async function addTestDraftFile(service: PublicQuoteRequestService, draftToken: string) {
+  await service.addDraftFile(draftToken, {
+    fieldCode: "photos",
+    fileName: "sofa-sala.jpg",
+    mimeType: "image/jpeg",
+    sizeBytes: 1024,
+  });
 }
 
 async function submitDraftWithSentProposal(

@@ -52,6 +52,7 @@ export type RegisterCompanyRequest = z.infer<typeof registerCompanyRequestSchema
 export const loginRequestSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(1),
+  rememberMe: z.boolean().optional(),
 });
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
