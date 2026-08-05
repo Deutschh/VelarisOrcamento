@@ -14,6 +14,25 @@ export type CustomerFavoriteCompanyRequest = z.infer<
   typeof customerFavoriteCompanyRequestSchema
 >;
 
+export const customerProfileUpdateRequestSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  phone: z.string().trim().min(8).max(40).optional(),
+  avatarUrl: z.string().trim().url().optional(),
+});
+
+export type CustomerProfileUpdateRequest = z.infer<
+  typeof customerProfileUpdateRequestSchema
+>;
+
+export interface CustomerProfileSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  isEmailVerified: boolean;
+}
+
 export interface CustomerCompanySummary {
   id: string;
   tradingName: string;
@@ -100,6 +119,10 @@ export interface CustomerDashboardResponse {
   recentCompanies: CustomerCompanySummary[];
   pendingReviews: CustomerPendingReviewSummary[];
   notifications: CustomerNotificationSummary[];
+}
+
+export interface CustomerProfileResponse {
+  profile: CustomerProfileSummary;
 }
 
 export interface CustomerLinkVisitorRequestsResponse {

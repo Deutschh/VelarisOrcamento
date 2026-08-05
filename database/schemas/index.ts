@@ -178,6 +178,7 @@ export const customerProfiles = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    avatarUrl: text("avatar_url"),
     ...timestamps,
   },
   (table) => ({

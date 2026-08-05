@@ -7,6 +7,7 @@ import {
   companyPublicProfiles,
   companyServices,
   customerFavoriteCompanies,
+  customerProfiles,
   notifications,
   quoteRequests,
   quotes,
@@ -22,6 +23,7 @@ import {
   type CustomerDashboardResponse,
   type CustomerNotificationSummary,
   type CustomerPendingReviewSummary,
+  type CustomerProfileSummary,
   type CustomerProposalSummary,
   type CustomerQuoteRequestSummary,
   type QuoteVersionStatus,
@@ -32,6 +34,7 @@ import type { CustomerAccount, CustomerRepository } from "./customer-repository.
 
 type Database = ReturnType<typeof createDatabaseClient>["db"];
 type UserRow = typeof users.$inferSelect;
+type CustomerProfileRow = typeof customerProfiles.$inferSelect;
 type CompanyRow = typeof companies.$inferSelect;
 type ProfileRow = typeof companyPublicProfiles.$inferSelect;
 type RequestRow = {
@@ -73,6 +76,69 @@ export class DrizzleCustomerRepository implements CustomerRepository {
     const [row] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
 
     return row ? mapCustomerAccount(row) : null;
+  }
+
+  async getProfile(userId: string): Promise<CustomerProfileSummary | null> {
+    const [row] = await this.db
+      .select({
+        user: users,
+        profile: customerProfiles,
+      })
+      .from(users)
+      .leftJoin(customerProfiles, eq(customerProfiles.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    return row ? mapCustomerProfile(row.user, row.profile) : null;
+  }
+
+  async updateProfile(input: {
+    userId: string;
+    name: string;
+    phone: string | null;
+    avatarUrl: string | null;
+    now: Date;
+  }): Promise<CustomerProfileSummary | null> {
+    const updated = await this.db.transaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({
+          name: input.name,
+          phone: input.phone,
+          updatedAt: input.now,
+        })
+        .where(eq(users.id, input.userId))
+        .returning();
+
+      if (!user) {
+        return null;
+      }
+
+      const [profile] = await tx
+        .insert(customerProfiles)
+        .values({
+          id: randomUUID(),
+          userId: input.userId,
+          avatarUrl: input.avatarUrl,
+          createdAt: input.now,
+          updatedAt: input.now,
+        })
+        .onConflictDoUpdate({
+          target: customerProfiles.userId,
+          set: {
+            avatarUrl: input.avatarUrl,
+            updatedAt: input.now,
+          },
+        })
+        .returning();
+
+      return {
+        user,
+        profile: profile ?? null,
+      };
+    });
+
+    return updated ? mapCustomerProfile(updated.user, updated.profile) : null;
   }
 
   async getDashboard(userId: string): Promise<CustomerDashboardResponse> {
@@ -378,6 +444,20 @@ function mapCustomerAccount(row: UserRow): CustomerAccount {
     phone: row.phone,
     isEmailVerified: row.isEmailVerified,
     role: row.role,
+  };
+}
+
+function mapCustomerProfile(
+  user: UserRow,
+  profile: CustomerProfileRow | null,
+): CustomerProfileSummary {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    avatarUrl: profile?.avatarUrl ?? null,
+    isEmailVerified: user.isEmailVerified,
   };
 }
 

@@ -9,7 +9,7 @@ import {
   VerifyEmailPage,
 } from "./pages/auth-pages.js";
 import { CompanyAreaPage } from "./pages/company-pages.js";
-import { CustomerAreaPage } from "./pages/customer-pages.js";
+import { CustomerAreaPage, CustomerProfilePage } from "./pages/customer-pages.js";
 import {
   CompaniesSearchPage,
   HomePage,
@@ -38,6 +38,7 @@ export function App() {
       <Route element={<RegisterCompanyPage />} path="/cadastro/empresa" />
       <Route element={<VerifyEmailPage />} path="/verificar-email" />
       <Route element={<CustomerAreaPage />} path="/cliente" />
+      <Route element={<CustomerProfilePage />} path="/cliente/perfil" />
       <Route element={<CompanyAreaPage />} path="/app" />
       <Route element={<CompanyAreaPage />} path="/app/pendente" />
       <Route element={<AdminCompaniesPage />} path="/admin" />

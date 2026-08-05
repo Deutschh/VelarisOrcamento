@@ -69,6 +69,34 @@ describe("CustomerService", () => {
     });
   });
 
+  it("returns and updates the authenticated customer profile", async () => {
+    const { service } = createService();
+
+    const current = await service.getProfile(customerAccount.id);
+    expect(current.profile).toMatchObject({
+      email: customerAccount.email,
+      name: customerAccount.name,
+      phone: customerAccount.phone,
+      avatarUrl: null,
+    });
+
+    const updated = await service.updateProfile(customerAccount.id, {
+      name: "Cliente Atualizado",
+      phone: "(11) 98888-7777",
+      avatarUrl: "https://example.com/avatar.jpg",
+    });
+
+    expect(updated.profile).toMatchObject({
+      email: customerAccount.email,
+      name: "Cliente Atualizado",
+      phone: "(11) 98888-7777",
+      avatarUrl: "https://example.com/avatar.jpg",
+    });
+
+    const reloaded = await service.getProfile(customerAccount.id);
+    expect(reloaded.profile.name).toBe("Cliente Atualizado");
+  });
+
   it("links visitor requests using the verified account e-mail", async () => {
     const { repository, service } = createService();
     repository.linkedVisitorRequestsCount = 2;

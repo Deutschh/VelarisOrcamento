@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { customerFavoriteCompanyRequestSchema } from "@velaris/shared";
+import {
+  customerFavoriteCompanyRequestSchema,
+  customerProfileUpdateRequestSchema,
+} from "@velaris/shared";
 
 import { asyncHandler } from "../lib/async-handler.js";
 import { CustomerAccessDeniedError } from "./customer-errors.js";
@@ -21,6 +24,23 @@ export function createCustomerRouter(customerService: CustomerService) {
     "/me",
     asyncHandler(async (request, response) => {
       response.json(await customerService.getDashboard(requireCustomerUserId(request)));
+    }),
+  );
+
+  router.get(
+    "/profile",
+    asyncHandler(async (request, response) => {
+      response.json(await customerService.getProfile(requireCustomerUserId(request)));
+    }),
+  );
+
+  router.patch(
+    "/profile",
+    asyncHandler(async (request, response) => {
+      const payload = customerProfileUpdateRequestSchema.parse(request.body);
+      response.json(
+        await customerService.updateProfile(requireCustomerUserId(request), payload),
+      );
     }),
   );
 

@@ -1,4 +1,8 @@
-import type { CustomerCompanySummary, CustomerDashboardResponse } from "@velaris/shared";
+import type {
+  CustomerCompanySummary,
+  CustomerDashboardResponse,
+  CustomerProfileSummary,
+} from "@velaris/shared";
 
 export interface CustomerAccount {
   id: string;
@@ -11,6 +15,14 @@ export interface CustomerAccount {
 
 export interface CustomerRepository {
   findCustomerAccount(userId: string): Promise<CustomerAccount | null>;
+  getProfile(userId: string): Promise<CustomerProfileSummary | null>;
+  updateProfile(input: {
+    userId: string;
+    name: string;
+    phone: string | null;
+    avatarUrl: string | null;
+    now: Date;
+  }): Promise<CustomerProfileSummary | null>;
   getDashboard(userId: string): Promise<CustomerDashboardResponse>;
   linkVisitorRequests(input: {
     userId: string;

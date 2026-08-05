@@ -149,10 +149,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             {renderNavLinks()}
             {role ? (
               <>
-                <span className="inline-flex min-h-11 max-w-[210px] shrink-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
-                  <UserCircle className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{userName || "Perfil"}</span>
-                </span>
+                {role === "customer" ? (
+                  <Link
+                    className="inline-flex min-h-11 max-w-[210px] shrink-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+                    to="/cliente/perfil"
+                  >
+                    <UserCircle className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{userName || "Perfil"}</span>
+                  </Link>
+                ) : (
+                  <span className="inline-flex min-h-11 max-w-[210px] shrink-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
+                    <UserCircle className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{userName || "Perfil"}</span>
+                  </span>
+                )}
                 <button
                   className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
                   type="button"
@@ -193,10 +203,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               {renderNavLinks("flex-col rounded-3xl p-2")}
               {role ? (
                 <>
-                  <div className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">
-                    <UserCircle className="h-4 w-4" />
-                    <span className="truncate">{userName || "Perfil"}</span>
-                  </div>
+                  {role === "customer" ? (
+                    <Link
+                      className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
+                      to="/cliente/perfil"
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      <span className="truncate">{userName || "Perfil"}</span>
+                    </Link>
+                  ) : (
+                    <div className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">
+                      <UserCircle className="h-4 w-4" />
+                      <span className="truncate">{userName || "Perfil"}</span>
+                    </div>
+                  )}
                   <button
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
                     type="button"

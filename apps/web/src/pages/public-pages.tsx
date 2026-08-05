@@ -628,6 +628,9 @@ export function QuoteRequestPage() {
   const [draftData, setDraftData] = useState<QuoteDraftData | null>(null);
   const [submitResult, setSubmitResult] = useState<QuoteSubmitResponse | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fileFeedbackByItem, setFileFeedbackByItem] = useState<Record<string, string>>(
+    {},
+  );
   const draftQuery = useQuery({
     enabled: Boolean(slug),
     queryKey: ["public-quote-draft", slug],
@@ -703,11 +706,17 @@ export function QuoteRequestPage() {
       let latest: QuoteDraftResponse | null = null;
 
       for (const file of Array.from(input.files)) {
+        const mimeType = resolveQuoteDraftFileMimeType(file);
+
+        if (!mimeType) {
+          throw new Error("Formato não suportado. Use JPG, PNG, WEBP ou PDF.");
+        }
+
         const payload = quoteDraftFileMetadataRequestSchema.parse({
           itemId: input.itemId,
           fieldCode: "photos",
           fileName: file.name,
-          mimeType: file.type,
+          mimeType,
           sizeBytes: file.size,
         });
 
@@ -726,8 +735,27 @@ export function QuoteRequestPage() {
 
       return latest;
     },
-    onSuccess(response) {
+    onMutate(input) {
+      setFormError(null);
+      setFileFeedbackByItem((current) => ({
+        ...current,
+        [input.itemId]: "Enviando anexo...",
+      }));
+    },
+    onSuccess(response, input) {
       syncDraft(response.draft);
+      setFileFeedbackByItem((current) => ({
+        ...current,
+        [input.itemId]: `${input.files.length} arquivo(s) anexado(s) agora.`,
+      }));
+    },
+    onError(error, input) {
+      const message = errorMessage(error, "Não foi possível anexar o arquivo.");
+      setFormError(message);
+      setFileFeedbackByItem((current) => ({
+        ...current,
+        [input.itemId]: message,
+      }));
     },
   });
 
@@ -1080,10 +1108,12 @@ export function QuoteRequestPage() {
                   {draftData.items.map((item, index) => (
                     <QuoteItemEditor
                       draft={draft}
+                      files={quoteFilesForItem(draft.files, item.id)}
                       index={index}
                       isBusy={isBusy}
                       item={item}
                       key={item.id}
+                      uploadFeedback={fileFeedbackByItem[item.id] ?? null}
                       onAddFile={(files) =>
                         fileMutation.mutate({
                           itemId: item.id,
@@ -1417,18 +1447,22 @@ export function QuoteRequestPage() {
 
 function QuoteItemEditor({
   draft,
+  files,
   index,
   isBusy,
   item,
+  uploadFeedback,
   onAddFile,
   onDuplicate,
   onRemove,
   onUpdate,
 }: {
   draft: QuoteDraftDetail;
+  files: QuoteDraftDetail["files"];
   index: number;
   isBusy: boolean;
   item: QuoteDraftItem;
+  uploadFeedback: string | null;
   onAddFile: (files: FileList) => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -1582,7 +1616,7 @@ function QuoteItemEditor({
           <Upload size={16} />
           <RequiredLabel isRequired>Fotos ou PDF</RequiredLabel>
           <input
-            accept="image/jpeg,image/png,image/webp,application/pdf"
+            accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
             className="hidden"
             disabled={isBusy}
             multiple
@@ -1595,6 +1629,36 @@ function QuoteItemEditor({
             }}
           />
         </label>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+            {formatQuoteFileCount(files.length)} neste item
+          </p>
+          {uploadFeedback ? (
+            <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+              {uploadFeedback}
+            </p>
+          ) : null}
+        </div>
+        {files.length > 0 ? (
+          <ul className="mt-3 grid gap-2">
+            {files.map((file) => (
+              <li
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs text-[var(--color-text-secondary)]"
+                key={file.id}
+              >
+                <span className="truncate">{file.fileName}</span>
+                <span className="shrink-0">{formatBytes(file.sizeBytes)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">
+            Selecione fotos do item ou um PDF para ajudar a empresa na avaliação.
+          </p>
+        )}
       </div>
 
       <TextAreaField
@@ -2528,6 +2592,52 @@ function requireDraftEnvelope(
   }
 
   return envelope;
+}
+
+function resolveQuoteDraftFileMimeType(file: File) {
+  if (/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)) {
+    return file.type;
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+
+  if (extension === "jpg" || extension === "jpeg") {
+    return "image/jpeg";
+  }
+
+  if (extension === "png") {
+    return "image/png";
+  }
+
+  if (extension === "webp") {
+    return "image/webp";
+  }
+
+  if (extension === "pdf") {
+    return "application/pdf";
+  }
+
+  return null;
+}
+
+function quoteFilesForItem(files: QuoteDraftDetail["files"], itemId: string) {
+  return files.filter((file) => file.itemId === itemId);
+}
+
+function formatQuoteFileCount(count: number) {
+  return count === 1 ? "1 anexo" : `${count} anexos`;
+}
+
+function formatBytes(sizeBytes: number) {
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`;
+  }
+
+  if (sizeBytes < 1024 * 1024) {
+    return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function validateQuoteSubmissionDraft(data: QuoteDraftData, fileCount: number) {

@@ -1,4 +1,7 @@
-import { PUBLIC_COMPANY_CATEGORIES } from "@velaris/shared";
+import {
+  PUBLIC_COMPANY_CATEGORIES,
+  customerProfileUpdateRequestSchema,
+} from "@velaris/shared";
 import type {
   AppointmentStatus,
   CustomerAppointmentSummary,
@@ -6,6 +9,8 @@ import type {
   CustomerDashboardResponse,
   CustomerLinkVisitorRequestsResponse,
   CustomerPendingReviewSummary,
+  CustomerProfileResponse,
+  CustomerProfileUpdateRequest,
   CustomerProposalSummary,
   CustomerQuoteRequestSummary,
   CustomerRemoveFavoriteResponse,
@@ -21,12 +26,17 @@ import {
   CalendarClock,
   Heart,
   History,
+  Image,
   Link2,
   MessageSquareText,
+  Save,
   Star,
   Trash2,
+  UserCircle,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 
 import {
@@ -38,6 +48,8 @@ import {
   LoadingLine,
   PrimaryLink,
   SectionTitle,
+  SubmitButton,
+  TextField,
 } from "../components/ui.js";
 import {
   QuoteRequestStatusBadge,
@@ -49,6 +61,14 @@ import {
   formatDurationMinutes,
   formatMoneyCents,
 } from "../lib/formatters.js";
+import { formatBrazilianPhoneInput } from "../lib/input-formatters.js";
+import { useSession } from "../lib/session.js";
+
+interface CustomerProfileFormValues {
+  name: string;
+  phone: string;
+  avatarUrl: string;
+}
 
 export function CustomerAreaPage() {
   const queryClient = useQueryClient();
@@ -98,6 +118,10 @@ export function CustomerAreaPage() {
           {authError ? (
             <PrimaryLink icon={Link2} to="/login">
               Entrar
+            </PrimaryLink>
+          ) : dashboard ? (
+            <PrimaryLink icon={UserCircle} to="/cliente/perfil">
+              Meu perfil
             </PrimaryLink>
           ) : null}
         </div>
@@ -300,6 +324,206 @@ export function CustomerAreaPage() {
   );
 }
 
+export function CustomerProfilePage() {
+  const queryClient = useQueryClient();
+  const session = useSession();
+  const [formError, setFormError] = useState<string | null>(null);
+  const profileQuery = useQuery({
+    queryKey: ["customer-profile"],
+    queryFn: () => apiRequest<CustomerProfileResponse>("/api/customer/profile"),
+    retry: false,
+  });
+  const { handleSubmit, register, reset, watch } = useForm<CustomerProfileFormValues>({
+    defaultValues: {
+      name: "",
+      phone: "",
+      avatarUrl: "",
+    },
+  });
+  const avatarUrl = watch("avatarUrl");
+  const profile = profileQuery.data?.profile;
+  const authError =
+    profileQuery.error instanceof ApiError &&
+    (profileQuery.error.status === 401 || profileQuery.error.status === 403);
+  const profileMutation = useMutation({
+    mutationFn: (payload: CustomerProfileUpdateRequest) =>
+      apiRequest<CustomerProfileResponse>("/api/customer/profile", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess(response) {
+      setFormError(null);
+      queryClient.setQueryData(["customer-profile"], response);
+      void queryClient.invalidateQueries({ queryKey: ["customer-dashboard"] });
+
+      if (session.status === "authenticated" && session.user) {
+        session.setAuthenticatedUser({
+          ...session.user,
+          name: response.profile.name,
+        });
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    reset({
+      name: profile.name,
+      phone: profile.phone ?? "",
+      avatarUrl: profile.avatarUrl ?? "",
+    });
+  }, [profile, reset]);
+
+  function submit(values: CustomerProfileFormValues) {
+    setFormError(null);
+    const parsed = customerProfileUpdateRequestSchema.safeParse({
+      name: values.name,
+      phone: emptyToUndefined(values.phone),
+      avatarUrl: emptyToUndefined(values.avatarUrl),
+    });
+
+    if (!parsed.success) {
+      setFormError(formatProfileValidationError(parsed.error.issues[0]?.message));
+      return;
+    }
+
+    profileMutation.mutate(parsed.data);
+  }
+
+  return (
+    <AppShell>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionTitle eyebrow="Cliente" title="Meu perfil" />
+          {authError ? (
+            <PrimaryLink icon={Link2} to="/login">
+              Entrar
+            </PrimaryLink>
+          ) : (
+            <PrimaryLink icon={ArrowRight} to="/cliente">
+              Área do cliente
+            </PrimaryLink>
+          )}
+        </div>
+
+        {profileQuery.isLoading ? <LoadingLine /> : null}
+        {profileQuery.error ? (
+          <ErrorPanel
+            error={profileQuery.error}
+            fallback="Nao foi possivel carregar seu perfil."
+          />
+        ) : null}
+
+        {profile ? (
+          <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
+            <aside className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]">
+              <div className="mx-auto grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                {avatarUrl ? (
+                  <img
+                    alt=""
+                    className="h-full w-full object-cover"
+                    key={avatarUrl}
+                    src={avatarUrl}
+                  />
+                ) : (
+                  <UserCircle size={64} />
+                )}
+              </div>
+              <div className="mt-6 text-center">
+                <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                  {profile.name}
+                </h2>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  {profile.email}
+                </p>
+                <p className="mt-4 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
+                  {profile.isEmailVerified ? "E-mail verificado" : "E-mail pendente"}
+                </p>
+              </div>
+            </aside>
+
+            <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                  <Image size={18} />
+                </div>
+                <div>
+                  <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                    Informações pessoais
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                    Esses dados ajudam a identificar suas solicitações e contatos.
+                  </p>
+                </div>
+              </div>
+
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit(submit)}>
+                <TextField
+                  label="Nome"
+                  placeholder="Ex: Guilherme Andrade"
+                  required
+                  {...register("name")}
+                />
+                <TextField
+                  disabled
+                  label="E-mail"
+                  readOnly
+                  value={profile.email}
+                />
+                <TextField
+                  inputMode="tel"
+                  label="Telefone"
+                  placeholder="Ex: (11) 98147-9715"
+                  {...register("phone", {
+                    onChange: (event) => {
+                      event.target.value = formatBrazilianPhoneInput(event.target.value);
+                    },
+                  })}
+                />
+                <TextField
+                  inputMode="url"
+                  label="URL da foto"
+                  placeholder="Ex: https://seudominio.com/foto.jpg"
+                  {...register("avatarUrl")}
+                />
+
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+                  O envio direto de arquivo para foto ficará ligado ao provedor de
+                  armazenamento privado quando essa decisão for fechada. Por enquanto, use
+                  uma URL pública de imagem.
+                </div>
+
+                <SubmitButton icon={Save} isLoading={profileMutation.isPending}>
+                  Salvar perfil
+                </SubmitButton>
+                {profileMutation.isSuccess ? (
+                  <p className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+                    Perfil atualizado com sucesso.
+                  </p>
+                ) : null}
+                <FormError
+                  message={
+                    formError ??
+                    (profileMutation.error
+                      ? errorMessage(
+                          profileMutation.error,
+                          "Nao foi possivel salvar seu perfil.",
+                        )
+                      : null)
+                  }
+                />
+              </form>
+            </section>
+          </div>
+        ) : null}
+      </main>
+    </AppShell>
+  );
+}
+
 function CustomerSection({
   children,
   empty,
@@ -492,4 +716,13 @@ function isUpcomingAppointment(appointment: CustomerAppointmentSummary) {
   ];
 
   return upcomingStatuses.includes(appointment.status);
+}
+
+function emptyToUndefined(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function formatProfileValidationError(message?: string) {
+  return message ? `Revise o perfil: ${message}` : "Revise os dados do perfil.";
 }

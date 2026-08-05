@@ -3,6 +3,8 @@ import type {
   CustomerDashboardResponse,
   CustomerFavoriteResponse,
   CustomerLinkVisitorRequestsResponse,
+  CustomerProfileResponse,
+  CustomerProfileUpdateRequest,
   CustomerRemoveFavoriteResponse,
 } from "@velaris/shared";
 
@@ -25,6 +27,37 @@ export class CustomerService {
   async getDashboard(userId: string): Promise<CustomerDashboardResponse> {
     await this.getCustomerAccount(userId);
     return this.dependencies.repository.getDashboard(userId);
+  }
+
+  async getProfile(userId: string): Promise<CustomerProfileResponse> {
+    await this.getCustomerAccount(userId);
+    const profile = await this.dependencies.repository.getProfile(userId);
+
+    if (!profile) {
+      throw new CustomerAccountNotFoundError();
+    }
+
+    return { profile };
+  }
+
+  async updateProfile(
+    userId: string,
+    input: CustomerProfileUpdateRequest,
+  ): Promise<CustomerProfileResponse> {
+    await this.getCustomerAccount(userId);
+    const profile = await this.dependencies.repository.updateProfile({
+      userId,
+      name: input.name,
+      phone: input.phone?.trim() || null,
+      avatarUrl: input.avatarUrl?.trim() || null,
+      now: this.now(),
+    });
+
+    if (!profile) {
+      throw new CustomerAccountNotFoundError();
+    }
+
+    return { profile };
   }
 
   async linkVisitorRequests(

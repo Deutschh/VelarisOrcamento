@@ -366,6 +366,7 @@ export function AdminCompanyDetailPage() {
               <AdminPublicProfileForm
                 error={profileError}
                 isLoading={profileMutation.isPending}
+                isSaved={profileMutation.isSuccess}
                 profile={company.publicProfile}
                 onSubmit={(values) => profileMutation.mutate(values)}
               />
@@ -1626,63 +1627,86 @@ interface PublicProfileFormValues {
   city: string;
   state: string;
   postalCode: string;
+  neighborhood: string;
+  addressLine: string;
+  addressComplement: string;
   latitude: string;
   longitude: string;
   serviceRadiusKm: string;
   serviceCities: string;
+  serviceNeighborhoods: string;
+  logoUrl: string;
+  coverImageUrl: string;
+  primaryColor: string;
+  contactPhone: string;
   contactWhatsapp: string;
+  contactEmail: string;
+  websiteUrl: string;
+  instagramUrl: string;
+  terms: string;
+  gallery: string;
   services: string;
 }
 
 function AdminPublicProfileForm({
   error,
   isLoading,
+  isSaved,
   onSubmit,
   profile,
 }: {
   error: string | null;
   isLoading: boolean;
+  isSaved: boolean;
   onSubmit: (values: AdminCompanyPublicProfileRequest) => void;
   profile: CompanyPublicProfileSettings;
 }) {
+  const [localError, setLocalError] = useState<string | null>(null);
   const { register, handleSubmit, reset } = useForm<PublicProfileFormValues>({
     defaultValues: toProfileFormValues(profile),
   });
 
   useEffect(() => {
     reset(toProfileFormValues(profile));
+    setLocalError(null);
   }, [profile, reset]);
 
   function submit(values: PublicProfileFormValues) {
-    const parsed = adminCompanyPublicProfileRequestSchema.parse({
+    setLocalError(null);
+    const parsed = adminCompanyPublicProfileRequestSchema.safeParse({
       nicheCode: values.nicheCode,
       headline: emptyToUndefined(values.headline),
       description: emptyToUndefined(values.description),
       city: emptyToUndefined(values.city),
       state: emptyToUndefined(values.state),
       postalCode: emptyToUndefined(values.postalCode),
-      neighborhood: profile.neighborhood ?? undefined,
-      addressLine: profile.addressLine ?? undefined,
-      addressComplement: profile.addressComplement ?? undefined,
+      neighborhood: emptyToUndefined(values.neighborhood),
+      addressLine: emptyToUndefined(values.addressLine),
+      addressComplement: emptyToUndefined(values.addressComplement),
       latitude: parseOptionalNumber(values.latitude),
       longitude: parseOptionalNumber(values.longitude),
       serviceRadiusKm: parseOptionalNumber(values.serviceRadiusKm),
       serviceCities: splitComma(values.serviceCities),
-      serviceNeighborhoods: profile.serviceNeighborhoods,
-      logoUrl: profile.logoUrl ?? undefined,
-      coverImageUrl: profile.coverImageUrl ?? undefined,
-      primaryColor: profile.primaryColor ?? undefined,
-      contactPhone: profile.contactPhone ?? undefined,
+      serviceNeighborhoods: splitComma(values.serviceNeighborhoods),
+      logoUrl: emptyToUndefined(values.logoUrl),
+      coverImageUrl: emptyToUndefined(values.coverImageUrl),
+      primaryColor: emptyToUndefined(values.primaryColor),
+      contactPhone: emptyToUndefined(values.contactPhone),
       contactWhatsapp: emptyToUndefined(values.contactWhatsapp),
-      contactEmail: profile.contactEmail ?? undefined,
-      websiteUrl: profile.websiteUrl ?? undefined,
-      instagramUrl: profile.instagramUrl ?? undefined,
-      terms: profile.terms ?? undefined,
-      gallery: profile.gallery,
+      contactEmail: emptyToUndefined(values.contactEmail),
+      websiteUrl: emptyToUndefined(values.websiteUrl),
+      instagramUrl: emptyToUndefined(values.instagramUrl),
+      terms: emptyToUndefined(values.terms),
+      gallery: splitGallery(values.gallery),
       services: splitServices(values.services),
     });
 
-    onSubmit(parsed);
+    if (!parsed.success) {
+      setLocalError(formatPublicProfileValidationError(parsed.error.issues[0]));
+      return;
+    }
+
+    onSubmit(parsed.data);
   }
 
   return (
@@ -1710,10 +1734,22 @@ function AdminPublicProfileForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <TextField label="CEP" {...register("postalCode")} />
+          <TextField label="Bairro" {...register("neighborhood")} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField label="Endereco" {...register("addressLine")} />
+          <TextField label="Complemento" {...register("addressComplement")} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <TextField
             label="Raio em km"
             inputMode="decimal"
             {...register("serviceRadiusKm")}
+          />
+          <TextField
+            label="Cor principal"
+            placeholder="#0f766e"
+            {...register("primaryColor")}
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -1725,17 +1761,82 @@ function AdminPublicProfileForm({
           placeholder="Sao Paulo, Osasco"
           {...register("serviceCities")}
         />
-        <TextField label="WhatsApp" {...register("contactWhatsapp")} />
+        <TextField
+          label="Bairros atendidos"
+          placeholder="Moema, Pinheiros, Centro"
+          {...register("serviceNeighborhoods")}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField
+            inputMode="url"
+            label="Logo da empresa (URL)"
+            placeholder="https://..."
+            {...register("logoUrl")}
+          />
+          <TextField
+            inputMode="url"
+            label="Imagem de capa/banner (URL)"
+            placeholder="https://..."
+            {...register("coverImageUrl")}
+          />
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-white/55">
+          Imagens ainda devem ser informadas por URL pública. Upload privado definitivo
+          depende da escolha do provedor de armazenamento.
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField label="Telefone" {...register("contactPhone")} />
+          <TextField label="WhatsApp" {...register("contactWhatsapp")} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField
+            inputMode="email"
+            label="E-mail de contato"
+            {...register("contactEmail")}
+          />
+          <TextField
+            inputMode="url"
+            label="Site"
+            placeholder="https://..."
+            {...register("websiteUrl")}
+          />
+        </div>
+        <TextField
+          inputMode="url"
+          label="Instagram"
+          placeholder="https://instagram.com/suaempresa"
+          {...register("instagramUrl")}
+        />
+        <TextAreaField
+          label="Galeria"
+          placeholder={[
+            "https://.../foto-1.jpg | Sofa higienizado",
+            "https://.../foto-2.jpg | Antes e depois",
+          ].join("\n")}
+          rows={4}
+          {...register("gallery")}
+        />
         <TextAreaField
           label="Servicos"
           placeholder="Sofa - Limpeza completa"
           rows={4}
           {...register("services")}
         />
+        <TextAreaField
+          label="Termos comerciais exibidos"
+          placeholder="Ex: valores sujeitos a avaliacao tecnica no local."
+          rows={3}
+          {...register("terms")}
+        />
         <SubmitButton icon={Globe2} isLoading={isLoading}>
           Salvar perfil publico
         </SubmitButton>
-        <FormError message={error} />
+        {isSaved && !isLoading && !error && !localError ? (
+          <p className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+            Perfil publico salvo com sucesso.
+          </p>
+        ) : null}
+        <FormError message={localError ?? error} />
       </form>
     </section>
   );
@@ -1751,12 +1852,27 @@ function toProfileFormValues(
     city: profile.city ?? "",
     state: profile.state ?? "",
     postalCode: profile.postalCode ?? "",
+    neighborhood: profile.neighborhood ?? "",
+    addressLine: profile.addressLine ?? "",
+    addressComplement: profile.addressComplement ?? "",
     latitude: profile.latitude === null ? "" : String(profile.latitude),
     longitude: profile.longitude === null ? "" : String(profile.longitude),
     serviceRadiusKm:
       profile.serviceRadiusKm === null ? "" : String(profile.serviceRadiusKm),
     serviceCities: profile.serviceCities.join(", "),
+    serviceNeighborhoods: profile.serviceNeighborhoods.join(", "),
+    logoUrl: profile.logoUrl ?? "",
+    coverImageUrl: profile.coverImageUrl ?? "",
+    primaryColor: profile.primaryColor ?? "",
+    contactPhone: profile.contactPhone ?? "",
     contactWhatsapp: profile.contactWhatsapp ?? "",
+    contactEmail: profile.contactEmail ?? "",
+    websiteUrl: profile.websiteUrl ?? "",
+    instagramUrl: profile.instagramUrl ?? "",
+    terms: profile.terms ?? "",
+    gallery: profile.gallery
+      .map((item) => (item.alt ? `${item.url} | ${item.alt}` : item.url))
+      .join("\n"),
     services: profile.services
       .map((service) =>
         service.description ? `${service.name} - ${service.description}` : service.name,
@@ -1796,4 +1912,32 @@ function splitServices(value: string) {
         ...(description ? { description } : {}),
       };
     });
+}
+
+function splitGallery(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [url = "", ...altParts] = line.split("|");
+      const alt = altParts.join("|").trim();
+
+      return {
+        url: url.trim(),
+        ...(alt ? { alt } : {}),
+      };
+    });
+}
+
+function formatPublicProfileValidationError(issue?: {
+  message: string;
+  path: ReadonlyArray<string | number>;
+}) {
+  if (!issue) {
+    return "Revise os dados do perfil publico.";
+  }
+
+  const field = issue.path.length > 0 ? ` (${issue.path.join(".")})` : "";
+  return `Revise o perfil publico${field}: ${issue.message}`;
 }
