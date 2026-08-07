@@ -217,7 +217,7 @@ export interface QuoteDraftFileSummary {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
-  storageProvider: "stub";
+  storageProvider: "database" | "stub";
   createdAt: string;
 }
 

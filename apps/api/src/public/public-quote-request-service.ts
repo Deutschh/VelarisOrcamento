@@ -60,6 +60,7 @@ import {
   PublicQuoteConfigurationUnavailableError,
   PublicQuoteDraftExpiredError,
   PublicQuoteDraftNotEditableError,
+  PublicQuoteFileNotFoundError,
   PublicQuoteDraftNotFoundError,
   PublicQuoteIdempotencyConflictError,
   PublicQuoteIdempotencyRequiredError,
@@ -197,8 +198,15 @@ export class PublicQuoteRequestService {
   async addDraftFile(
     draftToken: string,
     input: QuoteDraftFileMetadataRequest,
+    content: Buffer,
   ): Promise<QuoteDraftResponse> {
     const context = await this.loadEditableDraftContext(draftToken);
+
+    if (content.length !== input.sizeBytes) {
+      throw new PublicQuoteSubmissionValidationError("File size does not match its content.");
+    }
+
+    assertSupportedFileContent(input.mimeType, content);
 
     if (
       input.itemId &&
@@ -217,6 +225,7 @@ export class PublicQuoteRequestService {
       fileName: input.fileName,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
+      content,
       now: this.now(),
     });
 
@@ -237,6 +246,17 @@ export class PublicQuoteRequestService {
     return {
       draft: this.toDraftDetail(refreshed),
     };
+  }
+
+  async getDraftFile(draftToken: string, fileId: string) {
+    const context = await this.loadDraftContext(draftToken);
+    this.assertNotExpired(context.request);
+    return this.findStoredFile(context.request.id, fileId);
+  }
+
+  async getTrackingFile(publicToken: string, fileId: string) {
+    const context = await this.loadTrackingContext(publicToken);
+    return this.findStoredFile(context.request.id, fileId);
   }
 
   async estimateDraft(draftToken: string): Promise<QuoteEstimateResponse> {
@@ -1044,6 +1064,22 @@ export class PublicQuoteRequestService {
     return proposal;
   }
 
+  private async findStoredFile(
+    quoteRequestId: string,
+    fileId: string,
+  ): Promise<{ id: string; fileName: string; mimeType: string; content: Buffer }> {
+    const file = await this.dependencies.quoteRequestRepository.findStoredFile({
+      quoteRequestId,
+      fileId,
+    });
+
+    if (!file?.content) {
+      throw new PublicQuoteFileNotFoundError();
+    }
+
+    return { ...file, content: file.content };
+  }
+
   private async loadDraftContext(draftToken: string): Promise<DraftContext> {
     const request = await this.dependencies.quoteRequestRepository.findByDraftTokenHash(
       hashToken(draftToken),
@@ -1835,6 +1871,27 @@ function createWhatsappUrl(input: {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
+}
+
+function assertSupportedFileContent(mimeType: string, content: Buffer) {
+  const valid =
+    (mimeType === "image/jpeg" &&
+      content.length >= 3 &&
+      content[0] === 0xff &&
+      content[1] === 0xd8 &&
+      content[2] === 0xff) ||
+    (mimeType === "image/png" &&
+      content.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) ||
+    (mimeType === "image/webp" &&
+      content.subarray(0, 4).toString("ascii") === "RIFF" &&
+      content.subarray(8, 12).toString("ascii") === "WEBP") ||
+    (mimeType === "application/pdf" && content.subarray(0, 5).toString("ascii") === "%PDF-");
+
+  if (!valid) {
+    throw new PublicQuoteSubmissionValidationError(
+      "File content does not match its declared type.",
+    );
+  }
 }
 
 function hashJson(value: unknown) {

@@ -61,6 +61,13 @@ export interface CompanyQuoteRequestRevisionInput {
   actorUserId: string;
 }
 
+export interface StoredCompanyQuoteRequestFile {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  content: Buffer | null;
+}
+
 export interface SaveCompanyQuoteRequestReviewInput {
   quoteRequestId: string;
   companyId: string;
@@ -95,6 +102,11 @@ export interface CompanyQuoteRequestRepository {
     companyId: string;
     quoteRequestId: string;
   }): Promise<PersistedCompanyQuoteRequest | null>;
+  findStoredFile(input: {
+    companyId: string;
+    quoteRequestId: string;
+    fileId: string;
+  }): Promise<StoredCompanyQuoteRequestFile | null>;
   saveReview(
     input: SaveCompanyQuoteRequestReviewInput,
   ): Promise<PersistedCompanyQuoteRequest>;

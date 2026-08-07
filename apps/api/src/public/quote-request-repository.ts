@@ -76,7 +76,15 @@ export interface AddDraftFileInput {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  content: Buffer;
   now: Date;
+}
+
+export interface StoredQuoteRequestFile {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  content: Buffer | null;
 }
 
 export interface SaveCalculationInput {
@@ -303,6 +311,10 @@ export interface PublicQuoteRequestRepository {
   findSubmittedByRequestCode(requestCode: string): Promise<PersistedQuoteRequest | null>;
   updateDraft(input: UpdateDraftRecordInput): Promise<PersistedQuoteRequest>;
   addDraftFile(input: AddDraftFileInput): Promise<QuoteDraftFileSummary>;
+  findStoredFile(input: {
+    quoteRequestId: string;
+    fileId: string;
+  }): Promise<StoredQuoteRequestFile | null>;
   deleteDraftFile(input: { quoteRequestId: string; fileId: string }): Promise<boolean>;
   saveCalculation(input: SaveCalculationInput): Promise<PersistedQuoteRequest>;
   listProposalSummaries(input: {

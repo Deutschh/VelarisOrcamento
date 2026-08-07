@@ -83,6 +83,32 @@ export class DrizzleCompanyQuoteRequestRepository implements CompanyQuoteRequest
     return row ? this.mapRequest(row) : null;
   }
 
+  async findStoredFile(input: {
+    companyId: string;
+    quoteRequestId: string;
+    fileId: string;
+  }) {
+    const [row] = await this.db
+      .select({
+        id: quoteRequestFiles.id,
+        fileName: quoteRequestFiles.fileName,
+        mimeType: quoteRequestFiles.mimeType,
+        content: quoteRequestFiles.content,
+      })
+      .from(quoteRequestFiles)
+      .innerJoin(quoteRequests, eq(quoteRequestFiles.quoteRequestId, quoteRequests.id))
+      .where(
+        and(
+          eq(quoteRequestFiles.id, input.fileId),
+          eq(quoteRequestFiles.quoteRequestId, input.quoteRequestId),
+          eq(quoteRequests.companyId, input.companyId),
+          ne(quoteRequests.status, "draft"),
+        ),
+      );
+
+    return row ?? null;
+  }
+
   async saveReview(
     input: SaveCompanyQuoteRequestReviewInput,
   ): Promise<PersistedCompanyQuoteRequest> {
@@ -390,7 +416,7 @@ function mapFile(row: FileRow): QuoteDraftFileSummary {
     fileName: row.fileName,
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
-    storageProvider: "stub",
+    storageProvider: row.storageProvider === "database" ? "database" : "stub",
     createdAt: row.createdAt.toISOString(),
   };
 }

@@ -41,6 +41,14 @@ export class InMemoryCompanyQuoteRequestRepository implements CompanyQuoteReques
     return request;
   }
 
+  async findStoredFile(_input: {
+    companyId: string;
+    quoteRequestId: string;
+    fileId: string;
+  }) {
+    return null;
+  }
+
   async saveReview(
     input: SaveCompanyQuoteRequestReviewInput,
   ): Promise<PersistedCompanyQuoteRequest> {

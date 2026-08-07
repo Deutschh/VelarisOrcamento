@@ -120,6 +120,13 @@
       "when": 1785900000000,
       "tag": "0016_customer_profile_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786146149871,
+      "tag": "0017_glorious_kylun",
+      "breakpoints": true
     }
   ]
 }

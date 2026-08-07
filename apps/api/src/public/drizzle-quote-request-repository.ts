@@ -54,6 +54,7 @@ import type {
   ProposalActionIdempotencyRecord,
   RejectProposalInput,
   ReviewIdempotencyRecord,
+  StoredQuoteRequestFile,
 } from "./quote-request-repository.js";
 
 type Database = ReturnType<typeof createDatabaseClient>["db"];
@@ -179,8 +180,9 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
         fileName: input.fileName,
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
-        storageProvider: "stub",
-        status: "metadata_received",
+        storageProvider: "database",
+        content: input.content,
+        status: "uploaded",
         createdAt: input.now,
         updatedAt: input.now,
       })
@@ -191,6 +193,28 @@ export class DrizzleQuoteRequestRepository implements PublicQuoteRequestReposito
     }
 
     return mapFile(row);
+  }
+
+  async findStoredFile(input: {
+    quoteRequestId: string;
+    fileId: string;
+  }): Promise<StoredQuoteRequestFile | null> {
+    const [row] = await this.db
+      .select({
+        id: quoteRequestFiles.id,
+        fileName: quoteRequestFiles.fileName,
+        mimeType: quoteRequestFiles.mimeType,
+        content: quoteRequestFiles.content,
+      })
+      .from(quoteRequestFiles)
+      .where(
+        and(
+          eq(quoteRequestFiles.id, input.fileId),
+          eq(quoteRequestFiles.quoteRequestId, input.quoteRequestId),
+        ),
+      );
+
+    return row ?? null;
   }
 
   async deleteDraftFile(input: {
@@ -1056,7 +1080,7 @@ function mapFile(row: QuoteRequestFileRow): QuoteDraftFileSummary {
     fileName: row.fileName,
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
-    storageProvider: "stub",
+    storageProvider: row.storageProvider === "database" ? "database" : "stub",
     createdAt: row.createdAt.toISOString(),
   };
 }

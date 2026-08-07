@@ -100,6 +100,28 @@ export function createCompanyRouter(
     }),
   );
 
+  router.get(
+    "/quote-requests/:quoteRequestId/files/:fileId",
+    asyncHandler(async (request, response) => {
+      const actor = requireCompanyActor(request);
+      const service = requireCompanyQuoteRequestService(companyQuoteRequestService);
+      const file = await service.getQuoteRequestFile(
+        actor.userId,
+        getQuoteRequestId(request.params),
+        String(request.params.fileId),
+      );
+      const fileName = file.fileName.replace(/[\r\n"]/g, "_");
+      response
+        .status(200)
+        .set({
+          "Cache-Control": "private, no-store",
+          "Content-Disposition": `inline; filename="${fileName}"`,
+          "Content-Type": file.mimeType,
+        })
+        .send(file.content);
+    }),
+  );
+
   router.patch(
     "/quote-requests/:quoteRequestId/review",
     asyncHandler(async (request, response) => {

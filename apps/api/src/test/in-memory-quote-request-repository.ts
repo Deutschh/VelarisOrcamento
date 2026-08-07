@@ -24,6 +24,7 @@ import type {
   ProposalActionIdempotencyRecord,
   RejectProposalInput,
   ReviewIdempotencyRecord,
+  StoredQuoteRequestFile,
 } from "../public/quote-request-repository.js";
 
 export class InMemoryQuoteRequestRepository implements PublicQuoteRequestRepository {
@@ -50,6 +51,7 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
   >();
   readonly reviews = new Map<string, PublicCompanyReview>();
   readonly reviewIdempotencyRecords = new Map<string, ReviewIdempotencyRecord>();
+  readonly fileContents = new Map<string, StoredQuoteRequestFile>();
 
   async createDraft(input: CreateDraftRecordInput): Promise<PersistedQuoteRequest> {
     const request: PersistedQuoteRequest = {
@@ -140,7 +142,7 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
       fileName: input.fileName,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
-      storageProvider: "stub",
+      storageProvider: "database",
       createdAt: input.now.toISOString(),
     };
 
@@ -148,8 +150,24 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
       ...request,
       files: [...request.files, file],
     });
+    this.fileContents.set(file.id, {
+      id: file.id,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      content: input.content,
+    });
 
     return file;
+  }
+
+  async findStoredFile(input: {
+    quoteRequestId: string;
+    fileId: string;
+  }): Promise<StoredQuoteRequestFile | null> {
+    const request = this.requests.get(input.quoteRequestId);
+    return request?.files.some((file) => file.id === input.fileId)
+      ? (this.fileContents.get(input.fileId) ?? null)
+      : null;
   }
 
   async deleteDraftFile(input: {
@@ -163,6 +181,7 @@ export class InMemoryQuoteRequestRepository implements PublicQuoteRequestReposit
       ...request,
       files: nextFiles,
     });
+    this.fileContents.delete(input.fileId);
 
     return nextFiles.length !== request.files.length;
   }

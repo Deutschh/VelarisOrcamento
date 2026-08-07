@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -12,6 +13,12 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+const binary = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 export const userRoleEnum = pgEnum("user_role", ["customer", "company", "admin"]);
 export const companyStatusEnum = pgEnum("company_status", [
@@ -813,6 +820,7 @@ export const quoteRequestFiles = pgTable(
     sizeBytes: integer("size_bytes").notNull(),
     storageProvider: text("storage_provider").notNull().default("stub"),
     storageKey: text("storage_key"),
+    content: binary("content"),
     status: text("status").notNull().default("metadata_received"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     ...timestamps,

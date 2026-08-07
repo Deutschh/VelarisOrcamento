@@ -1,4 +1,4 @@
-import { Router, type Request } from "express";
+import express, { Router, type Request, type Response } from "express";
 import {
   HTTP_HEADERS,
   createQuoteDraftRequestSchema,
@@ -14,7 +14,10 @@ import {
   updateQuoteDraftRequestSchema,
 } from "@velaris/shared";
 import { asyncHandler } from "../lib/async-handler.js";
-import { PublicQuoteRequestsUnavailableError } from "./public-errors.js";
+import {
+  PublicQuoteRequestsUnavailableError,
+  PublicQuoteSubmissionValidationError,
+} from "./public-errors.js";
 import type { PublicCompanyService } from "./public-service.js";
 import type { PublicQuoteRequestService } from "./public-quote-request-service.js";
 
@@ -75,6 +78,20 @@ export function createPublicRouter(
       const result = await service.getPublicProposal(String(request.params.token));
 
       response.json(result);
+    }),
+  );
+
+  router.get(
+    "/tracking/:token/files/:fileId",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      sendStoredFile(
+        response,
+        await service.getTrackingFile(
+          String(request.params.token),
+          String(request.params.fileId),
+        ),
+      );
     }),
   );
 
@@ -207,12 +224,42 @@ export function createPublicRouter(
 
   router.post(
     "/quote-requests/drafts/:draftToken/files",
+    express.raw({ type: () => true, limit: "15mb" }),
     asyncHandler(async (request, response) => {
       const service = requireQuoteRequestService(publicQuoteRequestService);
-      const payload = quoteDraftFileMetadataRequestSchema.parse(request.body);
+      if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
+        throw new PublicQuoteSubmissionValidationError("File content is required.");
+      }
+      const payload = quoteDraftFileMetadataRequestSchema.parse({
+        itemId: request.query.itemId,
+        fieldCode: request.query.fieldCode,
+        fileName: request.query.fileName,
+        mimeType: request.get("content-type")?.split(";")[0],
+        sizeBytes: request.body.length,
+      });
       response
         .status(201)
-        .json(await service.addDraftFile(String(request.params.draftToken), payload));
+        .json(
+          await service.addDraftFile(
+            String(request.params.draftToken),
+            payload,
+            request.body,
+          ),
+        );
+    }),
+  );
+
+  router.get(
+    "/quote-requests/drafts/:draftToken/files/:fileId",
+    asyncHandler(async (request, response) => {
+      const service = requireQuoteRequestService(publicQuoteRequestService);
+      sendStoredFile(
+        response,
+        await service.getDraftFile(
+          String(request.params.draftToken),
+          String(request.params.fileId),
+        ),
+      );
     }),
   );
 
@@ -279,4 +326,19 @@ function requireQuoteRequestService(
   }
 
   return service;
+}
+
+function sendStoredFile(
+  response: Response,
+  file: { fileName: string; mimeType: string; content: Buffer },
+) {
+  const fileName = file.fileName.replace(/[\r\n"]/g, "_");
+  response
+    .status(200)
+    .set({
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": `inline; filename="${fileName}"`,
+      "Content-Type": file.mimeType,
+    })
+    .send(file.content);
 }

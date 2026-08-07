@@ -608,12 +608,14 @@ async function submitValidDraft(service: PublicQuoteRequestService) {
 }
 
 async function addTestDraftFile(service: PublicQuoteRequestService, draftToken: string) {
+  const content = Buffer.alloc(1024);
+  content.set([0xff, 0xd8, 0xff]);
   await service.addDraftFile(draftToken, {
     fieldCode: "photos",
     fileName: "sofa-sala.jpg",
     mimeType: "image/jpeg",
     sizeBytes: 1024,
-  });
+  }, content);
 }
 
 async function submitDraftWithSentProposal(

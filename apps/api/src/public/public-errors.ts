@@ -34,6 +34,12 @@ export class PublicQuoteDraftNotEditableError extends AppError {
   }
 }
 
+export class PublicQuoteFileNotFoundError extends AppError {
+  constructor() {
+    super("Quote request file not found.", 404, "PUBLIC_QUOTE_FILE_NOT_FOUND");
+  }
+}
+
 export class PublicQuoteCalculationError extends AppError {
   constructor(code: string, message: string) {
     super(message, 422, `PUBLIC_QUOTE_${code}`);

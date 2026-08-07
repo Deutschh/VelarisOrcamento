@@ -79,6 +79,25 @@ export class CompanyQuoteRequestService {
     };
   }
 
+  async getQuoteRequestFile(
+    userId: string,
+    quoteRequestId: string,
+    fileId: string,
+  ): Promise<{ id: string; fileName: string; mimeType: string; content: Buffer }> {
+    const account = await this.getActiveCompanyAccount(userId);
+    const file = await this.dependencies.quoteRequestRepository.findStoredFile({
+      companyId: account.companyId,
+      quoteRequestId,
+      fileId,
+    });
+
+    if (!file?.content) {
+      throw new CompanyQuoteRequestNotFoundError();
+    }
+
+    return { ...file, content: file.content };
+  }
+
   async reviewQuoteRequest(
     userId: string,
     quoteRequestId: string,

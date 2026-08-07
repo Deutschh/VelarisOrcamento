@@ -34,6 +34,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { CheckboxField, SelectField } from "../components/form-controls.js";
+import { QuoteRequestFilesGallery } from "../components/file-gallery.js";
 import {
   ActionButton,
   AppShell,
@@ -62,7 +63,6 @@ import {
   formatDate,
   formatDateTimeLocalInput,
   formatDurationMinutes,
-  formatFileSize,
   formatMoneyCents,
   formatMoneyInputFromCents,
   formatQuoteAddress,
@@ -972,7 +972,7 @@ function CompanyQuoteRequestDetailView({
             </div>
           </section>
 
-          <CompanyFilesPanel files={quoteRequest.files} />
+          <CompanyFilesPanel files={quoteRequest.files} quoteRequestId={quoteRequest.id} />
           <CompanyRevisionTimeline quoteRequest={quoteRequest} />
         </div>
 
@@ -1321,7 +1321,13 @@ function CompanyReviewItemEditor({
   );
 }
 
-function CompanyFilesPanel({ files }: { files: CompanyQuoteRequestDetail["files"] }) {
+function CompanyFilesPanel({
+  files,
+  quoteRequestId,
+}: {
+  files: CompanyQuoteRequestDetail["files"];
+  quoteRequestId: string;
+}) {
   return (
     <section>
       <h3 className="flex items-center gap-2 text-lg font-semibold">
@@ -1331,22 +1337,12 @@ function CompanyFilesPanel({ files }: { files: CompanyQuoteRequestDetail["files"
       {files.length === 0 ? (
         <p className="mt-3 text-sm text-white/50">Nenhum arquivo vinculado.</p>
       ) : (
-        <div className="mt-3 divide-y divide-white/10 rounded-md border border-white/10">
-          {files.map((file) => (
-            <div
-              className="grid gap-2 px-3 py-3 text-sm sm:grid-cols-[1fr_auto]"
-              key={file.id}
-            >
-              <div>
-                <div className="font-medium text-white/85">{file.fileName}</div>
-                <div className="mt-1 text-xs text-white/45">
-                  {file.mimeType} - {formatFileSize(file.sizeBytes)}
-                </div>
-              </div>
-              <div className="text-xs text-white/45">{formatDate(file.createdAt)}</div>
-            </div>
-          ))}
-        </div>
+        <QuoteRequestFilesGallery
+          files={files}
+          getFilePath={(file) =>
+            `/api/company/quote-requests/${encodeURIComponent(quoteRequestId)}/files/${encodeURIComponent(file.id)}`
+          }
+        />
       )}
     </section>
   );

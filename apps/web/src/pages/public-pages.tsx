@@ -72,6 +72,7 @@ import {
 } from "react-router-dom";
 
 import { CheckboxField, SelectField } from "../components/form-controls.js";
+import { QuoteRequestFilesGallery } from "../components/file-gallery.js";
 import {
   ActionButton,
   AppShell,
@@ -96,7 +97,6 @@ import {
 import {
   ApiError,
   apiRequest,
-  apiUrl,
   createIdempotencyHeaders,
   errorMessage,
 } from "../lib/api.js";
@@ -721,10 +721,15 @@ export function QuoteRequestPage() {
         });
 
         latest = await apiRequest<QuoteDraftResponse>(
-          `/api/public/quote-requests/drafts/${encodeURIComponent(envelope.draftToken)}/files`,
+          `/api/public/quote-requests/drafts/${encodeURIComponent(envelope.draftToken)}/files?${new URLSearchParams({
+            itemId: payload.itemId ?? "",
+            fieldCode: payload.fieldCode ?? "",
+            fileName: payload.fileName,
+          }).toString()}`,
           {
             method: "POST",
-            body: JSON.stringify(payload),
+            headers: { "Content-Type": payload.mimeType },
+            body: file,
           },
         );
       }
@@ -1109,6 +1114,9 @@ export function QuoteRequestPage() {
                     <QuoteItemEditor
                       draft={draft}
                       files={quoteFilesForItem(draft.files, item.id)}
+                      getFilePath={(file) =>
+                        `/api/public/quote-requests/drafts/${encodeURIComponent(requireDraftEnvelope(draftEnvelope).draftToken)}/files/${encodeURIComponent(file.id)}`
+                      }
                       index={index}
                       isBusy={isBusy}
                       item={item}
@@ -1414,23 +1422,13 @@ export function QuoteRequestPage() {
                 </div>
 
                 {draft.files.length > 0 ? (
-                  <ul className="mt-5 space-y-2">
-                    {draft.files.map((file) => (
-                      <li
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]"
-                        key={file.id}
-                      >
-                        <span className="truncate">{file.fileName}</span>
-                        <button
-                          className="shrink-0 rounded-full p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
-                          type="button"
-                          onClick={() => deleteFileMutation.mutate(file.id)}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  <QuoteRequestFilesGallery
+                    files={draft.files}
+                    getFilePath={(file) =>
+                      `/api/public/quote-requests/drafts/${encodeURIComponent(requireDraftEnvelope(draftEnvelope).draftToken)}/files/${encodeURIComponent(file.id)}`
+                    }
+                    onDelete={(file) => deleteFileMutation.mutate(file.id)}
+                  />
                 ) : (
                   <p className="mt-5 text-sm leading-6 text-[var(--color-text-secondary)]">
                     Nenhum arquivo foi anexado ainda.
@@ -1448,6 +1446,7 @@ export function QuoteRequestPage() {
 function QuoteItemEditor({
   draft,
   files,
+  getFilePath,
   index,
   isBusy,
   item,
@@ -1459,6 +1458,7 @@ function QuoteItemEditor({
 }: {
   draft: QuoteDraftDetail;
   files: QuoteDraftDetail["files"];
+  getFilePath: (file: QuoteDraftDetail["files"][number]) => string;
   index: number;
   isBusy: boolean;
   item: QuoteDraftItem;
@@ -1646,17 +1646,7 @@ function QuoteItemEditor({
           ) : null}
         </div>
         {files.length > 0 ? (
-          <ul className="mt-3 grid gap-2">
-            {files.map((file) => (
-              <li
-                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs text-[var(--color-text-secondary)]"
-                key={file.id}
-              >
-                <span className="truncate">{file.fileName}</span>
-                <span className="shrink-0">{formatBytes(file.sizeBytes)}</span>
-              </li>
-            ))}
-          </ul>
+          <QuoteRequestFilesGallery files={files} getFilePath={getFilePath} />
         ) : (
           <p className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">
             Selecione fotos do item ou um PDF para ajudar a empresa na avaliação.
@@ -2009,6 +1999,14 @@ export function PublicTrackingPage() {
                       {tracking.quoteRequest.data.notes || "Sem observações gerais."}
                     </p>
                   </div>
+                  {tracking.quoteRequest.files.length > 0 ? (
+                    <QuoteRequestFilesGallery
+                      files={tracking.quoteRequest.files}
+                      getFilePath={(file) =>
+                        `/api/public/tracking/${encodeURIComponent(String(token))}/files/${encodeURIComponent(file.id)}`
+                      }
+                    />
+                  ) : null}
                 </section>
               </aside>
             </div>
@@ -2756,18 +2754,6 @@ function quoteFilesForItem(files: QuoteDraftDetail["files"], itemId: string) {
 
 function formatQuoteFileCount(count: number) {
   return count === 1 ? "1 anexo" : `${count} anexos`;
-}
-
-function formatBytes(sizeBytes: number) {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function validateQuoteSubmissionDraft(data: QuoteDraftData, fileCount: number) {
