@@ -1885,11 +1885,9 @@ export function PublicTrackingPage() {
                   isRejecting={rejectProposalMutation.isPending}
                   proposal={tracking.latestProposal}
                   proposalDetail={proposalQuery.data?.proposal ?? null}
-                  proposalPdfUrl={apiUrl(
-                    `/api/public/tracking/${encodeURIComponent(
-                      String(token),
-                    )}/proposal/pdf`,
-                  )}
+                  proposalPdfUrl={`/api/public/tracking/${encodeURIComponent(
+                    String(token),
+                  )}/proposal/pdf`}
                   rejectReason={proposalRejectReason}
                   rejectReasonCode={proposalRejectReasonCode}
                   onAccept={() => acceptProposalMutation.mutate()}
@@ -2271,49 +2269,66 @@ function PublicReviewPanel({
     appointment.serviceStatus === "service_realized";
 
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Avaliacao</h2>
+    <section className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="absolute right-[-80px] top-[-80px] h-44 w-44 rounded-full bg-[var(--color-accent-soft)] blur-[80px]" />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Avaliação
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+            Como foi o atendimento?
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--color-text-secondary)]">
+            A avaliação fica disponível depois que a proposta for aceita e a empresa
+            marcar o serviço como realizado.
+          </p>
+        </div>
+
         {canReview ? (
-          <span className="rounded-md border border-emerald-300/25 px-2 py-1 text-xs text-emerald-100">
-            Disponivel
+          <span className="inline-flex rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)]">
+            Disponível
           </span>
         ) : null}
       </div>
+
       {!canReview ? (
-        <p className="mt-4 text-sm leading-6 text-white/55">
-          A avaliacao fica disponivel depois que a proposta aceita tiver horario
-          confirmado e a empresa marcar o atendimento como realizado.
+        <p className="relative mt-5 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+          Quando o atendimento for concluído, você poderá deixar uma avaliação para ajudar
+          outros clientes e fortalecer o perfil público da empresa.
         </p>
       ) : reviewSubmitted ? (
-        <div className="mt-4 rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
-          Obrigado pela avaliacao. Ela ja pode aparecer no perfil publico da empresa.
+        <div className="relative mt-5 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+          Obrigado pela avaliação. Ela já pode aparecer no perfil público da empresa.
         </div>
       ) : (
-        <div className="mt-4 space-y-4">
-          <label className="block text-sm text-white/70">
-            Nota
-            <select
-              className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300"
-              value={rating}
-              onChange={(event) => onRatingChange(event.target.value)}
-            >
-              <option value="5">5 - Excelente</option>
-              <option value="4">4 - Muito bom</option>
-              <option value="3">3 - Bom</option>
-              <option value="2">2 - Regular</option>
-              <option value="1">1 - Ruim</option>
-            </select>
-          </label>
+        <div className="relative mt-5 space-y-4">
+          <SelectField
+            label="Nota"
+            options={[
+              ["5", "5 — Excelente"],
+              ["4", "4 — Muito bom"],
+              ["3", "3 — Bom"],
+              ["2", "2 — Regular"],
+              ["1", "1 — Ruim"],
+            ]}
+            value={rating}
+            onChange={onRatingChange}
+          />
+
           <TextAreaField
-            label="Comentario opcional"
+            label="Comentário opcional"
+            placeholder="Conte brevemente como foi sua experiência."
             rows={4}
             value={comment}
             onChange={(event) => onCommentChange(event.target.value)}
           />
+
           <ActionButton icon={Star} isLoading={isLoading} onClick={onSubmit}>
-            Enviar avaliacao
+            Enviar avaliação
           </ActionButton>
+
           <FormError message={error} />
         </div>
       )}
@@ -2342,59 +2357,92 @@ function PublicAppointmentPanel({
     appointment && ["proposed", "rescheduled"].includes(appointment.status);
 
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Horario</h2>
+    <section className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="absolute right-[-80px] top-[-80px] h-44 w-44 rounded-full bg-[var(--color-accent-soft)] blur-[80px]" />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Horário
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+            Agendamento do atendimento
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--color-text-secondary)]">
+            Quando a empresa propuser um horário, você poderá confirmar ou solicitar uma
+            alteração por aqui.
+          </p>
+        </div>
+
         {appointment ? <AppointmentStatusBadge status={appointment.status} /> : null}
       </div>
+
       {appointment ? (
-        <div className="mt-4 space-y-4">
+        <div className="relative mt-6 space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <InfoBlock label="Quando" value={formatAppointmentWindow(appointment)} />
             <InfoBlock
-              label="Duracao"
+              label="Duração"
               value={formatDurationMinutes(appointment.durationMinutes)}
             />
           </div>
+
           {appointment.address ? (
-            <p className="text-sm text-white/60">{appointment.address}</p>
+            <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                Endereço
+              </p>
+              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                {appointment.address}
+              </p>
+            </div>
           ) : null}
+
           {canCustomerAct ? (
-            <div className="space-y-3">
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-5">
+              <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                Confirme o horário se estiver tudo certo. Caso precise de outra opção,
+                explique brevemente o motivo para a empresa.
+              </div>
+
               <TextAreaField
-                label="Motivo para outro horario"
+                label="Motivo para outro horário"
+                placeholder="Exemplo: nesse horário não estarei no local."
                 rows={3}
                 value={reason}
                 onChange={(event) => onReasonChange(event.target.value)}
               />
+
               <div className="flex flex-wrap gap-3">
                 <ActionButton
                   icon={CheckCircle2}
                   isLoading={isLoading}
                   onClick={onConfirm}
                 >
-                  Confirmar horario
+                  Confirmar horário
                 </ActionButton>
+
                 <ActionButton
                   icon={RefreshCcw}
                   isLoading={isLoading}
                   variant="secondary"
                   onClick={onRequestReschedule}
                 >
-                  Pedir outro horario
+                  Pedir outro horário
                 </ActionButton>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-white/55">
-              Nenhuma acao de horario esta disponivel agora.
+            <p className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+              Nenhuma ação de horário está disponível agora.
             </p>
           )}
+
           <FormError message={error} />
         </div>
       ) : (
-        <p className="mt-4 text-sm text-white/55">
-          A empresa ainda nao propoe um horario pela plataforma.
+        <p className="relative mt-5 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+          A empresa ainda não propôs um horário pela plataforma.
         </p>
       )}
     </section>
@@ -2410,6 +2458,7 @@ export function PublicRecoveryPage() {
   const [recovery, setRecovery] = useState<PublicTrackingRecoveryRequestResponse | null>(
     null,
   );
+
   const requestMutation = useMutation({
     mutationFn: () =>
       apiRequest<PublicTrackingRecoveryRequestResponse>("/api/public/recovery/request", {
@@ -2426,6 +2475,7 @@ export function PublicRecoveryPage() {
       setOtp("");
     },
   });
+
   const verifyMutation = useMutation({
     mutationFn: () =>
       apiRequest<PublicTrackingRecoveryVerifyResponse>("/api/public/recovery/verify", {
@@ -2455,60 +2505,137 @@ export function PublicRecoveryPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <SectionTitle eyebrow="Recuperacao" title="Recuperar acompanhamento" />
-        <section className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-6">
-          <form className="space-y-4" onSubmit={submitRequest}>
-            <TextField
-              label="Codigo da solicitacao"
-              value={requestCode}
-              onChange={(event) => setRequestCode(event.target.value)}
-            />
-            <TextField
-              label="E-mail ou WhatsApp informado"
-              value={contact}
-              onChange={(event) => setContact(event.target.value)}
-            />
-            <SubmitButton icon={KeyRound} isLoading={requestMutation.isPending}>
-              Enviar codigo
-            </SubmitButton>
-            <FormError
-              message={
-                requestMutation.error
-                  ? errorMessage(
-                      requestMutation.error,
-                      "Nao foi possivel iniciar a recuperacao.",
-                    )
-                  : null
-              }
-            />
-          </form>
+      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <SectionTitle
+            eyebrow="Recuperação"
+            title="Recupere o link de acompanhamento."
+          />
+          <p className="max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)] lg:justify-self-end">
+            Informe o código da solicitação e o contato usado no pedido. Enviaremos um
+            código de verificação para liberar o acesso com segurança.
+          </p>
+        </div>
+
+        <section className="relative mt-7 overflow-hidden rounded-[38px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+          <div className="absolute right-[-90px] top-[-90px] h-56 w-56 rounded-full bg-[var(--color-accent-soft)] blur-[90px]" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+            <form className="space-y-4" onSubmit={submitRequest}>
+              <div>
+                <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                  Primeiro, identifique o pedido
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                  Use o código da solicitação e o e-mail ou WhatsApp informado no
+                  orçamento.
+                </p>
+              </div>
+
+              <TextField
+                label="Código da solicitação"
+                placeholder="Exemplo: VEL-000123"
+                value={requestCode}
+                onChange={(event) => setRequestCode(event.target.value)}
+              />
+
+              <TextField
+                label="E-mail ou WhatsApp informado"
+                placeholder="voce@email.com ou (11) 99999-9999"
+                value={contact}
+                onChange={(event) => setContact(event.target.value)}
+              />
+
+              <SubmitButton icon={KeyRound} isLoading={requestMutation.isPending}>
+                Enviar código
+              </SubmitButton>
+
+              <FormError
+                message={
+                  requestMutation.error
+                    ? errorMessage(
+                        requestMutation.error,
+                        "Não foi possível iniciar a recuperação.",
+                      )
+                    : null
+                }
+              />
+            </form>
+
+            <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Como funciona
+              </p>
+
+              <div className="mt-5 space-y-4">
+                {[
+                  [
+                    "01",
+                    "Informe o código",
+                    "Use o código que apareceu quando a solicitação foi enviada.",
+                  ],
+                  [
+                    "02",
+                    "Confirme o contato",
+                    "O sistema valida o e-mail ou WhatsApp usado no orçamento.",
+                  ],
+                  [
+                    "03",
+                    "Digite o OTP",
+                    "Depois da validação, você volta para o acompanhamento.",
+                  ],
+                ].map(([number, title, body]) => (
+                  <div
+                    className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                    key={number}
+                  >
+                    <p className="font-serif text-2xl text-[var(--color-text-muted)]">
+                      {number}
+                    </p>
+                    <h3 className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                      {title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {recovery ? (
             <form
-              className="mt-8 space-y-4 border-t border-white/10 pt-6"
+              className="relative mt-8 space-y-4 border-t border-[var(--color-border)] pt-6"
               onSubmit={submitVerify}
             >
-              <div className="rounded-md border border-emerald-300/25 bg-emerald-300/10 p-4 text-sm text-emerald-100">
-                Enviamos um OTP por e-mail para {recovery.maskedEmail}. WhatsApp e usado
-                apenas como identificacao complementar.
+              <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                Enviamos um código OTP por e-mail para{" "}
+                <span className="font-semibold text-[var(--color-text-primary)]">
+                  {recovery.maskedEmail}
+                </span>
+                . O WhatsApp é usado apenas como identificação complementar.
               </div>
+
               <TextField
-                label="OTP recebido por e-mail"
                 inputMode="numeric"
+                label="Código recebido por e-mail"
                 maxLength={6}
+                placeholder="000000"
                 value={otp}
                 onChange={(event) => setOtp(event.target.value)}
               />
+
               <SubmitButton icon={CheckCircle2} isLoading={verifyMutation.isPending}>
                 Abrir acompanhamento
               </SubmitButton>
+
               <FormError
                 message={
                   verifyMutation.error
                     ? errorMessage(
                         verifyMutation.error,
-                        "Nao foi possivel validar o codigo.",
+                        "Não foi possível validar o código.",
                       )
                     : null
                 }
