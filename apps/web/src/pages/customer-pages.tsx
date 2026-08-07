@@ -101,6 +101,7 @@ export function CustomerAreaPage() {
       void queryClient.invalidateQueries({ queryKey: ["public-companies"] });
     },
   });
+
   const dashboard = dashboardQuery.data;
   const activeRequests = dashboard?.requests.filter(isActiveRequest) ?? [];
   const pendingProposals = dashboard?.proposals.filter(isPendingProposal) ?? [];
@@ -112,9 +113,9 @@ export function CustomerAreaPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <SectionTitle eyebrow="Cliente" title="Minha area" />
+          <SectionTitle eyebrow="Cliente" title="Sua área de acompanhamento." />
           {authError ? (
             <PrimaryLink icon={Link2} to="/login">
               Entrar
@@ -127,15 +128,16 @@ export function CustomerAreaPage() {
         </div>
 
         {dashboardQuery.isLoading ? <LoadingLine /> : null}
+
         {dashboardQuery.error ? (
           <ErrorPanel
             error={dashboardQuery.error}
-            fallback="Nao foi possivel carregar a area do cliente."
+            fallback="Não foi possível carregar a área do cliente."
           />
         ) : null}
 
         {dashboard ? (
-          <div className="mt-6 space-y-6">
+          <div className="mt-7 space-y-6">
             <section className="grid gap-3 md:grid-cols-4">
               <InfoBlock label="Em andamento" value={String(activeRequests.length)} />
               <InfoBlock
@@ -143,42 +145,53 @@ export function CustomerAreaPage() {
                 value={String(pendingProposals.length)}
               />
               <InfoBlock
-                label="Proximos horarios"
+                label="Próximos horários"
                 value={String(upcomingAppointments.length)}
               />
               <InfoBlock
-                label="Avaliacoes pendentes"
+                label="Avaliações pendentes"
                 value={String(dashboard.pendingReviews.length)}
               />
             </section>
 
-            <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <section className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+              <div className="absolute right-[-90px] top-[-90px] h-48 w-48 rounded-full bg-[var(--color-accent-soft)] blur-[80px]" />
+
+              <div className="relative flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold">Vincular historico</h2>
-                  <p className="mt-1 text-sm text-white/55">
-                    Busca solicitacoes antigas com o mesmo e-mail verificado da sua conta.
+                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Histórico
+                  </p>
+                  <h2 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                    Vincular solicitações antigas
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
+                    Busque solicitações feitas como visitante usando o mesmo e-mail
+                    verificado da sua conta.
                   </p>
                 </div>
+
                 <ActionButton
                   icon={Link2}
                   isLoading={linkMutation.isPending}
                   onClick={() => linkMutation.mutate()}
                 >
-                  Vincular
+                  Vincular histórico
                 </ActionButton>
               </div>
+
               {linkMutation.data ? (
-                <p className="mt-3 text-sm text-emerald-100">
-                  {linkMutation.data.linkedRequestsCount} solicitacao(oes) vinculada(s).
+                <p className="relative mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                  {linkMutation.data.linkedRequestsCount} solicitação(ões) vinculada(s).
                 </p>
               ) : null}
+
               <FormError
                 message={
                   linkMutation.error
                     ? errorMessage(
                         linkMutation.error,
-                        "Nao foi possivel vincular solicitacoes.",
+                        "Não foi possível vincular solicitações.",
                       )
                     : null
                 }
@@ -188,9 +201,9 @@ export function CustomerAreaPage() {
             <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
               <section className="space-y-6">
                 <CustomerSection
-                  empty="Nenhuma solicitacao vinculada a sua conta."
+                  empty="Nenhuma solicitação vinculada à sua conta."
                   icon={MessageSquareText}
-                  title="Solicitacoes em andamento"
+                  title="Solicitações em andamento"
                 >
                   {activeRequests.slice(0, 8).map((request) => (
                     <RequestCard key={request.id} request={request} />
@@ -198,9 +211,9 @@ export function CustomerAreaPage() {
                 </CustomerSection>
 
                 <CustomerSection
-                  empty="Nenhuma proposta aguardando sua confirmacao."
+                  empty="Nenhuma proposta aguardando sua confirmação."
                   icon={Star}
-                  title="Propostas aguardando confirmacao"
+                  title="Propostas aguardando confirmação"
                 >
                   {pendingProposals.map((proposal) => (
                     <ProposalCard key={proposal.id} proposal={proposal} />
@@ -208,9 +221,9 @@ export function CustomerAreaPage() {
                 </CustomerSection>
 
                 <CustomerSection
-                  empty="Nenhum proximo agendamento."
+                  empty="Nenhum próximo agendamento."
                   icon={CalendarClock}
-                  title="Proximos agendamentos"
+                  title="Próximos agendamentos"
                 >
                   {upcomingAppointments.map((appointment) => (
                     <AppointmentCard appointment={appointment} key={appointment.id} />
@@ -218,9 +231,9 @@ export function CustomerAreaPage() {
                 </CustomerSection>
 
                 <CustomerSection
-                  empty="Nenhum historico vinculado a sua conta."
+                  empty="Nenhum histórico vinculado à sua conta."
                   icon={History}
-                  title="Historico"
+                  title="Histórico"
                 >
                   {dashboard.history.slice(0, 12).map((request) => (
                     <RequestCard key={request.id} request={request} />
@@ -228,35 +241,42 @@ export function CustomerAreaPage() {
                 </CustomerSection>
               </section>
 
-              <aside className="space-y-6">
+              <aside className="space-y-6 xl:sticky xl:top-28 xl:self-start">
                 <CustomerSection
-                  empty="Nenhuma categoria disponivel."
+                  empty="Nenhuma categoria disponível."
                   icon={Building2}
                   title="Empresas e categorias"
                 >
                   <Link
-                    className="flex items-center justify-between rounded-md border border-white/10 bg-[#12141a] px-4 py-3 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                    className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
                     to="/empresas"
                   >
-                    <span>Empresas proximas</span>
-                    <ArrowRight size={16} />
+                    <span>Empresas próximas</span>
+                    <ArrowRight
+                      className="transition group-hover:translate-x-1"
+                      size={16}
+                    />
                   </Link>
+
                   {PUBLIC_COMPANY_CATEGORIES.map((category) => (
                     <Link
-                      className="flex items-center justify-between rounded-md border border-white/10 bg-[#12141a] px-4 py-3 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                      className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-text-primary)]"
                       key={category.code}
                       to={`/empresas?category=${category.code}`}
                     >
                       <span>{category.label}</span>
-                      <ArrowRight size={16} />
+                      <ArrowRight
+                        className="transition group-hover:translate-x-1"
+                        size={16}
+                      />
                     </Link>
                   ))}
                 </CustomerSection>
 
                 <CustomerSection
-                  empty="Nenhuma avaliacao pendente."
+                  empty="Nenhuma avaliação pendente."
                   icon={Star}
-                  title="Avaliacoes pendentes"
+                  title="Avaliações pendentes"
                 >
                   {dashboard.pendingReviews.map((review) => (
                     <PendingReviewCard key={review.appointmentId} review={review} />
@@ -272,7 +292,7 @@ export function CustomerAreaPage() {
                     <CompanyMiniCard
                       action={
                         <button
-                          className="rounded-md border border-white/10 p-2 text-white/55 hover:bg-white/10 hover:text-white"
+                          className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-200"
                           type="button"
                           onClick={() => removeFavoriteMutation.mutate(company.id)}
                         >
@@ -296,20 +316,22 @@ export function CustomerAreaPage() {
                 </CustomerSection>
 
                 <CustomerSection
-                  empty="Nenhuma notificacao."
+                  empty="Nenhuma notificação."
                   icon={Bell}
-                  title="Notificacoes"
+                  title="Notificações"
                 >
                   {dashboard.notifications.map((notification) => (
                     <div
-                      className="rounded-md border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5"
                       key={notification.id}
                     >
-                      <p className="font-medium text-white/85">{notification.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-white/55">
+                      <p className="font-semibold text-[var(--color-text-primary)]">
+                        {notification.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--color-text-secondary)]">
                         {notification.message}
                       </p>
-                      <p className="mt-2 text-xs text-white/35">
+                      <p className="mt-3 text-xs text-[var(--color-text-muted)]">
                         {formatDate(notification.createdAt)}
                       </p>
                     </div>
@@ -395,9 +417,9 @@ export function CustomerProfilePage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <SectionTitle eyebrow="Cliente" title="Meu perfil" />
+          <SectionTitle eyebrow="Cliente" title="Seu perfil." />
           {authError ? (
             <PrimaryLink icon={Link2} to="/login">
               Entrar
@@ -410,17 +432,20 @@ export function CustomerProfilePage() {
         </div>
 
         {profileQuery.isLoading ? <LoadingLine /> : null}
+
         {profileQuery.error ? (
           <ErrorPanel
             error={profileQuery.error}
-            fallback="Nao foi possivel carregar seu perfil."
+            fallback="Não foi possível carregar seu perfil."
           />
         ) : null}
 
         {profile ? (
-          <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
-            <aside className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]">
-              <div className="mx-auto grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+          <div className="mt-7 grid gap-6 lg:grid-cols-[320px_1fr]">
+            <aside className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+              <div className="absolute right-[-80px] top-[-80px] h-44 w-44 rounded-full bg-[var(--color-accent-soft)] blur-[80px]" />
+
+              <div className="relative mx-auto grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
                 {avatarUrl ? (
                   <img
                     alt=""
@@ -432,29 +457,33 @@ export function CustomerProfilePage() {
                   <UserCircle size={64} />
                 )}
               </div>
-              <div className="mt-6 text-center">
+
+              <div className="relative mt-6 text-center">
                 <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
                   {profile.name}
                 </h2>
-                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                <p className="mt-2 break-words text-sm text-[var(--color-text-secondary)]">
                   {profile.email}
                 </p>
-                <p className="mt-4 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
+                <p className="mt-4 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-xs font-semibold text-[var(--color-text-secondary)]">
                   {profile.isEmailVerified ? "E-mail verificado" : "E-mail pendente"}
                 </p>
               </div>
             </aside>
 
-            <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]">
+            <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
               <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
                   <Image size={18} />
                 </div>
                 <div>
-                  <h2 className="font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
-                    Informações pessoais
+                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Dados pessoais
+                  </p>
+                  <h2 className="mt-1 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                    Informações do cliente
                   </h2>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
                     Esses dados ajudam a identificar suas solicitações e contatos.
                   </p>
                 </div>
@@ -467,12 +496,9 @@ export function CustomerProfilePage() {
                   required
                   {...register("name")}
                 />
-                <TextField
-                  disabled
-                  label="E-mail"
-                  readOnly
-                  value={profile.email}
-                />
+
+                <TextField disabled label="E-mail" readOnly value={profile.email} />
+
                 <TextField
                   inputMode="tel"
                   label="Telefone"
@@ -483,6 +509,7 @@ export function CustomerProfilePage() {
                     },
                   })}
                 />
+
                 <TextField
                   inputMode="url"
                   label="URL da foto"
@@ -490,27 +517,29 @@ export function CustomerProfilePage() {
                   {...register("avatarUrl")}
                 />
 
-                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-                  O envio direto de arquivo para foto ficará ligado ao provedor de
-                  armazenamento privado quando essa decisão for fechada. Por enquanto, use
-                  uma URL pública de imagem.
+                <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-sm leading-7 text-[var(--color-text-secondary)]">
+                  Por enquanto, a foto do perfil usa uma URL pública. O envio direto de
+                  arquivo será conectado quando o armazenamento privado do projeto for
+                  fechado.
                 </div>
 
                 <SubmitButton icon={Save} isLoading={profileMutation.isPending}>
                   Salvar perfil
                 </SubmitButton>
+
                 {profileMutation.isSuccess ? (
-                  <p className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+                  <p className="mt-3 rounded-2xl border border-lime-300/20 bg-lime-300/10 px-4 py-3 text-sm text-lime-100">
                     Perfil atualizado com sucesso.
                   </p>
                 ) : null}
+
                 <FormError
                   message={
                     formError ??
                     (profileMutation.error
                       ? errorMessage(
                           profileMutation.error,
-                          "Nao foi possivel salvar seu perfil.",
+                          "Não foi possível salvar seu perfil.",
                         )
                       : null)
                   }
@@ -539,13 +568,24 @@ function CustomerSection({
   const isEmpty = Array.isArray(items) ? items.length === 0 : !items;
 
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04] p-5">
-      <h2 className="flex items-center gap-2 text-xl font-semibold">
-        <Icon className="text-emerald-200" size={20} />
-        {title}
-      </h2>
-      <div className="mt-4 space-y-3">
-        {isEmpty ? <p className="text-sm text-white/50">{empty}</p> : children}
+    <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+          <Icon size={18} />
+        </div>
+        <h2 className="font-serif text-2xl font-normal tracking-[-0.04em] text-[var(--color-text-primary)]">
+          {title}
+        </h2>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {isEmpty ? (
+          <p className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+            {empty}
+          </p>
+        ) : (
+          children
+        )}
       </div>
     </section>
   );
@@ -553,16 +593,24 @@ function CustomerSection({
 
 function RequestCard({ request }: { request: CustomerQuoteRequestSummary }) {
   return (
-    <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-emerald-200">{request.company.tradingName}</p>
-          <h3 className="mt-1 font-medium">{request.serviceName}</h3>
-          <p className="mt-1 text-xs text-white/45">Codigo {request.requestCode}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {request.company.tradingName}
+          </p>
+          <h3 className="mt-2 text-base font-semibold text-[var(--color-text-primary)]">
+            {request.serviceName}
+          </h3>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            Código {request.requestCode}
+          </p>
         </div>
+
         <QuoteRequestStatusBadge status={request.status} />
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <InfoBlock label="Itens" value={String(request.itemCount)} />
         <InfoBlock
           label="Estimativa"
@@ -582,22 +630,28 @@ function RequestCard({ request }: { request: CustomerQuoteRequestSummary }) {
 
 function ProposalCard({ proposal }: { proposal: CustomerProposalSummary }) {
   return (
-    <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-emerald-200">{proposal.company.tradingName}</p>
-          <h3 className="mt-1 font-medium">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {proposal.company.tradingName}
+          </p>
+          <h3 className="mt-2 text-base font-semibold text-[var(--color-text-primary)]">
             {proposal.latestProposalCode ?? "Proposta"}
           </h3>
-          <p className="mt-1 text-xs text-white/45">Solicitacao {proposal.requestCode}</p>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            Solicitação {proposal.requestCode}
+          </p>
         </div>
-        <span className="rounded-md border border-white/10 px-2 py-1 text-xs text-white/65">
+
+        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">
           {proposal.latestVersionStatus
             ? proposalVersionStatusLabels[proposal.latestVersionStatus]
             : "Pendente"}
         </span>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <InfoBlock
           label="Valor"
           value={
@@ -615,29 +669,39 @@ function ProposalCard({ proposal }: { proposal: CustomerProposalSummary }) {
     </div>
   );
 }
-
 function AppointmentCard({ appointment }: { appointment: CustomerAppointmentSummary }) {
   return (
-    <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-emerald-200">{appointment.company.tradingName}</p>
-          <h3 className="mt-1 font-medium">{appointment.serviceName}</h3>
-          <p className="mt-1 text-xs text-white/45">{formatDate(appointment.startsAt)}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {appointment.company.tradingName}
+          </p>
+          <h3 className="mt-2 text-base font-semibold text-[var(--color-text-primary)]">
+            {appointment.serviceName}
+          </h3>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            {formatDate(appointment.startsAt)}
+          </p>
         </div>
-        <span className="rounded-md border border-white/10 px-2 py-1 text-xs text-white/65">
+
+        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">
           {appointment.status}
         </span>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <InfoBlock
-          label="Duracao"
+          label="Duração"
           value={formatDurationMinutes(appointment.durationMinutes)}
         />
-        <InfoBlock label="Servico" value={appointment.serviceStatus} />
+        <InfoBlock label="Serviço" value={appointment.serviceStatus} />
       </div>
+
       {appointment.address ? (
-        <p className="mt-3 text-sm text-white/55">{appointment.address}</p>
+        <p className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+          {appointment.address}
+        </p>
       ) : null}
     </div>
   );
@@ -645,11 +709,15 @@ function AppointmentCard({ appointment }: { appointment: CustomerAppointmentSumm
 
 function PendingReviewCard({ review }: { review: CustomerPendingReviewSummary }) {
   return (
-    <div className="rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4">
-      <p className="font-medium text-emerald-50">{review.company.tradingName}</p>
-      <p className="mt-1 text-sm text-emerald-100/80">{review.serviceName}</p>
-      <p className="mt-2 text-xs text-emerald-100/60">
-        Avalie pelo acompanhamento publico da solicitacao {review.requestCode}.
+    <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+      <p className="font-semibold text-[var(--color-text-primary)]">
+        {review.company.tradingName}
+      </p>
+      <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+        {review.serviceName}
+      </p>
+      <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">
+        Avalie pelo acompanhamento público da solicitação {review.requestCode}.
       </p>
     </div>
   );
@@ -663,27 +731,27 @@ function CompanyMiniCard({
   company: CustomerCompanySummary;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-[#12141a] p-3">
+    <div className="flex items-center justify-between gap-3 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 transition hover:bg-[var(--color-surface-strong)]">
       <Link className="flex min-w-0 items-center gap-3" to={`/empresa/${company.slug}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-emerald-200">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
           {company.logoUrl ? (
-            <img
-              alt=""
-              className="h-full w-full rounded-md object-cover"
-              src={company.logoUrl}
-            />
+            <img alt="" className="h-full w-full object-cover" src={company.logoUrl} />
           ) : (
             <Building2 size={18} />
           )}
         </div>
+
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{company.tradingName}</p>
-          <p className="mt-1 truncate text-xs text-white/45">
+          <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+            {company.tradingName}
+          </p>
+          <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
             {[company.city, company.state].filter(Boolean).join(", ") ||
               company.nicheLabel}
           </p>
         </div>
       </Link>
+
       {action}
     </div>
   );
