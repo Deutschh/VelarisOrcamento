@@ -701,11 +701,11 @@ export function QuoteRequestPage() {
   });
 
   const fileMutation = useMutation({
-    mutationFn: async (input: { itemId: string; files: FileList }) => {
+    mutationFn: async (input: { itemId: string; files: File[] }) => {
       const envelope = requireDraftEnvelope(draftEnvelope);
       let latest: QuoteDraftResponse | null = null;
 
-      for (const file of Array.from(input.files)) {
+      for (const file of input.files) {
         const mimeType = resolveQuoteDraftFileMimeType(file);
 
         if (!mimeType) {
@@ -1463,7 +1463,7 @@ function QuoteItemEditor({
   isBusy: boolean;
   item: QuoteDraftItem;
   uploadFeedback: string | null;
-  onAddFile: (files: FileList) => void;
+  onAddFile: (files: File[]) => void;
   onDuplicate: () => void;
   onRemove: () => void;
   onUpdate: (patch: Partial<QuoteDraftItem>) => void;
@@ -1617,15 +1617,18 @@ function QuoteItemEditor({
           <RequiredLabel isRequired>Fotos ou PDF</RequiredLabel>
           <input
             accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
-            className="hidden"
+            className="absolute h-px w-px overflow-hidden opacity-0"
             disabled={isBusy}
             multiple
             type="file"
             onChange={(event) => {
-              if (event.target.files?.length) {
-                onAddFile(event.target.files);
+              const selectedFiles = Array.from(event.currentTarget.files ?? []);
+
+              if (selectedFiles.length > 0) {
+                onAddFile(selectedFiles);
               }
-              event.target.value = "";
+
+              event.currentTarget.value = "";
             }}
           />
         </label>
@@ -2985,11 +2988,11 @@ function PublicCompanyProfile({ company }: { company: PublicCompanyDetail }) {
         <div className="p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)]">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] sm:h-28 sm:w-28">
                 {company.logoUrl ? (
                   <img
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain p-3"
                     src={company.logoUrl}
                   />
                 ) : (

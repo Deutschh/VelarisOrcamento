@@ -200,6 +200,8 @@ contagem exibidas no perfil publico; o Admin pode moderar sem apagar o registro.
 - Cadastro de cliente em `/cadastro/cliente`.
 - Login comum com redirecionamento por papel.
 - Home autenticada em `/cliente`.
+- Perfil autenticado em `/cliente/perfil`.
+- Edicao de nome, telefone e foto por URL.
 - Solicitacoes, propostas aguardando confirmacao, proximos agendamentos e
   historico.
 - Favoritos de empresas.
@@ -217,15 +219,20 @@ contagem exibidas no perfil publico; o Admin pode moderar sem apagar o registro.
 - Rotas: `apps/api/src/customer/customer-router.ts`.
 - Tela: `apps/web/src/pages/customer-pages.tsx`.
 - Favoritos no perfil publico: `apps/web/src/pages/public-pages.tsx`.
-- Migration: `database/migrations/0013_needy_frightful_four.sql`.
+- Migrations: `database/migrations/0013_needy_frightful_four.sql` e
+  `database/migrations/0016_customer_profile_avatar.sql`.
 - Testes: `apps/api/src/customer/customer-service.test.ts`.
 
 ### Como funciona
 
 O cliente pode criar conta depois de ja ter enviado solicitacoes como visitante.
 Ao entrar em `/cliente`, a API busca dados vinculados ao usuario autenticado. A
-vinculacao assistida compara o e-mail verificado da conta com o contato salvo na
-solicitacao; telefone ainda fica pendente porque nao ha verificacao telefonica.
+tela `/cliente/perfil` usa `GET /api/customer/profile` e
+`PATCH /api/customer/profile` para editar nome, telefone e foto por URL. A foto
+ainda nao faz upload binario porque o armazenamento privado definitivo segue
+pendente. A vinculacao assistida compara o e-mail verificado da conta com o
+contato salvo na solicitacao; telefone ainda fica pendente porque nao ha
+verificacao telefonica.
 
 ## Sprint 18 - Metricas e administracao operacional
 
@@ -272,6 +279,8 @@ alteracao de preco, preservando auditoria.
 - Service worker em `apps/web/public/sw.js`.
 - Registro do service worker em `apps/web/src/pwa.ts` e `apps/web/src/main.tsx`.
 - Cache restrito a assets estaticos; rotas sensiveis nao sao cacheadas.
+- Rewrite SPA em `vercel.json` para que refresh direto em rotas React, como
+  `/empresa/:slug` e `/cliente`, carregue `index.html`.
 - Headers de seguranca em `apps/api/src/middleware/security-headers.ts`.
 - `Cache-Control: no-store` em respostas `/api/*`.
 - Rate limit em `apps/api/src/middleware/rate-limit.ts`.
@@ -283,11 +292,22 @@ alteracao de preco, preservando auditoria.
 - Script `npm run check:production`.
 - Testes unitarios de rate limit, headers, limpeza e prontidao.
 
+### Ajustes recentes de interface
+
+- O painel da empresa em `apps/web/src/pages/company-pages.tsx` recebeu
+  refinamento visual do dashboard, pipeline, lista, detalhe da solicitacao,
+  revisao tecnica, recusa, historico e estados de carregamento.
+- O fluxo publico de orcamento em `apps/web/src/pages/public-pages.tsx` converte
+  o `FileList` do navegador em `File[]`, infere MIME por extensao quando
+  necessario e mostra contador/lista de anexos por item.
+- O perfil publico da empresa mostra logo maior com `object-contain`, preservando
+  melhor marcas enviadas por URL.
+
 ### O que segue pendente
 
-- Deploy real.
-- Homologacao publica.
-- Dominio e SSL reais.
+- Validacao operacional do deploy por ambiente.
+- Homologacao publica final.
+- Dominio e SSL reais em ambiente final.
 - Backups e restore testado.
 - Monitoramento e alertas.
 - Sistema definitivo de envio de erros.

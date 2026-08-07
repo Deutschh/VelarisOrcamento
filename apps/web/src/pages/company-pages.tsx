@@ -81,6 +81,7 @@ import {
   schedulingModeLabels,
 } from "../lib/quote-form-options.js";
 import { CompanyOperationalPanel } from "./company-operational.js";
+
 export function CompanyAreaPage() {
   const contactUrl = import.meta.env.VITE_VELARIS_CONTACT_URL as string | undefined;
   const accountQuery = useQuery({
@@ -92,38 +93,53 @@ export function CompanyAreaPage() {
   return (
     <AppShell>
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <SectionTitle eyebrow="Empresa" title="Painel da empresa" />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionTitle eyebrow="Empresa" title="Painel operacional." />
           {account ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <StatusBadge status={account.status} />
               <ProfileBadge status={account.profileStatus} />
             </div>
           ) : null}
         </div>
+
         {accountQuery.isLoading ? <LoadingLine /> : null}
+
         {accountQuery.error ? (
           <ErrorPanel
             error={accountQuery.error}
             fallback="Entre como empresa para continuar."
           />
         ) : null}
+
         {account ? (
-          <section className="mt-6 rounded-md border border-white/10 bg-white/[0.04] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <section className="relative mt-7 overflow-hidden rounded-[38px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl sm:p-8">
+            <div className="absolute right-[-100px] top-[-100px] h-56 w-56 rounded-full bg-[var(--color-accent-soft)] blur-[90px]" />
+
+            <div className="relative flex flex-wrap items-start justify-between gap-5">
               <div>
-                <h2 className="text-2xl font-semibold">{account.tradingName}</h2>
-                <p className="mt-2 text-sm text-white/60">{account.ownerEmail}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+                  Conta da empresa
+                </p>
+                <h2 className="mt-3 max-w-2xl font-serif text-5xl font-normal leading-[0.95] tracking-[-0.055em] text-[var(--color-text-primary)]">
+                  {account.tradingName}
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
+                  {account.ownerEmail}
+                </p>
               </div>
+
               <CompanyContactAction contactUrl={contactUrl} />
             </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
+
+            <div className="relative mt-7 grid gap-4 md:grid-cols-3">
               <InfoBlock label="Slug" value={account.slug} />
               <InfoBlock label="Papel" value={account.memberRole} />
               <InfoBlock label="Cadastro" value={formatDate(account.createdAt)} />
             </div>
           </section>
         ) : null}
+
         {account?.status === "active" ? (
           <>
             <CompanyOperationalPanel />
@@ -140,7 +156,7 @@ export function CompanyAreaPage() {
 function CompanyContactAction({ contactUrl }: { contactUrl: string | undefined }) {
   return contactUrl ? (
     <a
-      className="inline-flex min-h-11 items-center gap-2 rounded-md bg-emerald-300 px-4 py-2 font-medium text-[#111216]"
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-text-inverted)] shadow-[var(--shadow-glow)] transition hover:-translate-y-0.5"
       href={contactUrl}
       rel="noreferrer"
       target="_blank"
@@ -150,7 +166,7 @@ function CompanyContactAction({ contactUrl }: { contactUrl: string | undefined }
     </a>
   ) : (
     <button
-      className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-md border border-white/15 px-4 py-2 text-white/45"
+      className="inline-flex min-h-12 cursor-not-allowed items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-5 py-3 text-sm font-semibold text-[var(--color-text-muted)]"
       disabled
       type="button"
     >
@@ -162,13 +178,22 @@ function CompanyContactAction({ contactUrl }: { contactUrl: string | undefined }
 
 function CompanyPendingPanel({ contactUrl }: { contactUrl: string | undefined }) {
   return (
-    <section className="mt-6 rounded-md border border-amber-300/25 bg-amber-300/10 p-5">
-      <h2 className="text-lg font-semibold text-amber-100">Cadastro em analise</h2>
-      <p className="mt-2 text-sm leading-6 text-amber-50/75">
-        A area operacional fica disponivel depois da ativacao manual da empresa.
-      </p>
-      <div className="mt-4">
-        <CompanyContactAction contactUrl={contactUrl} />
+    <section className="relative mt-7 overflow-hidden rounded-[34px] border border-amber-300/25 bg-amber-300/10 p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="absolute right-[-80px] top-[-80px] h-44 w-44 rounded-full bg-amber-300/10 blur-[80px]" />
+
+      <div className="relative">
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-amber-100/70">
+          Ativação
+        </p>
+        <h2 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-amber-50">
+          Cadastro em análise
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-amber-50/75">
+          A área operacional fica disponível depois da ativação manual da empresa.
+        </p>
+        <div className="mt-5">
+          <CompanyContactAction contactUrl={contactUrl} />
+        </div>
       </div>
     </section>
   );
@@ -185,7 +210,7 @@ type CompanyQuoteStatusFilter =
 const companyQuoteStatusFilters: Array<[CompanyQuoteStatusFilter, string]> = [
   ["all", "Todos"],
   ["submitted", "Recebidos"],
-  ["under_review", "Em revisao"],
+  ["under_review", "Em revisão"],
   ["awaiting_information", "Aguardando dados"],
   ["accepted_for_proposal", "Aceitos"],
   ["declined_by_company", "Recusados"],
@@ -194,7 +219,7 @@ const companyQuoteStatusFilters: Array<[CompanyQuoteStatusFilter, string]> = [
 const declineReasonLabels = [
   ["price", "Valor"],
   ["deadline", "Prazo"],
-  ["schedule", "Horario"],
+  ["schedule", "Horário"],
   ["hired_another_company", "Contratou outra empresa"],
   ["gave_up", "Desistiu"],
   ["other", "Outro"],
@@ -387,38 +412,47 @@ function CompanyQuoteRequestsPanel() {
   });
 
   return (
-    <section className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
+    <section className="mt-7 grid gap-6 lg:grid-cols-[370px_1fr]">
       <div className="space-y-6">
         {requestsQuery.data ? (
           <CompanyDashboardGrid dashboard={requestsQuery.data.dashboard} />
         ) : null}
-        <section className="rounded-md border border-white/10 bg-white/[0.04]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <ClipboardList size={18} />
-              Solicitacoes
-            </h2>
-            <select
-              className="h-10 rounded-md border border-white/15 bg-[#15171d] px-3 text-sm text-white outline-none focus:border-emerald-300"
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as CompanyQuoteStatusFilter)
-              }
-            >
-              {companyQuoteStatusFilters.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+
+        <section className="overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]">
+                <ClipboardList size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                  Pipeline
+                </p>
+                <h2 className="font-serif text-2xl font-normal tracking-[-0.04em] text-[var(--color-text-primary)]">
+                  Solicitações
+                </h2>
+              </div>
+            </div>
+
+            <div className="min-w-[180px]">
+              <SelectField
+                label="Filtro"
+                options={companyQuoteStatusFilters}
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value as CompanyQuoteStatusFilter)}
+              />
+            </div>
           </div>
+
           {requestsQuery.isLoading ? <LoadingLine /> : null}
+
           {requestsQuery.error ? (
             <ErrorPanel
               error={requestsQuery.error}
-              fallback="Nao foi possivel carregar solicitacoes."
+              fallback="Não foi possível carregar as solicitações."
             />
           ) : null}
+
           <CompanyQuoteRequestList
             quoteRequests={quoteRequests}
             selectedId={selectedId}
@@ -426,23 +460,24 @@ function CompanyQuoteRequestsPanel() {
           />
         </section>
       </div>
+
       <CompanyQuoteRequestDetailPanel
         appointmentConflictWarning={appointmentConflictWarning}
         appointmentError={
           proposeAppointmentMutation.error
             ? errorMessage(
                 proposeAppointmentMutation.error,
-                "Nao foi possivel propor o horario.",
+                "Não foi possível propor o horário.",
               )
             : updateAppointmentMutation.error
               ? errorMessage(
                   updateAppointmentMutation.error,
-                  "Nao foi possivel atualizar o horario.",
+                  "Não foi possível atualizar o horário.",
                 )
               : completeAppointmentMutation.error
                 ? errorMessage(
                     completeAppointmentMutation.error,
-                    "Nao foi possivel concluir o horario.",
+                    "Não foi possível concluir o horário.",
                   )
                 : null
         }
@@ -486,14 +521,14 @@ function CompanyDashboardGrid({ dashboard }: { dashboard: CompanyQuoteDashboard 
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
       <InfoBlock label="Recebidas" value={String(dashboard.receivedCount)} />
       <InfoBlock label="Novas" value={String(dashboard.submittedCount)} />
-      <InfoBlock label="Em revisao" value={String(dashboard.underReviewCount)} />
+      <InfoBlock label="Em revisão" value={String(dashboard.underReviewCount)} />
       <InfoBlock label="Aceitas" value={String(dashboard.acceptedForProposalCount)} />
       <InfoBlock label="Recusadas" value={String(dashboard.declinedCount)} />
       <InfoBlock
-        label="Tempo medio"
+        label="Tempo médio"
         value={
           dashboard.averageResponseMinutes === null
-            ? "Sem historico"
+            ? "Sem histórico"
             : formatDurationMinutes(dashboard.averageResponseMinutes)
         }
       />
@@ -512,45 +547,55 @@ function CompanyQuoteRequestList({
 }) {
   if (quoteRequests.length === 0) {
     return (
-      <p className="px-4 py-6 text-sm text-white/50">Nenhuma solicitacao neste filtro.</p>
+      <p className="px-5 py-6 text-sm leading-6 text-[var(--color-text-secondary)]">
+        Nenhuma solicitação neste filtro.
+      </p>
     );
   }
 
   return (
-    <div className="divide-y divide-white/10">
-      {quoteRequests.map((quoteRequest) => (
-        <button
-          className={`block w-full px-4 py-4 text-left transition ${
-            selectedId === quoteRequest.id ? "bg-emerald-300/10" : "hover:bg-white/[0.04]"
-          }`}
-          key={quoteRequest.id}
-          type="button"
-          onClick={() => onSelect(quoteRequest.id)}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium text-white/90">
-                {quoteRequest.requestCode ?? "Sem codigo"}
+    <div className="divide-y divide-[var(--color-border)]">
+      {quoteRequests.map((quoteRequest) => {
+        const isSelected = selectedId === quoteRequest.id;
+
+        return (
+          <button
+            className={`block w-full px-5 py-4 text-left transition ${
+              isSelected
+                ? "bg-[var(--color-surface-strong)]"
+                : "hover:bg-[var(--color-surface-muted)]"
+            }`}
+            key={quoteRequest.id}
+            type="button"
+            onClick={() => onSelect(quoteRequest.id)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {quoteRequest.requestCode ?? "Sem código"}
+                </div>
+                <div className="mt-1 text-xs text-[var(--color-text-muted)]">
+                  {quoteRequest.customerName} · {quoteRequest.itemCount} item(ns)
+                </div>
               </div>
-              <div className="mt-1 text-xs text-white/45">
-                {quoteRequest.customerName} - {quoteRequest.itemCount} item(ns)
-              </div>
+
+              <QuoteRequestStatusBadge status={quoteRequest.status} />
             </div>
-            <QuoteRequestStatusBadge status={quoteRequest.status} />
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
-            <span>{quoteRequest.serviceName}</span>
-            <span>
-              {quoteRequest.estimateMinCents !== null &&
-              quoteRequest.estimateMaxCents !== null
-                ? `${formatMoneyCents(
-                    quoteRequest.estimateMinCents,
-                  )} a ${formatMoneyCents(quoteRequest.estimateMaxCents)}`
-                : "Sem estimativa"}
-            </span>
-          </div>
-        </button>
-      ))}
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--color-text-secondary)]">
+              <span>{quoteRequest.serviceName}</span>
+              <span className="font-semibold text-[var(--color-text-primary)]">
+                {quoteRequest.estimateMinCents !== null &&
+                quoteRequest.estimateMaxCents !== null
+                  ? `${formatMoneyCents(
+                      quoteRequest.estimateMinCents,
+                    )} a ${formatMoneyCents(quoteRequest.estimateMaxCents)}`
+                  : "Sem estimativa"}
+              </span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -621,7 +666,7 @@ function CompanyQuoteRequestDetailPanel({
 }) {
   if (isLoading) {
     return (
-      <section className="rounded-md border border-white/10 bg-white/[0.04] p-6">
+      <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-2xl">
         <LoadingLine />
       </section>
     );
@@ -629,8 +674,9 @@ function CompanyQuoteRequestDetailPanel({
 
   if (!detail) {
     return (
-      <section className="rounded-md border border-white/10 bg-white/[0.04] p-6 text-sm text-white/50">
-        Selecione uma solicitacao.
+      <section className="rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm leading-6 text-[var(--color-text-secondary)] shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+        Selecione uma solicitação para revisar os dados, criar proposta e acompanhar o
+        agendamento.
       </section>
     );
   }
@@ -741,9 +787,9 @@ function CompanyQuoteRequestDetailView({
   const canEditReview = quoteRequest.status === "under_review";
   const hasLocalChanges = !sameJsonValue(reviewData, quoteRequest.data);
   const mutationError = reviewError
-    ? errorMessage(reviewError, "Nao foi possivel revisar a solicitacao.")
+    ? errorMessage(reviewError, "Não foi possível revisar a solicitação.")
     : declineError
-      ? errorMessage(declineError, "Nao foi possivel recusar a solicitacao.")
+      ? errorMessage(declineError, "Não foi possível recusar a solicitação.")
       : null;
 
   function updateItem(itemId: string, patch: Partial<QuoteDraftItem>) {
@@ -771,21 +817,28 @@ function CompanyQuoteRequestDetailView({
   }
 
   return (
-    <section className="rounded-md border border-white/10 bg-white/[0.04]">
-      <div className="border-b border-white/10 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <section className="relative overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] backdrop-blur-2xl">
+      <div className="absolute right-[-120px] top-[-120px] h-64 w-64 rounded-full bg-[var(--color-accent-soft)] blur-[100px]" />
+
+      <div className="relative border-b border-[var(--color-border)] p-6">
+        <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <h2 className="text-2xl font-semibold">
-              {quoteRequest.requestCode ?? "Solicitacao"}
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+              Solicitação selecionada
+            </p>
+            <h2 className="mt-3 font-serif text-4xl font-normal tracking-[-0.055em] text-[var(--color-text-primary)]">
+              {quoteRequest.requestCode ?? "Solicitação"}
             </h2>
-            <p className="mt-2 text-sm text-white/55">
-              {quoteRequest.customerName} - {quoteRequest.customerWhatsapp}
+            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+              {quoteRequest.customerName} · {quoteRequest.customerWhatsapp}
             </p>
           </div>
+
           <QuoteRequestStatusBadge status={quoteRequest.status} />
         </div>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <InfoBlock label="Servico" value={quoteRequest.serviceName} />
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <InfoBlock label="Serviço" value={quoteRequest.serviceName} />
           <InfoBlock
             label="Recebida"
             value={
@@ -793,17 +846,29 @@ function CompanyQuoteRequestDetailView({
             }
           />
           <InfoBlock
-            label="Configuracao"
-            value={`v${quoteRequest.configurationVersion} / precos v${quoteRequest.pricingVersion}`}
+            label="Configuração"
+            value={`v${quoteRequest.configurationVersion} / preços v${quoteRequest.pricingVersion}`}
           />
         </div>
       </div>
 
-      <div className="grid gap-6 p-5 xl:grid-cols-[1fr_320px]">
+      <div className="relative grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_330px]">
         <div className="space-y-6">
-          <section>
-            <h3 className="text-lg font-semibold">Dados tecnicos</h3>
-            <div className="mt-4 space-y-4">
+          <section className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Revisão técnica
+              </p>
+              <h3 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+                Dados dos itens
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                Revise os dados enviados pelo cliente antes de recalcular e liberar a
+                criação da proposta.
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-4">
               {reviewData.items.map((item, index) => (
                 <CompanyReviewItemEditor
                   disabled={!canEditReview}
@@ -817,12 +882,18 @@ function CompanyQuoteRequestDetailView({
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold">Acesso e deslocamento</h3>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <section className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Logística
+            </p>
+            <h3 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+              Acesso e deslocamento
+            </h3>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
               <SelectField
                 disabled={!canEditReview}
-                label="Urgencia"
+                label="Urgência"
                 options={fieldOptions(
                   quoteRequest,
                   "urgency",
@@ -831,6 +902,7 @@ function CompanyQuoteRequestDetailView({
                 value={reviewData.access.urgency}
                 onChange={(urgency) => updateAccess({ urgency })}
               />
+
               <TextField
                 disabled={!canEditReview}
                 inputMode="numeric"
@@ -840,21 +912,24 @@ function CompanyQuoteRequestDetailView({
                   updateAccess({ floor: parseIntegerInput(event.target.value) })
                 }
               />
+
               <TextField
                 disabled={!canEditReview}
                 inputMode="decimal"
-                label="Distancia em km"
+                label="Distância em km"
                 value={reviewData.access.distanceKm}
                 onChange={(event) =>
                   updateAccess({ distanceKm: parseNumberInput(event.target.value) })
                 }
               />
+
               <CheckboxField
                 checked={reviewData.access.hasElevator}
                 disabled={!canEditReview}
                 label="Possui elevador"
                 onChange={(hasElevator) => updateAccess({ hasElevator })}
               />
+
               <CheckboxField
                 checked={reviewData.access.parking}
                 disabled={!canEditReview}
@@ -864,11 +939,17 @@ function CompanyQuoteRequestDetailView({
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold">Endereco e observacoes</h3>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <section className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Atendimento
+            </p>
+            <h3 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+              Endereço e observações
+            </h3>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
               <InfoBlock
-                label="Endereco"
+                label="Endereço"
                 value={
                   reviewData.address.fullAddress ||
                   [
@@ -880,12 +961,13 @@ function CompanyQuoteRequestDetailView({
                   ]
                     .filter(Boolean)
                     .join(", ") ||
-                  "Nao informado"
+                  "Não informado"
                 }
               />
+
               <InfoBlock
-                label="Observacoes"
-                value={reviewData.notes || "Sem observacoes"}
+                label="Observações"
+                value={reviewData.notes || "Sem observações"}
               />
             </div>
           </section>
@@ -894,14 +976,15 @@ function CompanyQuoteRequestDetailView({
           <CompanyRevisionTimeline quoteRequest={quoteRequest} />
         </div>
 
-        <aside className="space-y-5 xl:sticky xl:top-4 xl:self-start">
+        <aside className="space-y-5 xl:sticky xl:top-28 xl:self-start">
           <CompanyEstimatePanel quoteRequest={quoteRequest} />
+
           <CompanyProposalPanel
             error={
               createProposalError
-                ? errorMessage(createProposalError, "Nao foi possivel criar a proposta.")
+                ? errorMessage(createProposalError, "Não foi possível criar a proposta.")
                 : sendProposalError
-                  ? errorMessage(sendProposalError, "Nao foi possivel enviar a proposta.")
+                  ? errorMessage(sendProposalError, "Não foi possível enviar a proposta.")
                   : null
             }
             isCreating={isCreatingProposal}
@@ -910,6 +993,7 @@ function CompanyQuoteRequestDetailView({
             onCreateProposal={onCreateProposal}
             onSendProposal={onSendProposal}
           />
+
           <CompanyAppointmentPanel
             conflictWarning={appointmentConflictWarning}
             error={appointmentError}
@@ -921,18 +1005,27 @@ function CompanyQuoteRequestDetailView({
             onProposeAppointment={onProposeAppointment}
             onUpdateAppointment={onUpdateAppointment}
           />
-          <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
-            <h3 className="text-lg font-semibold">Revisao</h3>
+
+          <section className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Revisão
+            </p>
+            <h3 className="mt-2 font-serif text-2xl font-normal tracking-[-0.04em] text-[var(--color-text-primary)]">
+              Fluxo técnico
+            </h3>
+
             {canEditReview ? (
               <TextAreaField
-                className="mt-4"
-                label="Motivo da revisao"
+                className="mt-5"
+                label="Motivo da revisão"
+                placeholder="Explique o que foi ajustado antes de recalcular."
                 rows={3}
                 value={reviewReason}
                 onChange={(event) => setReviewReason(event.target.value)}
               />
             ) : null}
-            <div className="mt-4 grid gap-2">
+
+            <div className="mt-5 grid gap-2">
               <ActionButton
                 disabled={!canOpenReview}
                 icon={ClipboardList}
@@ -943,8 +1036,9 @@ function CompanyQuoteRequestDetailView({
                   })
                 }
               >
-                Abrir revisao
+                Abrir revisão
               </ActionButton>
+
               <ActionButton
                 disabled={!canEditReview}
                 icon={Calculator}
@@ -960,6 +1054,7 @@ function CompanyQuoteRequestDetailView({
               >
                 Salvar e recalcular
               </ActionButton>
+
               <ActionButton
                 disabled={!canEditReview || hasLocalChanges}
                 icon={CheckCircle2}
@@ -973,37 +1068,38 @@ function CompanyQuoteRequestDetailView({
                 Aceitar para proposta
               </ActionButton>
             </div>
+
             <FormError message={mutationError} />
           </section>
 
-          <section className="rounded-md border border-white/10 bg-[#12141a] p-5">
-            <h3 className="text-lg font-semibold">Recusa</h3>
-            <label className="mt-4 block text-sm text-white/70">
-              Motivo
-              <select
-                className="mt-2 h-11 w-full rounded-md border border-white/15 bg-[#15171d] px-3 text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-55"
+          <section className="rounded-[30px] border border-rose-300/20 bg-rose-300/10 p-5">
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-rose-100/70">
+              Recusa
+            </p>
+            <h3 className="mt-2 font-serif text-2xl font-normal tracking-[-0.04em] text-rose-50">
+              Recusar solicitação
+            </h3>
+
+            <div className="mt-5 space-y-4">
+              <SelectField
                 disabled={!canEditReview}
+                label="Motivo"
+                options={declineReasonLabels.map(([value, label]) => [value, label])}
                 value={declineReasonCode}
-                onChange={(event) =>
-                  setDeclineReasonCode(event.target.value as typeof declineReasonCode)
+                onChange={(value) =>
+                  setDeclineReasonCode(value as typeof declineReasonCode)
                 }
-              >
-                {declineReasonLabels.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <TextAreaField
-              className="mt-4"
-              disabled={!canEditReview}
-              label="Descricao"
-              rows={3}
-              value={declineReason}
-              onChange={(event) => setDeclineReason(event.target.value)}
-            />
-            <div className="mt-4">
+              />
+
+              <TextAreaField
+                disabled={!canEditReview}
+                label="Descrição"
+                placeholder="Explique brevemente o motivo da recusa."
+                rows={3}
+                value={declineReason}
+                onChange={(event) => setDeclineReason(event.target.value)}
+              />
+
               <ActionButton
                 disabled={!canEditReview || declineReason.trim().length < 3}
                 icon={Ban}
@@ -1063,8 +1159,8 @@ function CompanyReviewItemEditor({
   }
 
   return (
-    <div className="rounded-md border border-white/10 bg-[#12141a] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-soft)]">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <TextField
           className="min-w-[220px] flex-1"
           disabled={disabled}
@@ -1072,11 +1168,13 @@ function CompanyReviewItemEditor({
           value={item.label}
           onChange={(event) => onUpdate({ label: event.target.value })}
         />
-        <span className="self-end rounded-md border border-white/15 px-3 py-2 text-sm text-white/55">
-          {item.id}
+
+        <span className="self-end rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs font-medium text-[var(--color-text-muted)]">
+          ID técnico
         </span>
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
         <SelectField
           disabled={disabled}
           label="Tipo"
@@ -1088,15 +1186,17 @@ function CompanyReviewItemEditor({
           value={item.itemType}
           onChange={updateItemType}
         />
+
         <TextField
           disabled={disabled}
           inputMode="numeric"
-          label="Quantidade identica"
+          label="Quantidade idêntica"
           value={item.quantity}
           onChange={(event) =>
             onUpdate({ quantity: Math.max(1, parseIntegerInput(event.target.value)) })
           }
         />
+
         <SelectField
           disabled={disabled}
           label="Tamanho"
@@ -1108,6 +1208,7 @@ function CompanyReviewItemEditor({
           value={item.size}
           onChange={(size) => onUpdate({ size })}
         />
+
         {showSeats ? (
           <TextField
             disabled={disabled}
@@ -1119,6 +1220,7 @@ function CompanyReviewItemEditor({
             }
           />
         ) : null}
+
         <SelectField
           disabled={disabled}
           label="Tecido"
@@ -1130,9 +1232,10 @@ function CompanyReviewItemEditor({
           value={item.fabricType}
           onChange={(fabricType) => onUpdate({ fabricType })}
         />
+
         <SelectField
           disabled={disabled}
-          label="Sujeira"
+          label="Nível de sujeira"
           options={fieldOptions(
             quoteRequest,
             "dirt_level",
@@ -1142,50 +1245,59 @@ function CompanyReviewItemEditor({
           onChange={(dirtLevel) => onUpdate({ dirtLevel })}
         />
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
         <CheckboxField
           checked={item.hasStains}
           disabled={disabled}
           label="Possui manchas"
           onChange={(hasStains) => onUpdate({ hasStains })}
         />
+
         <CheckboxField
           checked={item.odor}
           disabled={disabled}
           label="Possui odor"
           onChange={(odor) => onUpdate({ odor })}
         />
+
         <CheckboxField
           checked={item.petHair}
           disabled={disabled}
           label="Possui pelos"
           onChange={(petHair) => onUpdate({ petHair })}
         />
+
         <CheckboxField
           checked={item.petsPresent}
           disabled={disabled}
           label="Animais no local"
           onChange={(petsPresent) => onUpdate({ petsPresent })}
         />
+
         <CheckboxField
           checked={item.waterproofing}
           disabled={disabled}
-          label="Impermeabilizacao"
+          label="Impermeabilização"
           onChange={(waterproofing) => onUpdate({ waterproofing })}
         />
       </div>
+
       {stainOptions.length > 0 ? (
-        <div className="mt-4">
-          <div className="text-sm text-white/70">Tipos de mancha</div>
-          <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
+          <div className="text-sm font-semibold text-[var(--color-text-primary)]">
+            Tipos de mancha
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
             {stainOptions.map(([value, label]) => (
               <label
-                className="inline-flex min-h-9 items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/70 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-secondary)] transition has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55 hover:bg-[var(--color-surface-strong)]"
                 key={value}
               >
                 <input
                   checked={item.stainTypes.includes(value)}
-                  className="h-4 w-4 accent-emerald-300"
+                  className="h-4 w-4 accent-[var(--color-accent)]"
                   disabled={disabled}
                   type="checkbox"
                   onChange={(event) => toggleStainType(value, event.target.checked)}
@@ -1196,10 +1308,11 @@ function CompanyReviewItemEditor({
           </div>
         </div>
       ) : null}
+
       <TextAreaField
-        className="mt-4"
+        className="mt-5"
         disabled={disabled}
-        label="Observacao do item"
+        label="Observação do item"
         rows={2}
         value={item.notes}
         onChange={(event) => onUpdate({ notes: event.target.value })}
@@ -1785,33 +1898,48 @@ function CompanyRevisionTimeline({
   quoteRequest: CompanyQuoteRequestDetail;
 }) {
   return (
-    <section>
-      <h3 className="text-lg font-semibold">Historico</h3>
-      <Timeline
-        empty="Nenhum evento registrado."
-        items={quoteRequest.events.map((event) => ({
-          id: event.id,
-          title: event.eventType,
-          detail:
-            event.fromStatus && event.toStatus
-              ? `${quoteRequestStatusLabels[event.fromStatus]} -> ${
-                  quoteRequestStatusLabels[event.toStatus]
-                }`
-              : "Evento",
-          date: event.createdAt,
-        }))}
-      />
+    <section className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+      <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+        Histórico
+      </p>
+      <h3 className="mt-2 font-serif text-3xl font-normal tracking-[-0.045em] text-[var(--color-text-primary)]">
+        Eventos e revisões
+      </h3>
+
+      <div className="mt-5">
+        <Timeline
+          empty="Nenhum evento registrado."
+          items={quoteRequest.events.map((event) => ({
+            id: event.id,
+            title: event.eventType,
+            detail:
+              event.fromStatus && event.toStatus
+                ? `${quoteRequestStatusLabels[event.fromStatus]} → ${
+                    quoteRequestStatusLabels[event.toStatus]
+                  }`
+                : "Evento",
+            date: event.createdAt,
+          }))}
+        />
+      </div>
+
       {quoteRequest.revisions.length > 0 ? (
-        <div className="mt-5 divide-y divide-white/10 rounded-md border border-white/10">
+        <div className="mt-5 grid gap-3">
           {quoteRequest.revisions.map((revision) => (
-            <div className="px-3 py-3 text-sm" key={revision.id}>
+            <div
+              className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm"
+              key={revision.id}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="font-medium text-white/85">{revision.fieldCode}</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">
+                  {revision.fieldCode}
+                </span>
+
                 <span
                   className={
                     revision.impactCents && revision.impactCents < 0
                       ? "text-rose-200"
-                      : "text-emerald-200"
+                      : "text-[var(--color-text-primary)]"
                   }
                 >
                   {revision.impactCents === null
@@ -1819,8 +1947,9 @@ function CompanyRevisionTimeline({
                     : formatMoneyCents(revision.impactCents)}
                 </span>
               </div>
-              <div className="mt-1 text-xs text-white/45">
-                {revision.reason ?? "Sem motivo informado"} -{" "}
+
+              <div className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">
+                {revision.reason ?? "Sem motivo informado"} ·{" "}
                 {formatDate(revision.createdAt)}
               </div>
             </div>

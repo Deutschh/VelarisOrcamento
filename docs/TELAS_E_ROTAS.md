@@ -34,6 +34,7 @@
 | Auth    | `/cadastro/cliente`        | Cadastro de cliente                         | Implementado Sprint 17 |
 | Auth    | `/cadastro/empresa`        | Cadastro empresarial                        | Implementado Sprint 3  |
 | Cliente | `/cliente`                 | Home personalizada do cliente               | Implementado Sprint 17 |
+| Cliente | `/cliente/perfil`          | Perfil e dados pessoais do cliente          | Implementado Sprint 17 |
 | Empresa | `/app`                     | Painel da empresa                           | Implementado Sprint 11 |
 | Empresa | `/app/pendente`            | Status de cadastro pendente                 | Implementado Sprint 3  |
 | Admin   | `/admin`                   | Painel da Velaris                           | Requisito confirmado   |
@@ -45,7 +46,7 @@
 - Onboarding: tres telas com acoes Pular, Continuar e Comecar. Implementado Sprint 4.
 - Busca de empresas: filtros por nicho/localizacao e listagem considerando regiao atendida, raio, status ativo e perfil publicado. Implementado Sprint 4.
 - Perfil publico da empresa: logotipo, capa, cor principal moderada, descricao, galeria, contatos, endereco, servicos, termos, raio/regioes e CTA de orcamento. Implementado Sprint 4.
-- Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF em metadados `stub`, dados pessoais, endereco, estimativa, revisao, termos e confirmacao. Implementado Sprint 10.
+- Fluxo de solicitacao: servico, rascunho, campos tecnicos, fotos/PDF em metadados `stub`, contador/feedback de anexos por item, dados pessoais, endereco, estimativa, revisao, termos e confirmacao. Implementado Sprint 10.
 - Acompanhamento: estado atual da jornada, codigo da solicitacao, proposta quando houver, agendamento quando aplicavel, confirmacao/pedido de outro horario quando permitido e WhatsApp assistido. Implementado Sprint 14.
 - Recuperacao: entrada de codigo + e-mail ou codigo + WhatsApp, envio de OTP ao e-mail cadastrado, verificacao, substituicao de token e revogacao do token anterior. Implementado Sprint 14.
 
@@ -75,12 +76,13 @@
 - Templates e fluxos de vidraçaria.
 - Templates e fluxos de marmoraria.
 - Metricas operacionais iniciais. Implementado Sprint 18 em `/app` e `/admin`.
-- PWA base. Implementado localmente Sprint 19 com manifest, icones provisorios e service worker seguro; instalacao/deploy real dependem de ambiente hospedado.
+- PWA base. Implementado localmente Sprint 19 com manifest, icones provisorios, service worker seguro e rewrite SPA para refresh em rotas React; instalacao/deploy real dependem de ambiente hospedado.
 - Seguranca e refinamentos de producao.
 
 ## Telas do cliente autenticado
 
 - Home personalizada. Implementado Sprint 17 em `/cliente`.
+- Perfil pessoal editavel. Implementado Sprint 17 em `/cliente/perfil`, com nome, telefone e foto por URL.
 - Solicitacoes em andamento. Implementado Sprint 17.
 - Propostas aguardando confirmacao. Implementado Sprint 17.
 - Proximos agendamentos. Implementado Sprint 17.
@@ -95,9 +97,9 @@
 ## Telas da empresa
 
 - Status de cadastro pendente.
-- Dashboard.
-- Lista de solicitacoes. Implementado Sprint 11.
-- Detalhe da solicitacao. Implementado Sprint 11.
+- Dashboard operacional. Implementado Sprint 11, refinado visualmente depois.
+- Lista de solicitacoes com pipeline e filtros. Implementado Sprint 11, refinado visualmente depois.
+- Detalhe da solicitacao com cards de contexto, calculo, revisao, proposta e agendamento. Implementado Sprint 11, refinado visualmente depois.
 - Revisao de campos tecnicos. Implementado Sprint 11.
 - Recalculo e memoria de calculo. Implementado Sprint 11.
 - Recusa com motivo. Implementado Sprint 11.
@@ -173,6 +175,8 @@ Status Sprint 10: rotas publicas de rascunho, arquivos em metadados, estimativa 
 ### Cliente
 
 - `GET /api/customer/me`. Implementado Sprint 17.
+- `GET /api/customer/profile`. Implementado Sprint 17 para carregar dados editaveis do cliente.
+- `PATCH /api/customer/profile`. Implementado Sprint 17 para atualizar nome, telefone e foto por URL.
 - `POST /api/customer/link-visitor-requests`. Implementado Sprint 17.
 - `POST /api/customer/favorites`. Implementado Sprint 17.
 - `DELETE /api/customer/favorites/:companyId`. Implementado Sprint 17.

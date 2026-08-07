@@ -33,13 +33,13 @@ O produto ja possui implementacao tecnica ate a Sprint 18 e adiantamento local d
 - cadastro empresarial;
 - painel Admin inicial;
 - descoberta publica de empresas;
-- perfil publico;
+- perfil publico com logo, capa, galeria e dados comerciais configuraveis pelo Admin;
 - templates fixos por nicho;
 - configuracao por empresa;
 - motor de calculo e regras de preco versionadas;
 - template completo de limpeza de estofados;
-- fluxo publico de solicitacao com rascunho no servidor;
-- painel da empresa para revisar solicitacoes;
+- fluxo publico de solicitacao com rascunho no servidor e feedback visual de anexos;
+- painel da empresa para revisar solicitacoes, com UI operacional refinada;
 - propostas versionadas;
 - agendamento assistido;
 - acompanhamento publico por token;
@@ -56,19 +56,21 @@ O produto ja possui implementacao tecnica ate a Sprint 18 e adiantamento local d
 - recalculo de media/contagem da empresa;
 - moderacao Admin de avaliacoes;
 - area autenticada do cliente em `/cliente`;
+- perfil autenticado do cliente em `/cliente/perfil`;
 - favoritos de empresas;
 - empresas recentes, historico, avaliacoes pendentes e notificacoes para cliente;
 - vinculacao de solicitacoes feitas como visitante a uma conta criada depois;
 - metricas operacionais da empresa e do Admin;
 - auditoria operacional e solicitacoes de alteracao de preco;
-- PWA base com manifest, icones provisorios e service worker de cache restrito;
+- PWA base com manifest, icones provisorios, service worker de cache restrito e rewrite de SPA para rotas React na Vercel;
 - hardening inicial da API com headers de seguranca, `no-store` em `/api`, rate limit e checagem de prontidao;
 - rotina de limpeza de rascunhos, chaves de idempotencia e OTPs expirados.
 
-Os principais blocos pendentes apos o adiantamento local da Sprint 19 sao deploy,
-homologacao publica, dominio, SSL real, backups, monitoramento, provedor real de
-e-mail, armazenamento privado definitivo, textos legais definitivos e validacao
-com empresa piloto.
+Os principais blocos pendentes apos o adiantamento local da Sprint 19 sao
+homologacao publica final, backups, monitoramento, provedor real de e-mail em
+producao, armazenamento privado definitivo, textos legais definitivos e validacao
+com empresa piloto. O deploy inicial e o dominio possuem preparacao no codigo e
+no guia operacional, mas ainda exigem validacao por ambiente.
 
 Sprints 8 e 9, vidracaria e marmoraria, seguem adiadas por decisao de produto
 ate a validacao do MVP piloto de limpeza de estofados.
@@ -90,22 +92,22 @@ ate a validacao do MVP piloto de limpeza de estofados.
 | Sprint 1  | Fundacao do projeto                       | Implementado tecnicamente. Monorepo, apps, packages, scripts, qualidade, health check e base de API/web existem.                                                                                                                                                   |
 | Sprint 2  | Banco multiempresa e autenticacao         | Implementado tecnicamente. Schema multiempresa, usuarios, empresas, membros, refresh tokens, cadastro/login/logout/refresh/verificacao de e-mail e isolamento empresarial existem. Recuperacao de senha autenticada ainda responde 501 ate escolha de e-mail real. |
 | Sprint 3  | Cadastro, ativacao e Admin inicial        | Implementado tecnicamente. Cadastro empresarial, conta pendente, Admin com lista/detalhe, ativacao, suspensao, publicacao, notas internas e auditoria existem.                                                                                                     |
-| Sprint 4  | Home, busca e perfil publico              | Implementado tecnicamente. Home, onboarding, busca/listagem, perfil publico por slug e edicao de perfil publico pelo Admin existem.                                                                                                                                |
+| Sprint 4  | Home, busca e perfil publico              | Implementado tecnicamente. Home, onboarding, busca/listagem, perfil publico por slug e edicao de perfil publico pelo Admin existem, incluindo logo, capa/banner, galeria, contatos, servicos, regioes e termos comerciais.                                          |
 | Sprint 5  | Templates fixos e campos configuraveis    | Implementado tecnicamente. Templates, campos, opcoes, condicoes, configuracoes por empresa, preview e publicacao imutavel existem.                                                                                                                                 |
 | Sprint 6  | Motor de calculo                          | Implementado tecnicamente. Motor deterministico, regras de preco versionadas, margens, memoria de calculo e simulacao Admin existem.                                                                                                                               |
 | Sprint 7  | Template limpeza de estofados             | Implementado tecnicamente. Primeiro nicho esta consolidado em v2, com regras comerciais e simulacao completa. Falta validacao comercial com empresa real.                                                                                                          |
 | Sprint 8  | Template vidracaria                       | Adiado. Deve aguardar validacao do MVP piloto.                                                                                                                                                                                                                     |
 | Sprint 9  | Template marmoraria                       | Adiado. Deve aguardar validacao do MVP piloto.                                                                                                                                                                                                                     |
-| Sprint 10 | Fluxo publico, rascunho e solicitacao     | Implementado tecnicamente. Rascunho seguro no servidor, multiplos itens, arquivos como metadados, estimativa, submissao idempotente, codigo e token publico existem.                                                                                               |
-| Sprint 11 | Painel da empresa e revisao               | Implementado tecnicamente. Dashboard, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa e historico existem.                                                                                                  |
+| Sprint 10 | Fluxo publico, rascunho e solicitacao     | Implementado tecnicamente. Rascunho seguro no servidor, multiplos itens, arquivos como metadados, contador/feedback de anexos, estimativa, submissao idempotente, codigo e token publico existem.                                                                  |
+| Sprint 11 | Painel da empresa e revisao               | Implementado tecnicamente. Dashboard, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa, historico e refinamento visual operacional existem.                                                                  |
 | Sprint 12 | Propostas, versoes e valor final          | Implementado tecnicamente. Propostas versionadas, valor final, validade, termos, preview e envio idempotente existem. O aceite publico formal foi iniciado posteriormente na Sprint 15.                                                                            |
 | Sprint 13 | Agendamento assistido                     | Implementado tecnicamente. Agendamentos, historico, modos, timezone, aviso de conflito, cancelamento, reagendamento pela empresa e conclusao existem.                                                                                                              |
 | Sprint 14 | Acompanhamento, recuperacao e comunicacao | Implementado tecnicamente. Tracking por token, recuperacao por OTP, `wa.me`, acoes publicas de horario e notificacoes internas iniciais existem. E-mail real segue pendente.                                                                                       |
 | Sprint 15 | PDF, aceite e documentos legais           | Implementado tecnicamente. PDF por versao gerado sob demanda no backend, rota publica segura, botao no tracking, aceite/recusa formal, idempotencia, versoes legais iniciais, IP/user agent, bloqueio de expirada, eventos e frontend publico existem.             |
 | Sprint 16 | Servico realizado e avaliacoes            | Implementado tecnicamente. Status de servico, marcacao como realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil, media atualizada e moderacao Admin existem.                                               |
-| Sprint 17 | Area do cliente                           | Implementado tecnicamente. Cadastro/entrada de cliente, home `/cliente`, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de visitante existem.     |
+| Sprint 17 | Area do cliente                           | Implementado tecnicamente. Cadastro/entrada de cliente, home `/cliente`, perfil `/cliente/perfil`, edicao de nome/telefone/foto por URL, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes, avaliacoes, notificacoes e vinculacao existem. |
 | Sprint 18 | Metricas e administracao operacional      | Implementado tecnicamente. Metricas da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco existem.                                                       |
-| Sprint 19 | PWA, seguranca, desempenho e deploy       | Adiantado tecnicamente nos itens locais. Manifest, icones provisorios, service worker seguro, headers, rate limit, limpeza de expirados e checagem de prontidao existem; deploy e servicos externos seguem pendentes.                                              |
+| Sprint 19 | PWA, seguranca, desempenho e deploy       | Adiantado tecnicamente nos itens locais. Manifest, icones provisorios, service worker seguro, headers, rate limit, limpeza de expirados, checagem de prontidao e rewrite SPA da Vercel existem; servicos externos e homologacao seguem pendentes.                 |
 
 ## MVP piloto: o que ja esta pronto e o que falta
 
@@ -533,19 +535,21 @@ cliente na home autenticada `/cliente`.
 
 A area do cliente usa:
 
-- `apps/web/src/pages/customer-pages.tsx`: home personalizada do cliente;
+- `apps/web/src/pages/customer-pages.tsx`: home personalizada e perfil do cliente;
 - `apps/api/src/customer/customer-router.ts`: endpoints protegidos do cliente;
 - `apps/api/src/customer/customer-service.ts`: regras de acesso, vinculo de
-  visitante e favoritos;
+  visitante, favoritos e perfil editavel;
 - `apps/api/src/customer/drizzle-customer-repository.ts`: consultas do dashboard
-  e persistencia de favoritos;
+  e persistencia de favoritos/perfil;
 - `packages/shared/src/customer.ts`: contratos compartilhados da area do cliente;
-- `database/schemas/index.ts`: tabela `customer_favorite_companies` e relacoes
-  com usuarios, empresas, solicitacoes, propostas, agendamentos e notificacoes.
+- `database/schemas/index.ts`: tabelas/colunas `customer_favorite_companies` e
+  `customer_profiles.avatar_url`, com relacoes a usuarios, empresas,
+  solicitacoes, propostas, agendamentos e notificacoes.
 
 O dashboard retorna solicitacoes, propostas publicas aguardando confirmacao,
 proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes
-pendentes e notificacoes. A acao de vincular busca solicitacoes de visitante sem
+pendentes e notificacoes. A tela `/cliente/perfil` permite editar nome,
+telefone e foto por URL. A acao de vincular busca solicitacoes de visitante sem
 `customer_id`, ja submetidas, cujo e-mail corresponde ao e-mail verificado da
 conta autenticada. Vinculo por telefone fica pendente ate existir verificacao de
 telefone.
@@ -567,6 +571,7 @@ telefone.
 | `prettier.config.js`   | Configuracao Prettier.                                     |
 | `playwright.config.ts` | Configuracao E2E.                                          |
 | `drizzle.config.ts`    | Configuracao Drizzle Kit para migrations.                  |
+| `vercel.json`          | Build do frontend na Vercel e rewrite SPA para rotas React. |
 
 ### Frontend: `apps/web`
 
@@ -575,11 +580,11 @@ telefone.
 | `apps/web/src/main.tsx`                     | Inicializa React, QueryClient e BrowserRouter.                                                                             |
 | `apps/web/src/App.tsx`                      | Declara as rotas da aplicacao.                                                                                             |
 | `apps/web/src/styles.css`                   | Tailwind e estilos globais.                                                                                                |
-| `apps/web/src/pages/public-pages.tsx`       | Home, onboarding, busca, perfil publico, solicitacao, acompanhamento, recuperacao, avaliacao e favoritar empresa.          |
+| `apps/web/src/pages/public-pages.tsx`       | Home, onboarding, busca, perfil publico, solicitacao, contador/feedback de anexos, acompanhamento, recuperacao, avaliacao e favoritar empresa. |
 | `apps/web/src/pages/auth-pages.tsx`         | Login, escolha de cadastro, cadastro de cliente e cadastro empresarial.                                                    |
-| `apps/web/src/pages/customer-pages.tsx`     | Area do cliente: dashboard, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes e notificacoes. |
-| `apps/web/src/pages/company-pages.tsx`      | Area da empresa: pendente, dashboard, solicitacoes, revisao, proposta e agendamento.                                       |
-| `apps/web/src/pages/admin-pages.tsx`        | Area Admin: empresas, detalhe, perfil publico, templates, configuracao, simulacao, publicacao e moderacao de avaliacoes.   |
+| `apps/web/src/pages/customer-pages.tsx`     | Area do cliente: dashboard, perfil, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes e notificacoes. |
+| `apps/web/src/pages/company-pages.tsx`      | Area da empresa: pendente, dashboard operacional, solicitacoes, revisao tecnica, proposta, agendamento e refinamento visual do fluxo de atendimento. |
+| `apps/web/src/pages/admin-pages.tsx`        | Area Admin: empresas, detalhe, perfil publico completo, templates, configuracao, simulacao, publicacao e moderacao de avaliacoes. |
 | `apps/web/src/components/ui.tsx`            | Shell, titulos, campos, botoes, timeline, loading e erros comuns.                                                          |
 | `apps/web/src/components/form-controls.tsx` | Select e checkbox reutilizaveis.                                                                                           |
 | `apps/web/src/components/status-badges.tsx` | Labels e badges para status de empresa, perfil, solicitacao, proposta e agendamento.                                       |
@@ -660,9 +665,9 @@ interface inteira. As telas agora estao separadas por area em `pages/`.
 | Caminho                                                | Funcao                                                                                  |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `apps/api/src/customer/customer-router.ts`             | Endpoints protegidos da area do cliente.                                                |
-| `apps/api/src/customer/customer-service.ts`            | Dashboard, vinculo de solicitacoes de visitante e favoritos.                            |
+| `apps/api/src/customer/customer-service.ts`            | Dashboard, perfil editavel, vinculo de solicitacoes de visitante e favoritos.           |
 | `apps/api/src/customer/customer-repository.ts`         | Interface de persistencia da area do cliente.                                           |
-| `apps/api/src/customer/drizzle-customer-repository.ts` | Consultas Drizzle para solicitacoes, propostas, agendamentos, favoritos e notificacoes. |
+| `apps/api/src/customer/drizzle-customer-repository.ts` | Consultas Drizzle para solicitacoes, propostas, agendamentos, perfil, favoritos e notificacoes. |
 | `apps/api/src/customer/customer-errors.ts`             | Erros especificos da area do cliente.                                                   |
 | `apps/api/src/test/in-memory-customer-repository.ts`   | Repositorio em memoria para testes do servico de cliente.                               |
 
@@ -700,7 +705,7 @@ interface inteira. As telas agora estao separadas por area em `pages/`.
 | `packages/shared/src/auth.ts`           | Schemas/tipos de usuario, empresa, login, cadastro e refresh.       |
 | `packages/shared/src/admin.ts`          | Contratos Admin.                                                    |
 | `packages/shared/src/company.ts`        | Status da conta empresarial.                                        |
-| `packages/shared/src/customer.ts`       | Contratos da area autenticada do cliente e favoritos.               |
+| `packages/shared/src/customer.ts`       | Contratos da area autenticada do cliente, perfil e favoritos.       |
 | `packages/shared/src/public.ts`         | Categorias, busca e perfil publico.                                 |
 | `packages/shared/src/templates.ts`      | Templates, campos, opcoes, configuracoes e simulacao.               |
 | `packages/shared/src/pricing.ts`        | Regras de preco, medidas, calculo e snapshots.                      |
@@ -781,6 +786,7 @@ Resumo das migrations:
 | `0011_skinny_namor.sql`               | Aceite formal, recusa formal e documentos legais iniciais de proposta.       |
 | `0012_stiff_prima.sql`                | Status de servico e avaliacoes.                                              |
 | `0013_needy_frightful_four.sql`       | Favoritos de empresas por cliente.                                           |
+| `0016_customer_profile_avatar.sql`    | URL de avatar no perfil do cliente.                                          |
 
 ### Testes
 
@@ -834,6 +840,8 @@ dominio/API.
 ### Cliente
 
 - `GET /api/customer/me`
+- `GET /api/customer/profile`
+- `PATCH /api/customer/profile`
 - `POST /api/customer/link-visitor-requests`
 - `POST /api/customer/favorites`
 - `DELETE /api/customer/favorites/:companyId`
@@ -884,6 +892,7 @@ dominio/API.
 | `/cadastro/cliente`          | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
 | `/cadastro/empresa`          | `apps/web/src/pages/auth-pages.tsx`     | Implementada. |
 | `/cliente`                   | `apps/web/src/pages/customer-pages.tsx` | Implementada. |
+| `/cliente/perfil`            | `apps/web/src/pages/customer-pages.tsx` | Implementada. |
 | `/app`                       | `apps/web/src/pages/company-pages.tsx`  | Implementada. |
 | `/app/pendente`              | `apps/web/src/pages/company-pages.tsx`  | Implementada. |
 | `/admin`                     | `apps/web/src/pages/admin-pages.tsx`    | Implementada. |
@@ -1084,9 +1093,9 @@ Por padrao:
 ### Sprint 17
 
 - Concluida tecnicamente: area autenticada do cliente, historico de
-  solicitacoes/propostas/agendamentos, favoritos, empresas recentes, vinculacao
-  de solicitacoes feitas como visitante a uma conta criada depois e notificacoes
-  para cliente.
+  solicitacoes/propostas/agendamentos, perfil editavel, favoritos, empresas
+  recentes, vinculacao de solicitacoes feitas como visitante a uma conta criada
+  depois e notificacoes para cliente.
 - Pendente operacional: refinamento futuro da descoberta por geolocalizacao
   completa e criterios finais de UX apos validacao com usuarios reais.
 
@@ -1112,10 +1121,11 @@ Por padrao:
 
 - Adiantado tecnicamente: PWA base, manifest, icones provisorios, service worker
   com cache restrito, headers de seguranca, `no-store` nas rotas `/api`, rate
-  limit global/autenticacao, cookies seguros em homologacao/producao, limpeza de
-  expirados, checagem de prontidao e testes unitarios.
+  limit global/autenticacao, cookies seguros em homologacao/producao, rewrite
+  SPA da Vercel, limpeza de expirados, checagem de prontidao e testes unitarios.
 - Pendente operacional: upload binario real/seguro, backups, monitoramento,
-  dominio/SSL, homologacao publica, conta piloto real e deploy.
+  homologacao publica final, conta piloto real e validacao do deploy por
+  ambiente.
 - Detalhamento de funcionamento das Sprints 12 a 19:
   `docs/SPRINT_12_A_19_FUNCIONAMENTO.md`.
 - Lista consolidada de adiados: `docs/ITENS_ADIADOS.md`.

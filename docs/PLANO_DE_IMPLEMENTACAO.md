@@ -7,22 +7,22 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 - Sprint 1 concluida: fundacao tecnica do monorepo, API, web, qualidade e health check.
 - Sprint 2 concluida: schema multiempresa, migration inicial, autenticacao propria, refresh tokens e isolamento empresarial.
 - Sprint 3 concluida: cadastro empresarial, conta pendente, painel Admin inicial, ativacao, suspensao, publicacao e auditoria.
-- Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico editavel pelo Admin.
+- Sprint 4 concluida: Home publica, categorias, busca por cidade/CEP, perfil publico por slug, API publica de descoberta e perfil publico completo editavel pelo Admin.
 - Sprint 5 concluida: templates fixos, configuracao por empresa, preview, simulacao, publicacao imutavel e snapshot de configuracao.
 - Sprint 6 concluida: motor de calculo deterministico, regras de preco versionadas, margens, memoria de calculo, simulacao Admin e migration aplicada no Neon.
 - Sprint 7 concluida tecnicamente: template de limpeza de estofados v2, regras comerciais do nicho, testes e simulador Admin completo.
-- Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho seguro no servidor, multiplos itens, estimativa, submissao idempotente, codigo e token publico.
-- Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, filtros, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa e historico.
+- Sprint 10 concluida tecnicamente: fluxo publico de solicitacao, rascunho seguro no servidor, multiplos itens, feedback de anexos, estimativa, submissao idempotente, codigo e token publico.
+- Sprint 11 concluida tecnicamente: painel da empresa, dashboard, lista, filtros, detalhe, arquivos, memoria de calculo, revisao tecnica, recalculo, aceite para proposta, recusa, historico e refinamento visual operacional.
 - Sprint 12 concluida tecnicamente: propostas versionadas, valor final, validade, termos, preview no painel, envio idempotente e migration.
 - Sprint 13 concluida tecnicamente: agendamento assistido, tabelas de agendamento/historico, modos configuraveis, timezone da empresa, aviso de conflito sem bloqueio, painel da empresa e testes.
 - Pendencia operacional: validacao comercial com empresa real.
 - Sprint 14 concluida tecnicamente: acompanhamento publico por token, recuperacao por OTP de e-mail, `wa.me`, notificacoes internas iniciais e acoes publicas de horario.
 - Sprint 15 concluida tecnicamente: PDF por versao gerado sob demanda no backend, rota publica segura pelo tracking, botao de PDF no frontend, aceite formal, recusa formal, idempotencia, registro de IP/user agent, versoes legais iniciais, historico, notificacao interna e migration `quote_acceptances`.
 - Sprint 16 concluida tecnicamente: status de servico realizado, convite stub por e-mail, avaliacao publica elegivel, bloqueio de duplicidade, exibicao no perfil publico, media atualizada e moderacao Admin.
-- Sprint 17 concluida tecnicamente: area autenticada do cliente com home personalizada, cadastro/entrada de cliente, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
+- Sprint 17 concluida tecnicamente: area autenticada do cliente com home personalizada, perfil editavel, cadastro/entrada de cliente, solicitacoes, propostas aguardando confirmacao, proximos agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, notificacoes e vinculacao de solicitacoes de visitante.
 - Sprint 18 concluida tecnicamente: metricas operacionais da empresa/Admin, filtros por periodo/nicho/empresa, conversao, tempo de resposta, valores, ranking, auditoria operacional e solicitacoes de alteracao de preco.
-- Sprint 19 adiantada tecnicamente nos itens locais: PWA base, cache seguro, headers, rate limit, limpeza de expirados, checagem de prontidao e testes desses blocos.
-- Proxima etapa recomendada para o MVP piloto: fechar decisoes externas de infraestrutura/homologacao e validar o fluxo piloto com empresa real antes de deploy.
+- Sprint 19 adiantada tecnicamente nos itens locais: PWA base, cache seguro, headers, rate limit, rewrite SPA para Vercel, limpeza de expirados, checagem de prontidao e testes desses blocos.
+- Proxima etapa recomendada para o MVP piloto: fechar decisoes externas de infraestrutura/homologacao e validar o fluxo piloto com empresa real antes de homologacao publica final.
 - Sprints 8 e 9 permanecem adiadas ate a validacao do MVP piloto.
 - Fonte de verdade permanece `docs/ESPECIFICACAO_V1.md`.
 
@@ -67,7 +67,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: onboarding, Home publica, categorias, busca por cidade/CEP, localizacao, distancia, raio de atendimento, listagem, perfil publico, galeria, avaliacoes resumidas, CTA de orcamento e favoritos para autenticados.
 - Regra confirmada: link direto para `/empresa/:slug` nao deve ser bloqueado pelo onboarding.
-- Implementado Sprint 4: rotas `/`, `/onboarding`, `/empresas`, `/empresa/:slug` e `/empresa/:slug/orcamento`; API `GET /api/public/categories`, `GET /api/public/companies`, `GET /api/public/companies/:slug` e `GET /api/public/companies/:slug/services`; tabela `company_public_profiles`; formulario Admin para dados publicos basicos, servicos, cidade, raio e regioes atendidas.
+- Implementado Sprint 4: rotas `/`, `/onboarding`, `/empresas`, `/empresa/:slug` e `/empresa/:slug/orcamento`; API `GET /api/public/categories`, `GET /api/public/companies`, `GET /api/public/companies/:slug` e `GET /api/public/companies/:slug/services`; tabela `company_public_profiles`; formulario Admin para dados publicos, logo, capa/banner, galeria, contatos, servicos, cidade, raio, bairros/regioes atendidas e termos comerciais.
 - Limitacao registrada: descoberta completa por geolocalizacao precisa de refinamento posterior; favoritos autenticados foram implementados posteriormente na Sprint 17.
 - Estimativa da especificacao: 16 a 22 horas.
 
@@ -115,7 +115,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: rascunho seguro no servidor, `draft_token`, dispositivo salva apenas token/etapa, campos configurados, upload, estimativa, revisao, submissao idempotente, codigo, token publico, snapshot, aceites legais, e-mail e limpeza de rascunhos.
 - Padrao inicial configuravel: rascunhos expiram em 10 dias.
-- Implementado Sprint 10: rotas publicas de rascunho/estimativa/submissao; tabelas `quote_requests`, `quote_request_answers`, `quote_request_files`, `quote_request_calculations`, `public_access_tokens` e `idempotency_keys`; tela `/empresa/:slug/orcamento`; token bruto salvo apenas no navegador; hash de token no banco; multiplos itens por rascunho; estimativa agregada por itens; snapshot de configuracao/calculo/aceite; envio com `Idempotency-Key`.
+- Implementado Sprint 10: rotas publicas de rascunho/estimativa/submissao; tabelas `quote_requests`, `quote_request_answers`, `quote_request_files`, `quote_request_calculations`, `public_access_tokens` e `idempotency_keys`; tela `/empresa/:slug/orcamento`; token bruto salvo apenas no navegador; hash de token no banco; multiplos itens por rascunho; input de arquivos convertido para lista estavel, contador/feedback de anexos por item; estimativa agregada por itens; snapshot de configuracao/calculo/aceite; envio com `Idempotency-Key`.
 - Limitacao registrada: arquivos ainda sao registrados como metadados com `FILE_STORAGE_PROVIDER=stub`; upload binario e armazenamento privado aguardam fornecedor/contrato definitivo.
 - Limitacao registrada: e-mail de confirmacao usa adapter `stub` ate escolha do provedor transacional.
 - Estimativa da especificacao: 22 a 30 horas.
@@ -124,7 +124,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 
 - Requisito confirmado: dashboard, lista, filtros, detalhes, fotos, memoria de calculo, edicao de campos tecnicos, motivo quando necessario, revisao, recalculo, diferenca, aceite/recusa e historico.
 - Regra confirmada: estados devem passar por dominio/servicos, nunca por atualizacao livre em controller.
-- Implementado Sprint 11: status completos da matriz inicial para solicitacoes; funcao pura de transicao em `packages/domain`; contratos compartilhados para dashboard/lista/detalhe/revisao/recusa; tabelas `quote_request_answer_revisions` e `quote_request_events`; API `GET /api/company/dashboard`, `GET /api/company/quote-requests`, `GET /api/company/quote-requests/:id`, `PATCH /api/company/quote-requests/:id/review` e `POST /api/company/quote-requests/:id/decline`; painel `/app` com dashboard, filtros, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, motivo obrigatorio quando campos mudam, recalculo, aceite para proposta e recusa.
+- Implementado Sprint 11: status completos da matriz inicial para solicitacoes; funcao pura de transicao em `packages/domain`; contratos compartilhados para dashboard/lista/detalhe/revisao/recusa; tabelas `quote_request_answer_revisions` e `quote_request_events`; API `GET /api/company/dashboard`, `GET /api/company/quote-requests`, `GET /api/company/quote-requests/:id`, `PATCH /api/company/quote-requests/:id/review` e `POST /api/company/quote-requests/:id/decline`; painel `/app` com dashboard, filtros, lista, detalhe, arquivos, memoria de calculo, revisao tecnica, motivo obrigatorio quando campos mudam, recalculo, aceite para proposta e recusa; interface operacional refinada com cards, pipeline, detalhe responsivo e estados visuais mais consistentes.
 - Limitacao registrada: `awaiting_information` ainda nao possui fluxo publico de complemento nesta entrega.
 - Estimativa da especificacao: 18 a 26 horas.
 
@@ -177,7 +177,7 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 ## Sprint 17 - Area do cliente
 
 - Requisito confirmado: Home personalizada, solicitacoes, propostas, agendamentos, historico, favoritos, empresas recentes, avaliacoes pendentes, vinculacao de solicitacoes de visitante e notificacoes.
-- Implementado Sprint 17: rota web `/cliente`; escolha de cadastro em `/cadastro`; cadastro de cliente em `/cadastro/cliente`; redirecionamento de login por papel; API protegida `/api/customer/me`, `/api/customer/link-visitor-requests`, `POST /api/customer/favorites` e `DELETE /api/customer/favorites/:companyId`; tabela `customer_favorite_companies`; dashboard do cliente com solicitacoes, propostas publicas aguardando confirmacao, proximos agendamentos, historico, empresas recentes, favoritos, avaliacoes pendentes e notificacoes; acao de favoritar no perfil publico da empresa; testes unitarios do servico de cliente.
+- Implementado Sprint 17: rotas web `/cliente` e `/cliente/perfil`; escolha de cadastro em `/cadastro`; cadastro de cliente em `/cadastro/cliente`; redirecionamento de login por papel; API protegida `/api/customer/me`, `GET /api/customer/profile`, `PATCH /api/customer/profile`, `/api/customer/link-visitor-requests`, `POST /api/customer/favorites` e `DELETE /api/customer/favorites/:companyId`; tabelas `customer_favorite_companies` e coluna `customer_profiles.avatar_url`; dashboard do cliente com solicitacoes, propostas publicas aguardando confirmacao, proximos agendamentos, historico, empresas recentes, favoritos, avaliacoes pendentes e notificacoes; edicao de nome, telefone e foto por URL; acao de favoritar no perfil publico da empresa; testes unitarios do servico de cliente.
 - Migration gerada: `database/migrations/0013_needy_frightful_four.sql`.
 - Limitacao registrada: a descoberta por empresas proximas reutiliza a busca publica por cidade/categoria; geolocalizacao completa ainda fica para refinamento posterior.
 - Limitacao registrada: vinculo de visitante por telefone fica pendente ate existir verificacao de telefone; a Sprint 17 implementa vinculo por e-mail verificado.
@@ -195,8 +195,8 @@ Este plano segue a ordem das sprints da especificacao. A proxima sprint nao deve
 ## Sprint 19 - PWA, seguranca, desempenho e deploy
 
 - Requisito confirmado: manifest, icones, instalacao, cache seguro, rate limit, permissoes, isolamento, uploads, idempotencia, matriz de estados, timezone, dinheiro, unidades, limpeza de rascunhos, backups, monitoramento, dominio, SSL, homologacao, testes completos, conta piloto, deploy, correcao e suporte.
-- Implementado localmente: manifest PWA em `apps/web/public/manifest.webmanifest`, icones provisorios em `apps/web/public/icons`, service worker em `apps/web/public/sw.js`, registro em `apps/web/src/pwa.ts`, headers de seguranca em `apps/api/src/middleware/security-headers.ts`, `no-store` para `/api`, rate limit configuravel em `apps/api/src/middleware/rate-limit.ts`, cookies seguros para homologacao/producao, limpeza de expirados em `apps/api/src/maintenance`, script `npm run maintenance:cleanup`, checagem `npm run check:production` e testes unitarios.
-- Decisoes adiadas: hospedagem, dominio, monitoramento, backups, sistema definitivo de envio de erros, provedor real de e-mail, armazenamento privado definitivo, icones finais, homologacao publica, conta piloto real e deploy.
+- Implementado localmente: manifest PWA em `apps/web/public/manifest.webmanifest`, icones provisorios em `apps/web/public/icons`, service worker em `apps/web/public/sw.js`, registro em `apps/web/src/pwa.ts`, headers de seguranca em `apps/api/src/middleware/security-headers.ts`, `no-store` para `/api`, rate limit configuravel em `apps/api/src/middleware/rate-limit.ts`, cookies seguros para homologacao/producao, rewrite SPA em `vercel.json` para refresh de rotas React, limpeza de expirados em `apps/api/src/maintenance`, script `npm run maintenance:cleanup`, checagem `npm run check:production` e testes unitarios.
+- Decisoes/operacoes ainda pendentes: monitoramento, backups, sistema definitivo de envio de erros, provedor real de e-mail em producao, armazenamento privado definitivo, icones finais, homologacao publica final, conta piloto real e validacao operacional do deploy por ambiente.
 - Documento complementar: `docs/SPRINT_12_A_19_FUNCIONAMENTO.md`.
 - Documento de adiados: `docs/ITENS_ADIADOS.md`.
 - Estimativa da especificacao: 22 a 32 horas.

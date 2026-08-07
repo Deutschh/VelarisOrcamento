@@ -48,6 +48,17 @@
 - Recomendacao tecnica: usar icones lineares de Lucide quando houver necessidade de icones, mantendo consistencia com a stack confirmada.
 - Recomendacao tecnica: evitar copiar textos das imagens de referencia; o produto deve usar textos da especificacao e textos aprovados para Velaris Orçamentos.
 
+## Aplicacao atual no produto
+
+- Observado no codigo atual: o painel da empresa usa a direcao escura/premium em
+  uma versao mais operacional, com cards, bordas finas, superficies translucidas,
+  titulos serifados moderados e botoes/controles alinhados ao sistema global.
+- Observado no codigo atual: o perfil publico da empresa suporta imagem de capa,
+  logo, galeria e cor principal configuraveis por dados do perfil publico.
+- Recomendacao tecnica: manter esses elementos como direcao visual inicial, nao
+  como tokens finais da marca. Logo, fontes, icones e paleta oficial continuam
+  pendentes de aprovacao.
+
 ## Possiveis tokens iniciais a validar
 
 - Recomendacao tecnica: `color.black.deep` inspirado em preto profundo.

@@ -1,6 +1,6 @@
 # Guia de Deploy - Velaris Orcamentos
 
-Atualizado em: 2026-08-04.
+Atualizado em: 2026-08-07.
 
 Este guia descreve o processo recomendado para publicar o Velaris Orcamentos com
 frontend na Vercel, API na Render e banco PostgreSQL no Neon. Ele nao deve conter
@@ -32,7 +32,9 @@ www.velarisorcamentos.com.br -> redirecionamento para o dominio raiz
 - O build de producao nao compila arquivos `*.test.ts`.
 - A raiz declara Node `22.x` para a Vercel e `.node-version`/`.nvmrc` mantem
   `22.15.0` para ambientes que suportam versao exata.
-- O `vercel.json` fixa install, build e output do frontend no monorepo.
+- O `vercel.json` fixa install, build, output do frontend no monorepo e rewrite
+  SPA para `index.html`, evitando erro ao atualizar rotas como `/empresa/:slug`,
+  `/cliente` ou `/app`.
 - O e-mail transacional possui adapter `stub` e adapter real `resend`, sem
   dependencia externa no npm. A ativacao real depende de dominio verificado,
   DNS de entregabilidade e `RESEND_API_KEY` no ambiente hospedado.
@@ -230,6 +232,10 @@ Install command:
 ```txt
 npm ci --include=dev
 ```
+
+O arquivo `vercel.json` ja inclui rewrite de SPA. Depois do deploy, atualizar
+diretamente rotas internas como `/empresa/algum-slug`, `/cliente/perfil` ou
+`/app` deve retornar o app React, e nao uma pagina 404 da Vercel.
 
 Se a Render ou a Vercel reaproveitar cache antigo depois de uma correcao de
 build, use a opcao de redeploy limpando o cache do build.
