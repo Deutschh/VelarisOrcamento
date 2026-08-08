@@ -120,6 +120,10 @@ function createRuntimeEmailAdapter(): EmailAdapter {
   try {
     return createEmailAdapterFromEnv();
   } catch (error) {
+    if (["homologation", "production"].includes(env.NODE_ENV)) {
+      throw error;
+    }
+
     logger.error(
       { error },
       "Email adapter could not be configured; falling back to stub provider.",

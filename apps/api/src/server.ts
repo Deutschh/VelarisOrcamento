@@ -143,6 +143,11 @@ function resolveRuntimeDependencies(dependencies: AppDependencies): AppDependenc
     return createRuntimeDependenciesFromEnv();
   } catch (error) {
     logger.error({ error }, "Runtime dependencies could not be created.");
+
+    if (["homologation", "production"].includes(env.NODE_ENV)) {
+      throw error;
+    }
+
     return {};
   }
 }

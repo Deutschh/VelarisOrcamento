@@ -180,7 +180,8 @@ O codigo ja suporta `EMAIL_PROVIDER=resend`. Para ativar envio real:
 4. Adicione os registros no provedor DNS atual do dominio.
 5. Aguarde a verificacao do dominio.
 6. Crie uma API key no Resend.
-7. Configure na Render, nunca no codigo:
+7. Configure no ambiente da API hospedada (por exemplo, nas variaveis do projeto na
+   Vercel), nunca no codigo:
 
 ```txt
 EMAIL_PROVIDER=resend
